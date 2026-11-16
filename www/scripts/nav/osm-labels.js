@@ -1,0 +1,265 @@
+/* ============================================================
+ * Navigator — Bezeichnungen für OSM-Tags (österreichisches Deutsch, Englisch)
+ * Teil von navigation.html. Alle Navigator-Dateien teilen sich
+ * den globalen Gültigkeitsbereich und werden in fester
+ * Reihenfolge geladen (siehe navigation.html).
+ * ============================================================ */
+"use strict";
+
+// Kompakte OSM-Übersetzungen. Unbekannte Tags werden mit Rohwert angezeigt.
+const OSM_TRANSLATIONS = {
+  amenity: { label: "Einrichtung", values: {
+    drinking_water: "Trinkwasserquelle", water_point: "Wasserstelle", shelter: "Unterstand",
+    toilets: "Toiletten", restaurant: "Restaurant", cafe: "Café", pub: "Beisl", bar: "Bar",
+    biergarten: "Biergarten", fast_food: "Imbiss", ice_cream: "Eisdiele", bench: "Sitzbank",
+    picnic_table: "Picknicktisch", bbq: "Grillplatz", fountain: "Springbrunnen",
+    waste_basket: "Mistkübel", parking: "Parkplatz", fuel: "Tankstelle",
+    charging_station: "Ladestation", pharmacy: "Apotheke", hospital: "Krankenhaus",
+    clinic: "Klinik", doctors: "Arztpraxis", dentist: "Zahnarzt", atm: "Bankomat",
+    bank: "Bank", post_office: "Post", post_box: "Postkasten",
+    place_of_worship: "Gotteshaus", school: "Schule", library: "Bibliothek",
+    townhall: "Rathaus", police: "Polizei", fire_station: "Feuerwehr",
+    bus_station: "Bushaltestelle", marketplace: "Marktplatz",
+    community_centre: "Gemeindezentrum", public_bath: "Badeplatz", showers: "Duschen",
+    clock: "Uhr", telephone: "Telefon", ranger_station: "Rangerstation",
+  }},
+  tourism: { label: "Tourismus", values: {
+    viewpoint: "Aussichtspunkt", alpine_hut: "Berghütte", wilderness_hut: "Schutzhütte",
+    picnic_site: "Picknickplatz", camp_site: "Campingplatz",
+    caravan_site: "Wohnmobilstellplatz", hotel: "Hotel", motel: "Motel",
+    guest_house: "Pension", hostel: "Jugendherberge", chalet: "Chalet",
+    apartment: "Ferienwohnung", museum: "Museum", gallery: "Galerie",
+    information: "Information", attraction: "Sehenswürdigkeit", artwork: "Kunstwerk",
+    theme_park: "Freizeitpark", zoo: "Zoo", aquarium: "Aquarium",
+  }},
+  information: { label: "Info-Art", values: {
+    guidepost: "Wegweiser", map: "Karte", board: "Informationstafel",
+    office: "Info-Büro", terminal: "Info-Terminal", audioguide: "Audioguide",
+  }},
+  natural: { label: "Natur", values: {
+    peak: "Gipfel", volcano: "Vulkan", hill: "Hügel", saddle: "Sattel",
+    ridge: "Grat", cliff: "Klippe", rock: "Felsen", stone: "Stein",
+    bare_rock: "Felsfläche", scree: "Geröllfeld", glacier: "Gletscher",
+    spring: "Quelle", water: "Wasserfläche", riverbank: "Flussufer",
+    stream: "Bach", waterfall: "Wasserfall", wood: "Wald", tree: "Baum",
+    tree_row: "Baumreihe", scrub: "Gestrüpp", heath: "Heide",
+    grassland: "Wiese", meadow: "Weide", wetland: "Feuchtgebiet",
+    marsh: "Sumpf", beach: "Strand", bay: "Bucht", cape: "Kap",
+    valley: "Tal", cave_entrance: "Höhleneingang", sinkhole: "Erdfall",
+  }},
+  leisure: { label: "Freizeit", values: {
+    park: "Park", garden: "Garten", nature_reserve: "Naturschutzgebiet",
+    playground: "Spielplatz", sports_centre: "Sportzentrum", pitch: "Sportplatz",
+    swimming_area: "Schwimmbereich", swimming_pool: "Schwimmbad",
+    picnic_table: "Picknicktisch", firepit: "Feuerstelle", fishing: "Angelplatz",
+    bird_hide: "Vogelbeobachtung", outdoor_seating: "Außensitzplätze",
+    slipway: "Slipanlage", sauna: "Sauna", common: "Allmende",
+  }},
+  historic: { label: "Historisch", values: {
+    castle: "Burg", ruins: "Ruine", monument: "Denkmal", memorial: "Mahnmal",
+    wayside_cross: "Wegkreuz", wayside_shrine: "Bildstock",
+    archaeological_site: "Ausgrabungsstätte", city_gate: "Stadttor",
+    fort: "Festung", manor: "Herrenhaus", mine: "Bergwerk",
+    mine_shaft: "Schacht", tomb: "Grabmal", boundary_stone: "Grenzstein",
+    milestone: "Meilenstein",
+  }},
+  man_made: { label: "Bauwerk", values: {
+    tower: "Turm", water_tower: "Wasserturm", lighthouse: "Leuchtturm",
+    survey_point: "Trigonometrischer Punkt", pier: "Steg", bridge: "Brücke",
+    cutline: "Schneise", embankment: "Damm", groyne: "Buhne", mast: "Mast",
+    observatory: "Observatorium", windmill: "Windmühle", watermill: "Wassermühle",
+    works: "Fabrik", wastewater_plant: "Kläranlage", cross: "Kreuz",
+    cairn: "Steinmännchen", monitoring_station: "Messstation",
+    storage_tank: "Tank", silo: "Silo", beacon: "Bake",
+  }},
+  place: { label: "Ortsart", values: {
+    peak: "Gipfel", city: "Stadt", town: "Kleinstadt", village: "Dorf",
+    hamlet: "Weiler", isolated_dwelling: "Einzelgehöft", farm: "Bauernhof",
+    locality: "Flurname", suburb: "Stadtteil", neighbourhood: "Nachbarschaft",
+    quarter: "Viertel", island: "Insel", islet: "kleine Insel", square: "Platz",
+  }},
+  highway: { label: "Wegtyp", values: {
+    path: "Wanderweg", footway: "Gehweg", track: "Forst- oder Güterweg",
+    steps: "Stiege", bridleway: "Reitweg", cycleway: "Radweg",
+    pedestrian: "Fußgängerzone", living_street: "Spielstraße",
+    residential: "Anwohnerstraße", service: "Zufahrtsweg",
+    unclassified: "Nebenstraße", tertiary: "Kreisstraße",
+    secondary: "Landstraße", primary: "Bundesstraße", trunk: "Schnellstraße",
+    motorway: "Autobahn", bus_stop: "Bushaltestelle",
+    crossing: "Schutzweg", traffic_signals: "Ampel",
+    trailhead: "Wanderstartpunkt", rest_area: "Rastplatz",
+  }},
+  route: { label: "Routenart", values: {
+    hiking: "Wanderroute", foot: "Fußroute", bicycle: "Radroute",
+    mtb: "Mountainbike-Route", running: "Laufstrecke", bus: "Buslinie",
+    train: "Bahnlinie", ferry: "Fährverbindung", ski: "Ski-Route",
+    horse: "Reitroute",
+  }},
+  sac_scale: { label: "SAC-Wanderskala", values: {
+    hiking: "T1 · Wandern", mountain_hiking: "T2 · Bergwandern",
+    demanding_mountain_hiking: "T3 · Anspruchsvolles Bergwandern",
+    alpine_hiking: "T4 · Alpinwandern",
+    demanding_alpine_hiking: "T5 · Anspruchsvolles Alpinwandern",
+    difficult_alpine_hiking: "T6 · Schwieriges Alpinwandern",
+  }},
+  trail_visibility: { label: "Wegsichtbarkeit", values: {
+    excellent: "Ausgezeichnet", good: "Gut", intermediate: "Mittelmäßig",
+    bad: "Schlecht", horrible: "Sehr schlecht", no: "Nicht vorhanden",
+  }},
+  shelter_type: { label: "Unterstandsart", values: {
+    basic_hut: "Einfache Hütte", lean_to: "Offener Unterstand",
+    picnic_shelter: "Picknickunterstand", public_transport: "Wartehalle",
+    rock_shelter: "Felsunterstand", weather_shelter: "Wetterschutz",
+    field_shelter: "Feldunterstand", gazebo: "Pavillon",
+  }},
+  emergency: { label: "Notfall", values: {
+    shelter: "Notunterkunft", phone: "Notruftelefon",
+    alpine_hut: "Alpiner Notunterstand", mountain_rescue: "Bergwacht",
+    assembly_point: "Sammelplatz", access_point: "Rettungspunkt",
+    fire_hydrant: "Hydrant",
+  }},
+  waterway: { label: "Gewässer", values: {
+    stream: "Bach", river: "Fluss", riverbank: "Flussufer", canal: "Kanal",
+    ditch: "Graben", drain: "Abfluss", waterfall: "Wasserfall",
+    weir: "Wehr", dam: "Damm", spring: "Quelle", rapids: "Stromschnellen",
+    stream_pool: "Wasserbecken",
+  }},
+  surface: { label: "Oberfläche", values: {
+    asphalt: "Asphalt", concrete: "Beton", paving_stones: "Pflastersteine",
+    sett: "Kopfsteinpflaster", cobblestone: "Kopfsteinpflaster",
+    gravel: "Schotter", fine_gravel: "Feinschotter",
+    pebblestone: "Kieselsteine", ground: "Erdreich", dirt: "Erde",
+    earth: "Erde", mud: "Schlamm", sand: "Sand", grass: "Gras",
+    grass_paver: "Rasengitter", wood: "Holz", metal: "Metall",
+    unpaved: "Unbefestigt", paved: "Befestigt", compacted: "Verdichtet",
+    rock: "Fels", stone: "Stein",
+  }},
+  smoothness: { label: "Wegbeschaffenheit", values: {
+    excellent: "Ausgezeichnet", good: "Gut", intermediate: "Mittelmäßig",
+    bad: "Rauer Weg", very_bad: "Sehr rau", horrible: "Kaum befahrbar",
+    very_horrible: "Nicht befahrbar", impassable: "Unpassierbar",
+  }},
+  access: { label: "Zugang", values: {
+    yes: "Erlaubt", no: "Verboten", permissive: "Geduldet",
+    private: "Privat", destination: "Nur Zielverkehr",
+    customers: "Für Kunden", delivery: "Nur Lieferung",
+    agricultural: "Nur Landwirtschaft", forestry: "Nur Forstwirtschaft",
+    designated: "Ausgewiesen", unknown: "Unbekannt",
+  }},
+  fee: { label: "Gebühr", values: { yes: "Kostenpflichtig", no: "Kostenlos", donation: "Spendenbasis" }},
+  barrier: { label: "Sperre", values: {
+    gate: "Gatter", fence: "Zaun", hedge: "Hecke", bollard: "Poller",
+    lift_gate: "Schranken", stile: "Zaunübergang", cattle_grid: "Viehrost",
+    cycle_barrier: "Umlaufschranke", turnstile: "Drehkreuz",
+    kissing_gate: "Selbstschließendes Gatter", block: "Block",
+    wall: "Mauer", city_wall: "Stadtmauer", retaining_wall: "Stützmauer",
+    entrance: "Eingang",
+  }},
+  wheelchair: { label: "Rollstuhlgeeignet", values: { yes: "Ja", no: "Nein", limited: "Eingeschränkt", designated: "Ausgewiesen" }},
+  drinking_water: { label: "Trinkwasser", values: { yes: "Trinkwasser vorhanden", no: "Kein Trinkwasser", treated: "Aufbereitet", untreated: "Unbehandelt" }},
+  boundary: { label: "Grenztyp", values: {
+    national_park: "Nationalpark", protected_area: "Schutzgebiet",
+    administrative: "Verwaltungsgrenze", nature_reserve: "Naturschutzgebiet",
+  }},
+  religion: { label: "Religion", values: {
+    christian: "Christlich", catholic: "Katholisch", protestant: "Protestantisch",
+    jewish: "Jüdisch", muslim: "Muslimisch", buddhist: "Buddhistisch",
+    hindu: "Hinduistisch", taoist: "Daoistisch", shinto: "Shintoistisch",
+  }},
+  shop: { label: "Geschäft", values: {
+    bakery: "Bäckerei", butcher: "Fleischhauerei", convenience: "Nahversorger",
+    supermarket: "Supermarkt", greengrocer: "Obst- und Gemüsegeschäft",
+    beverages: "Getränkemarkt", outdoor: "Outdoorladen",
+    sports: "Sportgeschäft", bicycle: "Radgeschäft", farm: "Hofladen",
+    cheese: "Käseladen", deli: "Feinkost", alcohol: "Spirituosenhandel",
+    clothes: "Bekleidungsgeschäft", shoes: "Schuhgeschäft", books: "Buchladen",
+    souvenirs: "Souvenirladen", travel_agency: "Reisebüro",
+    hairdresser: "Friseur", chemist: "Drogerie",
+  }},
+  vending: { label: "Verkaufsautomat", values: {
+    drinks: "Getränkeautomat", food: "Essensautomat", coffee: "Kaffeeautomat",
+    water: "Wasserautomat", snacks: "Snackautomat", cigarettes: "Zigarettenautomat",
+    milk: "Milchautomat", bicycle_tube: "Schlauchautomat",
+  }},
+  crossing: { label: "Überweg", values: { zebra: "Schutzweg", traffic_signals: "Ampel", unmarked: "Ohne Markierung", marked: "Markiert" }},
+  incline: { label: "Steigung" }, width: { label: "Breite" }, est_width: { label: "Geschätzte Breite" },
+  ele: { label: "Höhe über NN" }, name: { label: "Name" }, "name:de": { label: "Deutscher Name" },
+  operator: { label: "Betreiber" }, network: { label: "Netzwerk" }, ref: { label: "Referenz" },
+  website: { label: "Webseite" }, phone: { label: "Telefon" }, "contact:phone": { label: "Telefon" },
+  "contact:website": { label: "Webseite" }, email: { label: "E-Mail" }, "contact:email": { label: "E-Mail" },
+  opening_hours: { label: "Öffnungszeiten" }, description: { label: "Beschreibung" },
+  wikipedia: { label: "Wikipedia" }, wikidata: { label: "Wikidata" }, image: { label: "Bild" },
+  note: { label: "Hinweis" }, capacity: { label: "Kapazität" }, seats: { label: "Sitzplätze" },
+  lit: { label: "Beleuchtet", values: { yes: "Ja", no: "Nein", automatic: "Automatisch" }},
+  covered: { label: "Überdacht", values: { yes: "Ja", no: "Nein", partial: "Teilweise" }},
+  indoor: { label: "Innen", values: { yes: "Ja", no: "Nein" }},
+  seasonal: { label: "Saisonal", values: { yes: "Saisonal", no: "Ganzjährig" }},
+  dog: { label: "Hund", values: { yes: "Hunde erlaubt", no: "Hunde verboten", leashed: "An der Leine" }},
+  "addr:city": { label: "Stadt" }, "addr:street": { label: "Straße" },
+  "addr:housenumber": { label: "Hausnummer" }, "addr:postcode": { label: "Postleitzahl" },
+  "addr:country": { label: "Land" }, "addr:state": { label: "Bundesland" },
+  "addr:suburb": { label: "Ortsteil" }, is_in: { label: "Liegt in" },
+};
+
+const TAG_PRIORITY = [
+  "name", "name:de", "tourism", "natural", "amenity", "leisure",
+  "historic", "place", "highway", "route", "sac_scale",
+  "trail_visibility", "surface", "smoothness", "access", "fee",
+  "barrier", "ele", "opening_hours", "operator",
+  "website", "contact:website", "phone", "contact:phone",
+  "wikipedia", "description",
+];
+
+/* Englisch: OSM-Tags sind selbst englisch. Angezeigt wird der lesbar
+ * gemachte Rohwert ("drinking_water" → "Drinking water"); hier stehen
+ * nur Abweichungen davon. */
+const OSM_TRANSLATIONS_EN = {
+  amenity: { label: "Amenity", values: { drinking_water: "Drinking water", water_point: "Water point", waste_basket: "Waste bin", bbq: "Barbecue", atm: "Cash machine", post_box: "Post box", place_of_worship: "Place of worship", public_bath: "Bathing place" }},
+  information: { label: "Information type", values: { office: "Information office", board: "Information board" }},
+  natural: { label: "Natural feature", values: { bare_rock: "Bare rock", water: "Water" }},
+  man_made: { label: "Structure", values: { survey_point: "Survey point", cairn: "Cairn", wastewater_plant: "Sewage works" }},
+  place: { label: "Place type", values: { isolated_dwelling: "Isolated farmstead", locality: "Locality" }},
+  highway: { label: "Way type", values: { path: "Path", track: "Field or forest track", living_street: "Living street", residential: "Residential road", service: "Service road", unclassified: "Minor road", tertiary: "Tertiary road", secondary: "Secondary road", primary: "Primary road", trunk: "Trunk road", crossing: "Pedestrian crossing" }},
+  route: { label: "Route type", values: { hiking: "Hiking route", foot: "Walking route", bicycle: "Cycle route", mtb: "Mountain bike route", running: "Running route", ski: "Ski route", horse: "Bridle route", ferry: "Ferry" }},
+  sac_scale: { label: "SAC hiking scale", values: {
+    hiking: "T1 · Hiking", mountain_hiking: "T2 · Mountain hiking",
+    demanding_mountain_hiking: "T3 · Demanding mountain hiking",
+    alpine_hiking: "T4 · Alpine hiking",
+    demanding_alpine_hiking: "T5 · Demanding alpine hiking",
+    difficult_alpine_hiking: "T6 · Difficult alpine hiking",
+  }},
+  trail_visibility: { label: "Trail visibility", values: { intermediate: "Moderate", horrible: "Very bad", no: "None" }},
+  shelter_type: { label: "Shelter type", values: { basic_hut: "Basic hut", lean_to: "Lean-to", public_transport: "Waiting shelter" }},
+  emergency: { label: "Emergency", values: { shelter: "Emergency shelter", phone: "Emergency phone", alpine_hut: "Alpine emergency shelter", access_point: "Rescue point" }},
+  waterway: { label: "Waterway" },
+  surface: { label: "Surface", values: { sett: "Cobblestones", fine_gravel: "Fine gravel", pebblestone: "Pebbles", grass_paver: "Grass pavers" }},
+  smoothness: { label: "Smoothness", values: { intermediate: "Moderate", bad: "Rough", very_bad: "Very rough", horrible: "Barely passable", very_horrible: "Not passable", impassable: "Impassable" }},
+  access: { label: "Access", values: { yes: "Allowed", no: "Not allowed", permissive: "Tolerated", destination: "Access only", customers: "Customers only", delivery: "Deliveries only", agricultural: "Agricultural only", forestry: "Forestry only" }},
+  fee: { label: "Fee", values: { yes: "Fee required", no: "Free", donation: "Donation" }},
+  barrier: { label: "Barrier", values: { lift_gate: "Barrier gate", stile: "Stile", cattle_grid: "Cattle grid", kissing_gate: "Kissing gate" }},
+  wheelchair: { label: "Wheelchair accessible" },
+  drinking_water: { label: "Drinking water", values: { yes: "Drinking water available", no: "No drinking water" }},
+  boundary: { label: "Boundary type" },
+  shop: { label: "Shop", values: { convenience: "Convenience store", greengrocer: "Greengrocer", beverages: "Drinks shop", outdoor: "Outdoor shop", sports: "Sports shop", bicycle: "Bicycle shop", farm: "Farm shop", cheese: "Cheese shop", alcohol: "Off-licence", clothes: "Clothes shop", shoes: "Shoe shop", books: "Bookshop", souvenirs: "Souvenir shop", chemist: "Chemist" }},
+  vending: { label: "Vending machine", values: { drinks: "Drinks machine", food: "Food machine", coffee: "Coffee machine", water: "Water machine", snacks: "Snack machine", cigarettes: "Cigarette machine", milk: "Milk machine", bicycle_tube: "Bicycle tube machine" }},
+  crossing: { label: "Crossing", values: { zebra: "Zebra crossing", unmarked: "Unmarked", marked: "Marked" }},
+  incline: { label: "Gradient" }, est_width: { label: "Estimated width" },
+  ele: { label: "Elevation above sea level" }, "name:de": { label: "German name" },
+  "contact:phone": { label: "Phone" }, "contact:website": { label: "Website" },
+  "contact:email": { label: "Email" }, email: { label: "Email" },
+  opening_hours: { label: "Opening hours" },
+  seasonal: { label: "Seasonal", values: { yes: "Seasonal", no: "All year" }},
+  dog: { label: "Dogs", values: { yes: "Dogs allowed", no: "No dogs", leashed: "On a lead" }},
+  "addr:city": { label: "City" }, "addr:street": { label: "Street" },
+  "addr:housenumber": { label: "House number" }, "addr:postcode": { label: "Postcode" },
+  "addr:country": { label: "Country" }, "addr:state": { label: "State" },
+  "addr:suburb": { label: "District" }, is_in: { label: "Located in" },
+};
+/* Tabelle der aktuellen Sprache */
+function osmTable() {
+  return window.AndromedaI18n && AndromedaI18n.lang() === "en" ? OSM_TRANSLATIONS_EN : OSM_TRANSLATIONS;
+}
+/* "drinking_water" → "Drinking water" */
+function humanizeOsm(s) {
+  return String(s).replace(/^(contact|addr):/, "").replace(/[_:]/g, " ").replace(/^./, c => c.toUpperCase());
+}

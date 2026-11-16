@@ -1,0 +1,2782 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#2a6fbf">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="favicon.png">
+<title>Andromeda-Explorer</title>
+
+<link rel="stylesheet" href="stylesheets/base.css">
+<link rel="stylesheet" href="stylesheets/layout.css">
+<link rel="stylesheet" href="stylesheets/components.css">
+<link rel="stylesheet" href="stylesheets/map.css">
+<link rel="stylesheet" href="stylesheets/site.css">
+<link rel="stylesheet" href="stylesheets/andromap.css">
+
+<style>
+
+  /* ---------- Hero ---------- */
+  #hero {
+    background: var(--panel);
+    padding: 40px calc(16px + var(--safe-right)) 24px calc(16px + var(--safe-left));
+    border-bottom: 1px solid var(--border);
+  }
+  #hero .hero-inner { max-width: 1180px; margin: 0 auto; text-align: center; }
+  #hero h1 {
+    margin: 0 0 10px 0;
+    font-size: 32px; font-weight: 800;
+    letter-spacing: -0.02em; line-height: 1.15;
+    color: var(--text);
+  }
+  #hero .sub {
+    margin: 0 0 24px 0;
+    color: var(--text-muted);
+    font-size: 15px; line-height: 1.5;
+  }
+  #hero .search-hint {
+    margin-top: 12px;
+    color: var(--text-muted); font-size: 12.5px;
+  }
+
+  /* ---------- Suchleiste ---------- */
+  .search-form {
+    max-width: 780px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    gap: 8px;
+    background: var(--bg);
+    border-radius: var(--radius);
+    padding: 6px;
+    border: 1px solid var(--border);
+  }
+  .search-form .input-wrap {
+    position: relative; min-width: 0;
+    display: flex; align-items: center;
+  }
+  .search-form .input-wrap .search-icon {
+    position: absolute; left: 14px;
+    color: var(--text-muted); font-size: 15px;
+    pointer-events: none;
+  }
+  .search-form input[type=text] {
+    width: 100%;
+    padding: 12px 38px 12px 42px;
+    border: none; outline: none;
+    background: transparent; color: var(--text);
+    font-size: 15px;
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+  }
+  .search-form .input-clear {
+    position: absolute; right: 6px;
+    width: 28px; height: 28px;
+    border: none; background: transparent;
+    color: var(--text-muted);
+    font-size: 18px; line-height: 1;
+    border-radius: 50%; cursor: pointer;
+    display: none;
+    align-items: center; justify-content: center;
+  }
+  .search-form .input-clear.show { display: flex; }
+  .search-form .input-clear:hover { background: var(--primary-soft); color: var(--text); }
+
+  .search-form select {
+    padding: 12px 32px 12px 14px;
+    border: none; outline: none;
+    background: transparent; color: var(--text);
+    font-size: 14px;
+    -webkit-appearance: none; appearance: none;
+    border-left: 1px solid var(--border);
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23667085'><path d='M7 10l5 5 5-5z'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 20px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .search-form button[type=submit] {
+    padding: 12px 22px;
+    border: none; border-radius: var(--radius-sm);
+    background: var(--primary); color: white;
+    font-size: 14px; font-weight: 700;
+    transition: background .12s;
+    white-space: nowrap;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .search-form button[type=submit]:active { background: var(--primary-dark); }
+  .search-form button[type=submit]:disabled { opacity: .5; cursor: not-allowed; }
+
+  .search-form .filter-btn {
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--panel);
+    color: var(--text);
+    font-size: 14px; font-weight: 600;
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: inherit;
+    transition: background .12s;
+    white-space: nowrap;
+  }
+  .search-form .filter-btn:hover { background: var(--primary-soft); }
+  .search-form .filter-btn.active {
+    background: var(--primary); color: white; border-color: var(--primary);
+  }
+  .search-form .filter-btn .fb-count {
+    background: rgba(255,255,255,.3);
+    color: inherit;
+    font-size: 11px; font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 8px;
+  }
+  .search-form .filter-btn:not(.active) .fb-count {
+    background: var(--primary-soft);
+    color: var(--primary-dark);
+  }
+
+
+  /* ---------- Ortssuche-Hinweis unter dem Suchfeld ---------- */
+  .place-search-hint {
+    max-width: 780px;
+    margin: 8px auto 0 auto;
+    text-align: center;
+    /* Reserviert exakt die Höhe des Buttons, damit die Karte nicht
+       nach unten springt, sobald der Button eingeblendet wird. */
+    min-height: 31px;
+  }
+  .place-search-hint.hidden {
+    /* display: block !important überschreibt das globale
+       .hidden { display: none !important; } aus base.css.
+       Statt ausgeblendet zu werden, bleibt der Container im Layout
+       und reserviert seinen Platz — er ist nur unsichtbar. */
+    display: block !important;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  .place-search-hint button {
+    background: transparent;
+    border: 1px dashed var(--border-strong);
+    color: var(--primary);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 16px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background .12s, border-color .12s;
+    font-family: inherit;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .place-search-hint button:hover {
+    background: var(--primary-soft);
+    border-color: var(--primary);
+  }
+  .place-search-hint strong { font-weight: 700; }
+  @media (max-width: 600px) {
+    .place-search-hint button { font-size: 12px; padding: 7px 12px; }
+    .place-search-hint { min-height: 29px; margin-top: 6px; }
+  }
+
+  /* ---------- Ortssuche-Modal ---------- */
+  .place-search-bar {
+    display: flex; gap: 6px; margin-bottom: 12px;
+  }
+  .place-search-bar input {
+    flex: 1; min-width: 0;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    background: var(--panel);
+    color: var(--text);
+    font-family: inherit;
+  }
+  .place-search-bar input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(42,111,191,.15);
+  }
+  .place-search-bar button {
+    padding: 10px 16px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: var(--primary);
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .place-search-bar button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .place-pick-list {
+    display: flex; flex-direction: column; gap: 6px;
+    max-height: 320px; overflow-y: auto;
+    margin-bottom: 16px;
+  }
+  .place-pick-item {
+    padding: 10px 14px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background .12s, border-color .12s;
+    text-align: left;
+    font-family: inherit;
+    color: var(--text);
+    width: 100%;
+  }
+  .place-pick-item:hover {
+    background: var(--primary-soft);
+    border-color: var(--primary);
+  }
+  .place-pick-item .pp-name {
+    font-size: 14px; font-weight: 600;
+    color: var(--text); margin-bottom: 2px;
+    word-break: break-word;
+  }
+  .place-pick-item .pp-detail {
+    font-size: 11.5px; color: var(--text-muted);
+    word-break: break-word; line-height: 1.4;
+  }
+  .placeholder-small {
+    padding: 20px 10px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  /* ---------- Karte ---------- */
+  #mapSection {
+    position: relative;
+    height: 460px;
+    background: #dfe6ec;
+    overflow: hidden;
+  }
+  body.dark #mapSection { background: #1a1d21; }
+  #map { width: 100%; height: 100%; }
+  #map.locked { pointer-events: none; }
+  /* Marker und Popups bleiben auch bei gesperrter Karte bedienbar */
+  #map.locked .leaflet-marker-pane,
+  #map.locked .leaflet-popup-pane,
+  #map.locked .leaflet-tooltip-pane {
+    pointer-events: auto;
+  }
+
+  #mapHint {
+    position: absolute; top: 14px; left: 50%;
+    transform: translateX(-50%);
+    background: rgba(42,111,191,.95); color: white;
+    padding: 9px 18px; border-radius: 22px;
+    font-size: 13px; font-weight: 600;
+    z-index: 800; box-shadow: var(--shadow-md);
+    max-width: 90%; text-align: center;
+    line-height: 1.35;
+    pointer-events: none;
+    transition: opacity .2s;
+  }
+  #mapHint.hidden { opacity: 0; }
+
+  .map-actions {
+    position: absolute;
+    bottom: 14px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; gap: 6px; flex-wrap: wrap;
+    justify-content: center;
+    z-index: 900;
+    max-width: calc(100% - 24px);
+    align-items: center;
+  }
+  .map-action-btn {
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 9px 14px;
+    border-radius: 22px;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: var(--shadow-md);
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background .12s, color .12s, border-color .12s, transform .1s;
+    white-space: nowrap;
+  }
+  .map-action-btn:active { transform: scale(0.96); }
+  .map-action-btn:hover { background: var(--primary-soft); }
+  .map-action-btn.active {
+    background: var(--primary); color: white; border-color: var(--primary);
+  }
+  .map-action-btn .ma-icon { font-size: 15px; }
+
+  #mapSection .map-float.tr { z-index: 900; }
+
+  /* ---------- Marker ---------- */
+  .tour-map-marker { background: transparent !important; border: none !important; }
+  .tour-map-marker .bubble {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: var(--primary);
+    border: 3px solid white;
+    box-shadow: 0 3px 10px rgba(0,0,0,.35);
+    color: white; font-size: 15px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: transform .12s;
+  }
+  .tour-map-marker .bubble:hover { transform: scale(1.1); }
+  .tour-map-marker .bubble.hiking { background: #2e8b57; }
+  .tour-map-marker .bubble.cycling { background: #2a6fbf; }
+  .tour-map-marker .bubble.running { background: #b26a00; }
+  .tour-map-marker .bubble.skiing { background: #5a9bc5; }
+  .tour-map-marker .bubble.mixed { background: #5b6470; }
+  .tour-map-marker .bubble.stack {
+    position: relative;
+    box-shadow: 0 3px 10px rgba(0,0,0,.35), 4px -4px 0 -1px white, 4px -4px 0 1px rgba(0,0,0,.18);
+  }
+  .tour-map-marker .stack-count {
+    position: absolute; top: -9px; right: -11px;
+    min-width: 20px; height: 20px; padding: 0 5px; box-sizing: border-box;
+    border-radius: 10px; background: #d93025; color: white;
+    border: 2px solid white;
+    font: 700 11px/16px system-ui, sans-serif; text-align: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,.3);
+  }
+  .tour-map-marker .spider-hub {
+    width: 12px; height: 12px; border-radius: 50%;
+    background: #555; border: 2px solid white; box-sizing: border-box;
+    box-shadow: 0 1px 4px rgba(0,0,0,.35);
+  }
+
+  .tour-popup { min-width: 200px; }
+  .tour-popup h4 {
+    margin: 0 0 4px 0;
+    font-size: 14px; font-weight: 700;
+    color: var(--text); line-height: 1.3;
+  }
+  .tour-popup .tp-meta {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    font-variant-numeric: tabular-nums;
+  }
+  .tour-popup button {
+    width: 100%;
+    padding: 8px 12px;
+    border: none; border-radius: var(--radius-sm);
+    background: var(--primary); color: white;
+    font-size: 13px; font-weight: 600;
+    font-family: inherit; cursor: pointer;
+  }
+  .tour-popup button:active { background: var(--primary-dark); }
+
+  /* ---------- Ergebnisse ---------- */
+  #results {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 32px calc(16px + var(--safe-right)) 40px calc(16px + var(--safe-left));
+  }
+  #results .results-head {
+    display: flex; align-items: baseline; gap: 12px;
+    flex-wrap: wrap; margin-bottom: 18px;
+  }
+  #results h2 {
+    margin: 0; font-size: 20px; font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+  #results .count {
+    color: var(--text-muted); font-size: 13.5px; font-weight: 600;
+  }
+
+  /* Hinweis bei sehr vielen Treffern */
+  .truncate-msg {
+    background: #fff4e5;
+    border: 1px solid #f0c987;
+    color: #8a5a00;
+    border-radius: var(--radius-sm);
+    padding: 11px 14px;
+    font-size: 13px;
+    line-height: 1.5;
+    margin-bottom: 16px;
+  }
+  body.dark .truncate-msg {
+    background: rgba(178,106,0,.15);
+    border-color: rgba(255,183,77,.35);
+    color: #ffb74d;
+  }
+  .truncate-msg .tm-line { margin-bottom: 3px; }
+  .truncate-msg .tm-line strong { font-weight: 700; margin-right: 4px; }
+  .truncate-msg .tm-hint { font-size: 12px; opacity: .85; }
+
+  .tour-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  @media (min-width: 600px) {
+    .tour-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (min-width: 960px) {
+    .tour-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  .tour-card {
+    background: var(--panel);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    padding: 0 0 14px 0;
+    cursor: pointer;
+    transition: transform .12s, box-shadow .12s, border-color .12s;
+    display: flex; flex-direction: column;
+    min-height: 200px;
+    position: relative; overflow: hidden;
+  }
+  .tour-card::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: var(--primary);
+    z-index: 1;
+  }
+  .tour-card.hiking::before { background: #2e8b57; }
+  .tour-card.cycling::before { background: #2a6fbf; }
+  .tour-card.running::before { background: #b26a00; }
+  .tour-card.skiing::before { background: #5a9bc5; }
+  .tour-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--primary);
+  }
+  .tour-card:active { transform: scale(0.995); }
+
+  .tour-card .card-thumb {
+    width: 100%; height: 140px;
+    object-fit: cover; display: block;
+    background: var(--bg);
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+  .tour-card .card-thumb-missing {
+    height: 140px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg);
+    color: var(--text-muted);
+    font-size: 32px;
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+
+  .tour-card .card-body {
+    padding: 12px 14px 0 14px;
+    display: flex; flex-direction: column; flex: 1;
+  }
+  .tour-card .card-head {
+    display: flex; align-items: flex-start; gap: 10px;
+    margin-bottom: 8px;
+  }
+  .tour-card .activity {
+    width: 32px; height: 32px;
+    border-radius: 9px;
+    background: var(--primary-soft);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .tour-card.hiking .activity { background: rgba(46,139,87,.14); }
+  .tour-card.cycling .activity { background: rgba(42,111,191,.14); }
+  .tour-card.running .activity { background: rgba(178,106,0,.14); }
+  .tour-card.skiing .activity { background: rgba(90,155,197,.14); }
+
+  .tour-card .title-wrap { flex: 1; min-width: 0; }
+  .tour-card .title {
+    font-size: 15px; font-weight: 700;
+    line-height: 1.3; margin-bottom: 3px;
+    word-break: break-word;
+    color: var(--text);
+  }
+  .tour-card .loc {
+    color: var(--text-muted);
+    font-size: 12px; line-height: 1.3;
+    overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .tour-card .diff-badge {
+    display: inline-flex; align-items: center;
+    padding: 3px 9px; border-radius: 10px;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: .02em; flex-shrink: 0;
+    background: var(--bg); color: var(--text-muted);
+    white-space: nowrap;
+  }
+  .tour-card .diff-badge.level-1 { background: rgba(46,139,87,.16); color: #2e8b57; }
+  .tour-card .diff-badge.level-2 { background: rgba(139,195,74,.18); color: #558b2f; }
+  .tour-card .diff-badge.level-3 { background: rgba(249,168,37,.18); color: #a56b00; }
+  .tour-card .diff-badge.level-4 { background: rgba(230,81,0,.16); color: #c04300; }
+  .tour-card .diff-badge.level-5 { background: rgba(192,57,43,.16); color: #b02a1c; }
+  body.dark .tour-card .diff-badge.level-1 { color: #66bb6a; }
+  body.dark .tour-card .diff-badge.level-2 { color: #aed581; }
+  body.dark .tour-card .diff-badge.level-3 { color: #ffb74d; }
+  body.dark .tour-card .diff-badge.level-4 { color: #ff8a65; }
+  body.dark .tour-card .diff-badge.level-5 { color: #e57373; }
+
+  .tour-card .stats {
+    display: flex; gap: 12px; flex-wrap: wrap;
+    font-size: 12.5px; color: var(--text-muted);
+    margin-bottom: 10px;
+    font-variant-numeric: tabular-nums;
+  }
+  .tour-card .stats .s { display: flex; align-items: baseline; gap: 4px; }
+  .tour-card .stats .s b { color: var(--text); font-weight: 700; }
+
+  /* Rechte Spalte im Card-Header: Schwierigkeit + Rundtour */
+  .tour-card .card-head-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .tour-card .roundtrip-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 8px;
+    background: rgba(42,111,191,.12);
+    color: var(--primary-dark);
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+  }
+  body.dark .tour-card .roundtrip-badge {
+    background: rgba(74,144,226,.15);
+    color: var(--primary);
+  }
+  .tour-card .roadbike-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 8px;
+    background: rgba(230,126,34,.14);
+    color: #b26a00;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+  }
+  body.dark .tour-card .roadbike-badge {
+    background: rgba(230,126,34,.18);
+    color: #ffb74d;
+  }
+
+  .tour-card .tags {
+    display: flex; gap: 5px; flex-wrap: wrap;
+    margin-top: auto;
+  }
+  .tour-card .tag {
+    background: var(--bg); color: var(--text-muted);
+    padding: 3px 9px; border-radius: 10px;
+    font-size: 11px; font-weight: 600;
+  }
+
+  /* ---------- Speicher-Pin auf der Tour-Karte ---------- */
+  .tour-card .card-save {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    border: none;
+    background: var(--bg);
+    color: var(--text-muted);
+    font-size: 15px;
+    line-height: 1;
+    padding: 0;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 2;
+    transition: background .12s, color .12s, transform .1s;
+    font-family: inherit;
+  }
+  .tour-card .card-save:hover {
+    background: var(--primary-soft);
+    color: var(--text);
+  }
+  .tour-card .card-save:active { transform: scale(.9); }
+  .tour-card .card-save.saved {
+    background: var(--primary);
+    color: white;
+  }
+  .tour-card .card-save.saved:hover {
+    background: var(--primary-dark);
+    color: white;
+  }
+
+  /* ---------- Gespeicherte Touren ---------- */
+  #savedSection {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 8px calc(16px + var(--safe-right)) 40px calc(16px + var(--safe-left));
+  }
+  #savedSection .results-head {
+    display: flex; align-items: baseline; gap: 12px;
+    flex-wrap: wrap; margin-bottom: 18px;
+  }
+  #savedSection h2 {
+    margin: 0; font-size: 20px; font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+  #savedSection .count {
+    color: var(--text-muted); font-size: 13.5px; font-weight: 600;
+  }
+  #savedSection .state-msg {
+    background: var(--panel);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 30px 20px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13.5px;
+    line-height: 1.5;
+  }
+  #savedSection .state-msg .emoji {
+    font-size: 30px; display: block;
+    margin-bottom: 8px; opacity: .5;
+  }
+
+  .state-msg {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: var(--text-muted);
+    padding: 40px 20px;
+    font-size: 13.5px; line-height: 1.5;
+    background: var(--panel);
+    border-radius: var(--radius);
+    border: 1px dashed var(--border);
+  }
+  .state-msg .emoji {
+    font-size: 34px; display: block;
+    margin-bottom: 8px; opacity: .5;
+  }
+  .state-msg .hint {
+    font-size: 12px; margin-top: 6px; opacity: .75;
+  }
+  .state-msg .empty-place-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: 1px dashed var(--border-strong);
+    color: var(--primary);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 16px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-family: inherit;
+    transition: background .12s, border-color .12s;
+  }
+  .state-msg .empty-place-btn:hover {
+    background: var(--primary-soft);
+    border-color: var(--primary);
+  }
+  .state-msg.error {
+    color: var(--danger);
+    border-color: rgba(192,57,43,.4);
+  }
+  body.dark .state-msg.error { border-color: rgba(229,115,115,.4); }
+
+  #pagination {
+    display: none;
+    align-items: center; justify-content: center;
+    gap: 14px; margin-top: 24px; padding: 10px 0;
+  }
+  #pagination.show { display: flex; }
+  #pagination button {
+    padding: 9px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--panel); color: var(--text);
+    font-size: 13.5px; font-weight: 600;
+    font-family: inherit; cursor: pointer;
+    transition: background .12s, border-color .12s;
+  }
+  #pagination button:hover:not(:disabled) {
+    background: var(--primary-soft);
+    border-color: var(--primary);
+  }
+  #pagination button:disabled { opacity: .4; cursor: not-allowed; }
+  #pagination .page-info {
+    font-size: 13.5px; color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- Detail-Such-Dialog ---------- */
+  .detail-group {
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .detail-group:last-of-type { border-bottom: none; padding-bottom: 0; }
+  .detail-group > strong {
+    display: block; font-size: 11.5px;
+    text-transform: uppercase; letter-spacing: .05em;
+    color: var(--text-muted); font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .range-line {
+    display: grid;
+    grid-template-columns: 40px 1fr 70px;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .range-line .rl-lbl {
+    font-size: 13px; color: var(--text); font-weight: 600;
+  }
+  .range-line input[type=range] {
+    width: 100%;
+    accent-color: var(--primary);
+    cursor: pointer;
+  }
+  .range-line .rl-val {
+    font-size: 12.5px;
+    font-family: ui-monospace, Menlo, monospace;
+    color: var(--text);
+    text-align: right;
+  }
+  .diff-line {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .diff-line select {
+    flex: 1;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 13.5px;
+    background: var(--panel);
+    color: var(--text);
+    font-family: inherit;
+  }
+  .diff-line .diff-sep {
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+  .detail-region-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    background: var(--panel);
+    color: var(--text);
+    font-family: inherit;
+  }
+  .detail-region-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(42,111,191,.15);
+  }
+  .detail-hint {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    margin-top: 6px;
+    line-height: 1.4;
+  }
+
+  /* ---------- Mobile ---------- */
+  @media (max-width: 900px) {
+
+    #hero { padding-top: 28px; padding-bottom: 18px; }
+    #hero h1 { font-size: 24px; margin-bottom: 8px; }
+    #hero .sub { font-size: 13.5px; margin-bottom: 18px; }
+
+    .search-form {
+      grid-template-columns: 1fr auto auto;
+      gap: 6px;
+      padding: 6px;
+    }
+    .search-form .input-wrap {
+      grid-column: 1 / -1;
+      background: var(--panel);
+      border-radius: var(--radius-sm);
+    }
+    .search-form select {
+      background: var(--panel);
+      border-left: none;
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      padding-right: 32px;
+      background-position: right 12px center;
+      font-size: 14px;
+    }
+    .search-form button[type=submit] {
+      padding: 12px 14px;
+      font-size: 14px;
+    }
+    .search-form .filter-btn {
+      padding: 12px 10px;
+      font-size: 16px;
+    }
+    .search-form .filter-btn .fb-count {
+      font-size: 10px;
+      padding: 1px 5px;
+    }
+    #hero .search-hint { font-size: 11.5px; margin-top: 10px; }
+
+    #mapSection { height: 340px; max-height: 60dvh; }
+    #mapHint { font-size: 12px; padding: 8px 14px; top: 10px; }
+
+    #results { padding-top: 22px; padding-bottom: 30px; }
+    #results h2 { font-size: 17px; }
+    #results .count { font-size: 12.5px; }
+
+    .tour-card { min-height: 180px; }
+    .tour-card .card-thumb,
+    .tour-card .card-thumb-missing { height: 120px; }
+    .tour-card .title { font-size: 14.5px; }
+    .tour-card .stats { font-size: 12px; gap: 10px; }
+
+    #footer { font-size: 12px; padding-top: 24px; }
+    #footer .footer-inner { gap: 18px; }
+
+
+    /* Karten-Aktionen: alle in einer Zeile, kein Umbruch */
+
+
+    .map-actions {
+      flex-direction: row;
+      flex-wrap: nowrap;
+      gap: 4px;
+      padding: 0 8px;
+      bottom: 10px;
+      max-width: calc(100% - 16px);
+    }
+    .map-action-btn { padding: 9px 11px; }
+    .map-action-btn .ma-icon { font-size: 17px; }
+
+    /* Auf Mobile keine langen Labels — nur Emojis */
+    .map-action-btn .ma-label { display: none; }
+  }
+
+  @media (max-width: 500px) {
+    .map-action-btn .ma-label { display: none; }
+    .map-action-btn { padding: 11px 13px; }
+    .map-action-btn .ma-icon { font-size: 18px; }
+  }
+</style>
+</head>
+<body class="page-scroll">
+
+<header id="header">
+  <button class="icon-btn menu-btn" id="menuBtn" title="Menü" aria-label="Menü öffnen">☰</button>
+
+  <a href="index.html" class="brand">
+    <img src="logo.svg" class="logo" alt="">
+    <span class="brand-name">Andromeda-Explorer</span>
+  </a>
+
+  <nav class="app-nav desktop-only">
+    <a href="routing.html" class="app-primary">🗺️ Route planen</a>
+    <a href="navigation.html">🧭 Navigieren</a>
+    <a href="tourpack-viewer.html">👁️ TourPack ansehen</a>
+    <a href="tourpack-editor.html">✏️ TourPack erstellen</a>
+    <a href="hilfe.html">📖 Hilfe</a>
+    <button class="icon-btn lang-btn" type="button"></button>
+    <button class="icon-btn darkmode-btn" title="Nachtmodus" aria-label="Nachtmodus">🌙</button>
+  </nav>
+</header>
+
+<main>
+  <section id="hero">
+    <div class="hero-inner">
+      <h1>Touren suchen</h1>
+      <p class="sub">Nach Tourname, Ort oder Region suchen. Alternativ lassen sich Touren direkt über die Karte finden.</p>
+
+      <form class="search-form" id="searchForm" autocomplete="off">
+        <div class="input-wrap">
+          <span class="search-icon" aria-hidden="true">🔍</span>
+          <input type="text" id="searchInput"
+                 placeholder="Tourname, Ort oder Region"
+                 aria-label="Suche">
+          <button type="button" class="input-clear" id="searchClear" title="Suche löschen" aria-label="Suche löschen">✕</button>
+        </div>
+        <select id="activitySelect" aria-label="Aktivität">
+          <option value="all">Alle Aktivitäten</option>
+          <option value="hiking">🥾 Wandern</option>
+          <option value="cycling">🚴 Radfahren</option>
+          <option value="running">🏃 Laufen</option>
+        </select>
+        <button type="submit" id="searchBtn">Suchen</button>
+        <button type="button" class="filter-btn" id="filterBtn" title="Detaillierte Suche">
+          <span>⚙️</span><span class="fb-count" id="filterCount" hidden>0</span>
+        </button>
+      </form>
+      <div id="placeSearchHint" class="place-search-hint hidden">
+        <button type="button" id="placeSearchHintBtn">
+          📍 In der Umgebung von <strong id="placeSearchHintTerm"></strong> suchen
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section id="mapSection">
+    <div id="map" class="locked"></div>
+
+    <div class="map-float tr">
+      <button class="float-btn" id="fullscreenBtn" title="Vollbild">⛶</button>
+    </div>
+
+    <div class="map-actions">
+      <button class="map-action-btn" id="lockBtn" title="Karte für Bewegung freigeben">
+        <span class="ma-icon">🖐️</span>
+        <span class="ma-label">Karte bewegen</span>
+      </button>
+      <button class="map-action-btn" id="searchToursBtn" title="Touren im eingestellten Umkreis anzeigen">
+        <span class="ma-icon">🔍</span>
+        <span class="ma-label">Im Umkreis suchen</span>
+      </button>
+      <button class="map-action-btn" id="locateBtn" title="Eigene Position anzeigen">
+        <span class="ma-icon">📍</span>
+        <span class="ma-label">Standort</span>
+      </button>
+    </div>
+  </section>
+
+  <section id="results">
+    <a name="tours"></a>
+    <div class="results-head">
+      <h2>Touren</h2>
+      <span class="count" id="resultsCount">–</span>
+    </div>
+
+    <div id="truncateMsg" class="truncate-msg" hidden></div>
+
+    <div class="tour-grid" id="tourGrid"></div>
+
+    <div id="pagination">
+      <button id="prevPage">‹ Zurück</button>
+      <span class="page-info" id="pageInfo">Seite 1 von 1</span>
+      <button id="nextPage">Weiter ›</button>
+    </div>
+  </section>
+
+  <section id="savedSection" hidden>
+    <div class="results-head">
+      <h2>Gespeicherte Touren</h2>
+      <span class="count" id="savedCount">0</span>
+    </div>
+    <div class="tour-grid" id="savedGrid"></div>
+  </section>
+</main>
+
+<footer id="footer">
+  <div class="footer-inner">
+    <div class="footer-col">
+      <div class="footer-brand">
+        <img src="logo.svg" class="logo" alt="">
+        <span>Andromeda-Explorer</span>
+      </div>
+      <p>Werkzeuge für Wander-, Rad- und Lauftouren</p>
+    </div>
+    <div class="footer-col">
+      <h4>Daten</h4>
+      <p>Kartendaten von <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>.</p>
+      <p>Routing mit <a href="https://brouter.de/" target="_blank" rel="noopener">BRouter</a>.</p>
+      <p>Danke an die OpenStreetMap-Community und die BRouter-Entwickler:innen.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Links</h4>
+      <ul>
+        <li><a href="upload.html">Touren hochladen</a></li>
+        <li><a href="hilfe.html">Hilfe</a></li>
+        <li><a href="impressum.html">Impressum</a></li>
+        <li><a href="rechtliches.html">Rechtliche Hinweise</a></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+
+<div id="mobileMenu">
+  <div class="menu-sheet">
+    <div class="menu-head">
+      <div class="grabber"></div>
+      <h2>Menü</h2>
+      <button class="close-btn" id="closeMobileMenu" title="Schließen">✕</button>
+    </div>
+    <div class="menu-body">
+      <a class="menu-item primary" href="navigation.html"><span class="mi-icon">🧭</span><span class="mi-title">Navigieren</span></a>
+      <a class="menu-item primary" href="routing.html"><span class="mi-icon">🗺️</span><span class="mi-title">Route planen</span></a>
+      <a class="menu-item secondary" href="tourpack-viewer.html"><span class="mi-icon">👁️</span><span class="mi-title">TourPack ansehen</span></a>
+      <a class="menu-item secondary" href="tourpack-editor.html"><span class="mi-icon">✏️</span><span class="mi-title">TourPack erstellen</span></a>
+      <a class="menu-item secondary" href="hilfe.html"><span class="mi-icon">📖</span><span class="mi-title">Hilfe</span></a>
+      <div class="menu-sep"></div>
+      <label class="menu-switch">
+        <span class="mi-icon">🌙</span>
+        <span class="mi-title">Nachtmodus</span>
+        <span class="switch">
+          <input type="checkbox" class="darkmode-switch">
+          <span class="slider"></span>
+        </span>
+      </label>
+      <div class="menu-lang">
+        <span class="mi-icon">🌐</span>
+        <span class="mi-title">Sprache</span>
+        <div class="lang-seg"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     Ortssuche-Modal
+     ============================================================ -->
+<div class="modal-backdrop" id="placeNearbyModal">
+  <div class="modal wide">
+    <h3>Touren in der Nähe eines Ortes</h3>
+
+    <div class="place-search-bar">
+      <input type="text" id="placeNearbyInput" placeholder="Ort, Adresse, Gipfel …" autocomplete="off">
+      <button type="button" id="placeNearbySearchBtn">Suchen</button>
+    </div>
+
+    <div id="placeNearbyResults" class="place-pick-list">
+      <div class="placeholder-small">Bitte einen Ort eingeben.</div>
+    </div>
+
+    <div class="actions">
+      <button class="cancel" id="placeNearbyCancel">Schließen</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     Detail-Such-Dialog
+     ============================================================ -->
+<div class="modal-backdrop" id="detailSearchModal">
+  <div class="modal wide">
+    <h3>Detaillierte Suche</h3>
+    <p>Schränke die Suche nach Länge, Schwierigkeit und Region ein. Der Umkreisfilter wird dabei ignoriert.</p>
+
+    <div class="detail-group">
+      <strong>Tourenlänge</strong>
+      <div class="range-line">
+        <span class="rl-lbl">Min</span>
+        <input type="range" id="ds_minKm" min="0" max="300" step="5" value="0">
+        <span class="rl-val" id="ds_minKmVal">0 km</span>
+      </div>
+      <div class="range-line">
+        <span class="rl-lbl">Max</span>
+        <input type="range" id="ds_maxKm" min="0" max="300" step="5" value="300">
+        <span class="rl-val" id="ds_maxKmVal">300 km</span>
+      </div>
+    </div>
+
+    <div class="detail-group">
+      <strong>Schwierigkeit</strong>
+      <div class="diff-line">
+        <select id="ds_diffMin">
+          <option value="0">Alle</option>
+          <option value="1">Leicht</option>
+          <option value="2">Mittel</option>
+          <option value="3">Anspruchsvoll</option>
+          <option value="4">Schwer</option>
+          <option value="5">Sehr schwer</option>
+        </select>
+        <span class="diff-sep">bis</span>
+        <select id="ds_diffMax">
+          <option value="0">Alle</option>
+          <option value="1">Leicht</option>
+          <option value="2">Mittel</option>
+          <option value="3">Anspruchsvoll</option>
+          <option value="4">Schwer</option>
+          <option value="5">Sehr schwer</option>
+        </select>
+      </div>
+      <div class="detail-hint">
+        Touren ohne Bewertung werden bei aktivem Filter nicht angezeigt.
+      </div>
+    </div>
+
+    <div class="detail-group">
+      <strong>Tourtyp</strong>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;cursor:pointer;padding:4px 0;">
+        <input type="checkbox" id="ds_roundtrip" style="accent-color:var(--primary);">
+        <span>Nur Rundtouren</span>
+      </label>
+      <div class="detail-hint">
+        Start und Ziel einer Rundtour liegen nahe beieinander.
+      </div>
+    </div>
+
+    <div class="detail-group">
+      <strong>Eignung</strong>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;cursor:pointer;padding:4px 0;">
+        <input type="checkbox" id="ds_roadbike" style="accent-color:var(--primary);">
+        <span>Nur rennradtauglich</span>
+      </label>
+      <div class="detail-hint">
+        Zeigt nur Touren, die explizit als rennradtauglich markiert sind.
+      </div>
+    </div>
+
+    <div class="detail-group">
+      <strong>Region / Bezirk / Gemeinde</strong>
+      <input type="text" class="detail-region-input" id="ds_region"
+             placeholder="z. B. Steiermark oder Bezirk Hartberg-Fürstenfeld">
+      <div class="detail-hint">
+        Sucht in Bundesland, Bezirk, Gemeinde und Ort.
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="cancel" id="ds_reset">Zurücksetzen</button>
+      <button class="cancel" id="ds_cancel">Abbrechen</button>
+      <button class="ok" id="ds_apply">Suchen</button>
+    </div>
+  </div>
+</div>
+
+<script src="scripts/andromap.js"></script>
+<script src="scripts/config.js"></script>
+<script src="scripts/i18n.js"></script>
+<script src="scripts/lang/de.js"></script>
+<script src="scripts/lang/en.js"></script>
+<script src="scripts/lang/en-phrases.js"></script>
+<script src="scripts/utils.js"></script>
+<script src="scripts/toast.js"></script>
+<script src="scripts/darkmode.js"></script>
+<script src="scripts/mapkit.js"></script>
+<script src="scripts/sitemenu.js"></script>
+
+<script>
+"use strict";
+
+const { $, escapeHtml, fmtDistance } = AndromedaUtils;
+const HANDLER_URL = (Andromeda && Andromeda.TOURPACK_HANDLER_URL) || "http://localhost:8081";
+
+// Der Handler gibt hart max. 100 Treffer zurück.
+// Wir holen sie in einem Request und blättern clientseitig mit PAGE_SIZE.
+const PAGE_SIZE = 50;
+const SERVER_LIMIT = 500;
+
+/* Berechnet den Suchumkreis aus der aktuellen Zoomstufe.
+   Zoom 8 → 100 km, Zoom 6 oder weiter → 150 km (Maximum),
+   Zoom 14 oder näher → 10 km (Minimum).
+   Die Kurve verläuft exponentiell mit Faktor 0.7 pro Zoom-Stufe
+   nach innen, damit der Radius nicht zu abrupt abnimmt. */
+function getRadiusFromZoom(zoom) {
+  const km = 100 * Math.pow(0.7, zoom - 8);
+  return Math.max(10, Math.min(150, Math.round(km)));
+}
+
+const ACTIVITY_META = {
+  hiking:  { label: "Wandern",   icon: "🥾" },
+  cycling: { label: "Radfahren", icon: "🚴" },
+  running: { label: "Laufen",    icon: "🏃" },
+  skiing:  { label: "Skitour",   icon: "🎿" },
+};
+
+const ACTIVITY_COLORS = {
+  hiking:  "#2e8b57",
+  cycling: "#2a6fbf",
+  running: "#b26a00",
+  skiing:  "#5a9bc5",
+};
+
+function activityColor(activity) {
+  return ACTIVITY_COLORS[activity] || ACTIVITY_COLORS.hiking;
+}
+
+const DIFF_LABELS = {
+  1: "Leicht",
+  2: "Mittel",
+  3: "Anspruchsvoll",
+  4: "Schwer",
+  5: "Sehr schwer",
+};
+
+function difficultyInfo(level) {
+  if (!level) return null;
+  return { text: DIFF_LABELS[level] || "—", cls: "level-" + level };
+}
+
+/* Baut aus h/min einen Anzeigetext. Fallback auf den alten Freitext
+ * duration_text, damit ältere TourPacks weiterhin korrekt angezeigt
+ * werden. */
+function fmtDurationHM(h, min) {
+  h = parseInt(h, 10) || 0;
+  min = parseInt(min, 10) || 0;
+  if (!h && !min) return "";
+  if (h && min) return h + " h " + min + " min";
+  if (h) return h + " h";
+  return min + " min";
+}
+
+const app = {
+  map: null,
+  mapLocked: true,
+  markers: [],
+  tourEntries: [],    // { tour, marker, latlng }
+  stackMarkers: [],
+  spider: null,       // aufgefächerter Stapel
+  userMarker: null,
+  userAccuracyCircle: null,
+
+  previewLayer: null,        // L.layerGroup für die aktive Routen-Vorschau
+  activePreviewId: null,     // welche Tour gerade angezeigt wird
+  previewCache: new Map(),   // id -> {coords, bounds} (vermeidet Doppel-Fetch)
+
+  // Wird in init() aus localStorage befüllt — siehe unten.
+  savedTours: [],
+
+  // Modus: "nearby" (Umkreissuche) | "search" (Volltext + Detail)
+  mode: "nearby",
+
+  query: "",
+  activity: "all",
+  near: null,          // "lat,lng" im nearby-Modus
+  // Wenn gesetzt, überschreibt dieser Wert den aus der Zoomstufe
+  // berechneten Radius. Wird für die Ortssuche (50 km fest) genutzt
+  // und bei jedem anderen Suchauslöser zurückgesetzt.
+  fixedRadiusKm: null,
+
+  // Detailfilter (nur im search-Modus angewendet)
+  detail: {
+    minKm: null,
+    maxKm: null,
+    diffMin: 0,
+    diffMax: 5,
+    region: "",
+    roundtripOnly: false,
+    roadbikeOnly: false,
+  },
+
+  // Ergebnisse (max. SERVER_LIMIT)
+  allResults: [],
+  truncated: false,
+  pageOffset: 0,       // 0, 25, 50, 75
+  loading: false,
+};
+
+function countActiveFilters() {
+  const d = app.detail;
+  let n = 0;
+  if (d.minKm != null && d.minKm > 0) n++;
+  if (d.maxKm != null) n++;
+  if (d.diffMin > 0 || d.diffMax < 5) n++;
+  if (d.region) n++;
+  if (d.roundtripOnly) n++;
+  if (d.roadbikeOnly) n++;
+  return n;
+}
+
+/* ============================================================
+ * Karte
+ * ============================================================ */
+const MAP_VIEW_KEY = "andromeda_index_map_view_v1";
+const DEFAULT_CENTER = [47.4425, 15.9400];
+const DEFAULT_ZOOM = 8;
+
+function loadMapView() {
+  try {
+    const raw = localStorage.getItem(MAP_VIEW_KEY);
+    if (!raw) return null;
+    const obj = JSON.parse(raw);
+    if (obj && typeof obj.lat === "number" && typeof obj.lng === "number" &&
+        typeof obj.zoom === "number") return obj;
+  } catch (e) {}
+  return null;
+}
+function saveMapView() {
+  if (!app.map) return;
+  try {
+    const c = app.map.getCenter();
+    localStorage.setItem(MAP_VIEW_KEY, JSON.stringify({
+      lat: c.lat, lng: c.lng, zoom: app.map.getZoom(),
+    }));
+  } catch (e) {}
+}
+
+function initMap() {
+  if (app.map) return;
+  const saved = loadMapView();
+  const center = saved ? [saved.lat, saved.lng] : DEFAULT_CENTER;
+  const zoom = saved ? saved.zoom : DEFAULT_ZOOM;
+
+  app.map = L.map("map", {
+    zoomControl: true, attributionControl: true,
+    scrollWheelZoom: true, dragging: true, touchZoom: true,
+    worldCopyJump: true,
+    rotate: false,   // Tour-Suche: kein Drehen, stört beim Wischen
+  }).setView(center, zoom);
+
+  const osm = AndromedaMap.BASE_LAYERS.osm;
+  AndromedaMap.followLanguage(L.tileLayer(osm.url, osm.options).addTo(app.map));
+  L.control.scale({ metric: true, imperial: false, position: "bottomleft" }).addTo(app.map);
+
+  app.previewLayer = L.layerGroup().addTo(app.map);
+
+  app.map.on("moveend zoomend", () => {
+    saveMapView();
+    updateMapHint();
+  });
+  // Stapel neu bilden, wenn sich der Maßstab ändert; ein offener Fächer
+  // wandert beim Zoomen mit und geht bei Klick in die Karte zu.
+  app.map.on("zoom", positionSpider);
+  app.map.on("zoomend", layoutMarkers);
+  app.map.on("click", () => collapseSpider());
+  // Gesperrte Karte bekommt keine Klicks: dann schließt jeder Klick
+  // außerhalb der Marker und Popups den Fächer.
+  document.addEventListener("click", ev => {
+    if (!app.spider) return;
+    const t = ev.target;
+    if (t.closest && t.closest(".leaflet-marker-pane, .leaflet-popup-pane, .leaflet-control-container")) return;
+    if (t.closest && t.closest("#map") && !app.mapLocked) return;   // erledigt map.on("click")
+    collapseSpider();
+  });
+
+  lockMap();
+  updateMapHint();
+}
+
+function updateMapHint() {
+  // Der Kartenhinweis wurde entfernt. Funktion bleibt als No-Op,
+  // damit die Aufrufer nicht angepasst werden müssen.
+}
+
+function lockMap() {
+  if (!app.map) return;
+  try {
+    app.map.dragging.disable();
+    app.map.touchZoom.disable();
+    app.map.scrollWheelZoom.disable();
+    app.map.doubleClickZoom.disable();
+    app.map.boxZoom.disable();
+    app.map.keyboard.disable();
+  } catch (e) {}
+  const el = $("map");
+  if (el) el.classList.add("locked");
+  app.mapLocked = true;
+  updateLockButton();
+}
+function unlockMap() {
+  if (!app.map) return;
+  try {
+    app.map.dragging.enable();
+    app.map.touchZoom.enable();
+    app.map.scrollWheelZoom.enable();
+    app.map.doubleClickZoom.enable();
+    app.map.boxZoom.enable();
+    app.map.keyboard.enable();
+  } catch (e) {}
+  const el = $("map");
+  if (el) el.classList.remove("locked");
+  app.mapLocked = false;
+  updateLockButton();
+}
+function updateLockButton() {
+  const btn = $("lockBtn");
+  if (!btn) return;
+  const icon = btn.querySelector(".ma-icon");
+  const label = btn.querySelector(".ma-label");
+  if (app.mapLocked) {
+    icon.textContent = "🖐️";
+    label.textContent = "Karte bewegen";
+    btn.classList.remove("active");
+    btn.title = "Karte für Bewegung freigeben";
+  } else {
+    icon.textContent = "🔒";
+    label.textContent = "Karte sperren";
+    btn.classList.add("active");
+    btn.title = "Karte wieder sperren";
+  }
+}
+function toggleMapLock() {
+  if (app.mapLocked) unlockMap(); else lockMap();
+}
+function bindMapAutoLock() {
+  const section = $("mapSection");
+  if (!section) return;
+  section.addEventListener("mouseleave", () => {
+    if (app.mapLocked) return;
+    setTimeout(() => {
+      if (!app.mapLocked && !section.matches(":hover")) lockMap();
+    }, 350);
+  });
+  window.addEventListener("scroll", () => {
+    if (!app.mapLocked) lockMap();
+  }, { passive: true });
+  document.addEventListener("touchstart", (e) => {
+    if (!app.mapLocked && !section.contains(e.target)) lockMap();
+  }, { passive: true });
+}
+
+function bindFullscreen() {
+  $("fullscreenBtn").addEventListener("click", () => {
+    AndromedaMap.toggleFullscreen($("mapSection"));
+  });
+}
+
+function bindLocation() {
+  const btn = $("locateBtn");
+  btn.addEventListener("click", () => {
+    if (!app.map) return;
+    if (app.userMarker) {
+      try { app.map.removeLayer(app.userMarker); } catch (e) {}
+      if (app.userAccuracyCircle) { try { app.map.removeLayer(app.userAccuracyCircle); } catch (e) {} }
+      app.userMarker = null;
+      app.userAccuracyCircle = null;
+      btn.classList.remove("active");
+      return;
+    }
+    if (!("geolocation" in navigator)) { toast("Standort wird nicht unterstützt.", "error"); return; }
+    if (!window.isSecureContext) { toast("Standort nur über HTTPS möglich.", "error"); return; }
+
+    if (app.mapLocked) unlockMap();
+    toast("Standort wird ermittelt …", "warn");
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude, lon = pos.coords.longitude;
+        const acc = pos.coords.accuracy || 0;
+        const icon = L.divIcon({
+          html: '<div class="user-marker"></div>',
+          className: "", iconSize: [24, 24], iconAnchor: [12, 12],
+        });
+        app.userMarker = L.marker([lat, lon], {
+          icon, interactive: false, zIndexOffset: 1000,
+        }).addTo(app.map);
+        app.userAccuracyCircle = L.circle([lat, lon], {
+          radius: acc, color: "#1a73e8", weight: 1, opacity: 0.4,
+          fillColor: "#1a73e8", fillOpacity: 0.08, interactive: false,
+        }).addTo(app.map);
+        app.map.setView([lat, lon], Math.max(app.map.getZoom(), 13), { animate: true });
+        btn.classList.add("active");
+      },
+      (err) => {
+        let msg = "Standort konnte nicht ermittelt werden.";
+        if (err.code === 1) msg = "Standort-Zugriff verweigert.";
+        else if (err.code === 2) msg = "Standort nicht verfügbar.";
+        else if (err.code === 3) msg = "Zeitüberschreitung.";
+        toast(msg, "error");
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  });
+}
+
+/* ============================================================
+ * Suche
+ * ============================================================ */
+function setLoading(on) {
+  app.loading = on;
+  const btn = $("searchBtn");
+  if (btn) btn.disabled = on;
+}
+
+function showStateMsg(html, isError) {
+  const grid = $("tourGrid");
+  grid.innerHTML = `<div class="state-msg${isError ? " error" : ""}">${html}</div>`;
+}
+
+async function runSearch() {
+  if (app.loading) return;
+  setLoading(true);
+  showStateMsg('<span class="emoji">⏳</span>Suche läuft …');
+
+  const params = new URLSearchParams();
+
+  // Umkreis (nur im nearby-Modus). Radius kommt aus fixedRadiusKm
+  // (Ortssuche, 50 km fest) oder aus der Zoomstufe.
+  if (app.mode === "nearby" && app.near) {
+    const zoom = app.map ? app.map.getZoom() : 8;
+    const radiusKm = (app.fixedRadiusKm != null)
+      ? app.fixedRadiusKm
+      : getRadiusFromZoom(zoom);
+    params.set("near", app.near);
+    params.set("radius_km", String(radiusKm));
+  }
+
+  // Textsuche (nur im search-Modus)
+  if (app.mode === "search" && app.query) {
+    params.set("q", app.query);
+  }
+
+  // Detailfilter (in beiden Modi, sofern gesetzt)
+  const d = app.detail;
+  if (d.minKm != null && d.minKm > 0) params.set("min_km", String(d.minKm));
+  if (d.maxKm != null) params.set("max_km", String(d.maxKm));
+  if (d.diffMin > 0) params.set("diff_min", String(d.diffMin));
+  if (d.diffMax < 5) params.set("diff_max", String(d.diffMax));
+  if (d.region) params.set("region", d.region);
+  if (d.roundtripOnly) params.set("roundtrip", "1");
+  if (d.roadbikeOnly) params.set("roadbike", "1");
+
+  if (app.activity && app.activity !== "all") {
+    params.set("activity", app.activity);
+  }
+
+  params.set("limit", String(SERVER_LIMIT));
+  params.set("offset", "0");
+
+  try {
+    const url = `${HANDLER_URL}/search?${params.toString()}`;
+    const res = await fetch(url, { mode: "cors" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+
+    // Der Handler weigert sich, ohne echten Suchfilter zu antworten.
+    // Sollte clientseitig nicht vorkommen, aber falls doch, zeigen wir
+    // einen Hinweis statt einer leeren Liste.
+    if (data.requires_filter) {
+      app.allResults = [];
+      app.truncated = false;
+      app.pageOffset = 0;
+      showStateMsg(
+        '<span class="emoji">🔍</span>Bitte einen Suchbegriff oder Filter angeben.' +
+        '<div class="hint">Bitte die Suche, „Im Umkreis suchen" oder die Detailfilter verwenden.</div>'
+      );
+      $("resultsCount").textContent = "–";
+      $("pagination").classList.remove("show");
+      $("truncateMsg").hidden = true;
+      clearMapMarkers();
+      updateMapHint();
+      return;
+    }
+
+    app.allResults = data.results || [];
+    app.truncated = !!data.truncated;
+    app.pageOffset = 0;
+
+    renderTruncateMsg();
+    renderPage();
+    updateMapMarkers();
+    updateMapHint();
+  } catch (e) {
+    console.error(e);
+    app.allResults = [];
+    app.truncated = false;
+    showStateMsg(
+      '<span class="emoji">⚠️</span>Suche fehlgeschlagen.' +
+      '<div class="hint">Läuft der TourPack-Handler?<br>' +
+      `Versuch: ${escapeHtml(HANDLER_URL)}</div>`,
+      true
+    );
+    $("resultsCount").textContent = "–";
+    $("pagination").classList.remove("show");
+    $("truncateMsg").hidden = true;
+    clearMapMarkers();
+  } finally {
+    setLoading(false);
+  }
+}
+
+/* ============================================================
+ * Hinweis bei sehr vielen Treffern
+ * ============================================================ */
+function renderTruncateMsg() {
+  const el = $("truncateMsg");
+  if (!el) return;
+  if (app.truncated) {
+    el.hidden = false;
+    el.innerHTML = `
+      <div class="tm-line">
+        <strong>Mehr als ${SERVER_LIMIT} Treffer.</strong>
+        Es werden die ersten ${SERVER_LIMIT} Touren angezeigt.
+      </div>
+      <div class="tm-hint">
+        Die Suche lässt sich verfeinern (z. B. durch Hineinzoomen oder einen
+        Suchbegriff), um das Ergebnis einzuschränken.
+      </div>`;
+  } else {
+    el.hidden = true;
+  }
+}
+
+/* ============================================================
+ * Seitenweise Anzeige
+ * ============================================================ */
+function renderPage() {
+  const start = app.pageOffset;
+  const end = Math.min(start + PAGE_SIZE, app.allResults.length);
+  const pageResults = app.allResults.slice(start, end);
+
+  renderResultsGrid(pageResults, start, end, app.allResults.length);
+  updatePagination();
+}
+
+function renderResultsGrid(results, startIdx, endIdx, totalCount) {
+  const grid = $("tourGrid");
+  const count = $("resultsCount");
+  grid.innerHTML = "";
+
+  if (!results.length) {
+    count.textContent = "Keine Treffer";
+    let html = '<span class="emoji">🔍</span>Nichts gefunden.';
+    // Wenn die leere Suche von einer Textsuche kam, bieten wir direkt
+    // die Umgebungssuche für diesen Begriff an.
+    if (app.mode === "search" && app.query && app.query.trim()) {
+      html += `<div style="margin-top:10px;">` +
+        `<button type="button" class="empty-place-btn" id="emptyPlaceSearchBtn">` +
+        `📍 In der Umgebung von ${escapeHtml(app.query.trim())} suchen` +
+        `</button></div>`;
+    }
+    showStateMsg(html);
+    const emptyBtn = document.getElementById("emptyPlaceSearchBtn");
+    if (emptyBtn) {
+      emptyBtn.addEventListener("click", () => {
+        openPlaceNearbyModal(app.query.trim());
+      });
+    }
+    return;
+  }
+
+  count.textContent = `${startIdx + 1}–${endIdx} von ${totalCount}`;
+
+  for (const tour of results) {
+    const meta = ACTIVITY_META[tour.activity] || ACTIVITY_META.hiking;
+    const card = document.createElement("div");
+    card.className = "tour-card " + tour.activity;
+    card.setAttribute("role", "button");
+    card.setAttribute("tabindex", "0");
+
+    let thumbHtml;
+    if (tour.thumbnail_url) {
+      const src = `${HANDLER_URL}${tour.thumbnail_url}`;
+      thumbHtml = `<img class="card-thumb" src="${escapeHtml(src)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=\\'card-thumb-missing\\'>${meta.icon}</div>'">`;
+    } else {
+      thumbHtml = `<div class="card-thumb-missing">${meta.icon}</div>`;
+    }
+
+    const stats = tour.stats || {};
+    const statParts = [];
+    if (stats.distance_m != null) statParts.push(`<span class="s"><b>${escapeHtml(fmtDistance(stats.distance_m))}</b></span>`);
+    if (stats.ascent_m) statParts.push(`<span class="s">↑ <b>${Math.round(stats.ascent_m)} m</b></span>`);
+    if (stats.descent_m) statParts.push(`<span class="s">↓ <b>${Math.round(stats.descent_m)} m</b></span>`);
+    const durStr = fmtDurationHM(stats.duration_h, stats.duration_min);
+    if (durStr) statParts.push(`<span class="s">${escapeHtml(durStr)}</span>`);
+
+    const diffInfo = difficultyInfo((tour.difficulty && tour.difficulty.overall) || 0);
+
+    // In index.html wird nur die Region des Startpunkts angezeigt.
+    const loc = tour.location || {};
+    const startLoc = loc.start || loc;
+    const locParts = [startLoc.place, startLoc.region, startLoc.country].filter(Boolean);
+    const locStr = locParts.length ? locParts.join(", ") : "";
+
+    // Tags auf der Tour-Karte: aktuell deaktiviert. Zum Reaktivieren
+    // SHOW_TAGS_ON_CARDS auf true setzen — der Code darunter bleibt
+    // erhalten und wird dann wieder ausgegeben.
+    const SHOW_TAGS_ON_CARDS = false;
+    const tags = (tour.tags || []).slice(0, 4);
+
+    const saved = isSaved(tour.id);
+
+    const rightCol = (diffInfo || tour.is_roundtrip || tour.roadbike) ? `
+      <div class="card-head-right">
+        ${diffInfo ? `<div class="diff-badge ${diffInfo.cls}">${escapeHtml(diffInfo.text)}</div>` : ""}
+        ${tour.is_roundtrip ? `<div class="roundtrip-badge">↻ Rundtour</div>` : ""}
+        ${tour.roadbike ? `<div class="roadbike-badge">🚴 Rennrad</div>` : ""}
+      </div>` : "";
+
+    card.innerHTML = `
+      ${thumbHtml}
+      <button class="card-save${saved ? " saved" : ""}" data-id="${escapeHtml(tour.id)}"
+              title="${saved ? "Aus gespeicherten entfernen" : "Tour speichern"}"
+              aria-label="${saved ? "Aus gespeicherten entfernen" : "Tour speichern"}">📌</button>
+      <div class="card-body">
+        <div class="card-head">
+          <div class="activity">${meta.icon}</div>
+          <div class="title-wrap">
+            <div class="title">${escapeHtml(tour.title || "Unbenannte Tour")}</div>
+            ${locStr ? `<div class="loc">${escapeHtml(locStr)}</div>` : ""}
+          </div>
+          ${rightCol}
+        </div>
+        ${statParts.length ? `<div class="stats">${statParts.join("")}</div>` : ""}
+        ${SHOW_TAGS_ON_CARDS && tags.length ? `<div class="tags">${tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join("")}</div>` : ""}
+      </div>
+    `;
+
+    card.onclick = (e) => {
+      if (e.target.closest(".card-save")) return;
+      openTourpack(tour.id);
+    };
+    card.onkeydown = (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openTourpack(tour.id); }
+    };
+
+    const saveBtn = card.querySelector(".card-save");
+    saveBtn.onclick = (e) => {
+      e.stopPropagation();
+      toggleSaved(tour);
+    };
+
+    grid.appendChild(card);
+  }
+}
+
+function openTourpack(id) {
+  if (!id) return;
+  const url = `tourpack-viewer.html?open=${encodeURIComponent(id)}`;
+  const w = window.open(url, "_blank");
+  if (w) {
+    try { w.focus(); } catch (e) {}
+  } else {
+    // Popup-Blocker hat zugeschlagen — im gleichen Tab öffnen
+    window.location.href = url;
+  }
+}
+
+/* ============================================================
+ * Gespeicherte Touren (browserlokal, ohne Handler)
+ * ============================================================ */
+const SAVED_KEY = "andromeda_saved_tours_v1";
+
+function loadSavedTours() {
+  try {
+    const raw = localStorage.getItem(SAVED_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return [];
+    return arr.filter(t => t && typeof t.id === "string");
+  } catch (e) { return []; }
+}
+function persistSavedTours() {
+  try {
+    localStorage.setItem(SAVED_KEY, JSON.stringify(app.savedTours));
+  } catch (e) {}
+}
+function isSaved(id) {
+  return app.savedTours.some(t => t.id === id);
+}
+function toggleSaved(tour) {
+  const idx = app.savedTours.findIndex(t => t.id === tour.id);
+  if (idx >= 0) {
+    app.savedTours.splice(idx, 1);
+  } else {
+    app.savedTours.unshift({
+      id: tour.id,
+      title: tour.title || "Unbenannte Tour",
+      activity: tour.activity || "hiking",
+      thumbnail_url: tour.thumbnail_url || null,
+      stats: tour.stats || {},
+      difficulty: tour.difficulty || {},
+      location: tour.location || {},
+      is_roundtrip: !!tour.is_roundtrip,
+      roadbike: !!tour.roadbike,
+      savedAt: Date.now(),
+    });
+    toast("Tour gespeichert.", "success");
+  }
+  persistSavedTours();
+  syncSaveButtons();
+  renderSavedTours();
+}
+function syncSaveButtons() {
+  document.querySelectorAll(".card-save").forEach(btn => {
+    const id = btn.dataset.id;
+    if (!id) return;
+    const saved = isSaved(id);
+    btn.classList.toggle("saved", saved);
+    btn.title = saved ? "Aus gespeicherten entfernen" : "Tour speichern";
+    btn.setAttribute("aria-label", btn.title);
+  });
+}
+
+function renderSavedTours() {
+  const section = $("savedSection");
+  const grid = $("savedGrid");
+  const count = $("savedCount");
+  if (!section || !grid || !count) return;
+
+  const list = app.savedTours;
+  count.textContent = list.length + (list.length === 1 ? " Tour" : " Touren");
+
+  if (!list.length) {
+    section.hidden = true;
+    grid.innerHTML = "";
+    return;
+  }
+  section.hidden = false;
+  grid.innerHTML = "";
+
+  for (const tour of list) {
+    const meta = ACTIVITY_META[tour.activity] || ACTIVITY_META.hiking;
+    const card = document.createElement("div");
+    card.className = "tour-card " + tour.activity;
+    card.setAttribute("role", "button");
+    card.setAttribute("tabindex", "0");
+
+    let thumbHtml;
+    if (tour.thumbnail_url) {
+      const src = `${HANDLER_URL}${tour.thumbnail_url}`;
+      thumbHtml = `<img class="card-thumb" src="${escapeHtml(src)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=\\'card-thumb-missing\\'>${meta.icon}</div>'">`;
+    } else {
+      thumbHtml = `<div class="card-thumb-missing">${meta.icon}</div>`;
+    }
+
+    const stats = tour.stats || {};
+    const statParts = [];
+    if (stats.distance_m != null) statParts.push(`<span class="s"><b>${escapeHtml(fmtDistance(stats.distance_m))}</b></span>`);
+    if (stats.ascent_m) statParts.push(`<span class="s">↑ <b>${Math.round(stats.ascent_m)} m</b></span>`);
+    if (stats.descent_m) statParts.push(`<span class="s">↓ <b>${Math.round(stats.descent_m)} m</b></span>`);
+    const durStr = fmtDurationHM(stats.duration_h, stats.duration_min);
+    if (durStr) statParts.push(`<span class="s">${escapeHtml(durStr)}</span>`);
+
+    const diffInfo = difficultyInfo((tour.difficulty && tour.difficulty.overall) || 0);
+    const loc = tour.location || {};
+    const startLoc = loc.start || loc;
+    const locParts = [startLoc.place, startLoc.region, startLoc.country].filter(Boolean);
+    const locStr = locParts.join(", ");
+
+    const rightCol = (diffInfo || tour.is_roundtrip || tour.roadbike) ? `
+      <div class="card-head-right">
+        ${diffInfo ? `<div class="diff-badge ${diffInfo.cls}">${escapeHtml(diffInfo.text)}</div>` : ""}
+        ${tour.is_roundtrip ? `<div class="roundtrip-badge">↻ Rundtour</div>` : ""}
+        ${tour.roadbike ? `<div class="roadbike-badge">🚴 Rennrad</div>` : ""}
+      </div>` : "";
+
+    card.innerHTML = `
+      ${thumbHtml}
+      <button class="card-save saved" data-id="${escapeHtml(tour.id)}"
+              title="Aus gespeicherten entfernen" aria-label="Aus gespeicherten entfernen">📌</button>
+      <div class="card-body">
+        <div class="card-head">
+          <div class="activity">${meta.icon}</div>
+          <div class="title-wrap">
+            <div class="title">${escapeHtml(tour.title || "Unbenannte Tour")}</div>
+            ${locStr ? `<div class="loc">${escapeHtml(locStr)}</div>` : ""}
+          </div>
+          ${rightCol}
+        </div>
+        ${statParts.length ? `<div class="stats">${statParts.join("")}</div>` : ""}
+      </div>
+    `;
+
+    card.onclick = (e) => {
+      if (e.target.closest(".card-save")) return;
+      openTourpack(tour.id);
+    };
+    card.onkeydown = (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        openTourpack(tour.id);
+      }
+    };
+
+    grid.appendChild(card);
+  }
+
+  // Save-Buttons in der Saved-Liste neu binden
+  grid.querySelectorAll(".card-save").forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.id;
+      const idx = app.savedTours.findIndex(t => t.id === id);
+      if (idx >= 0) {
+        app.savedTours.splice(idx, 1);
+        persistSavedTours();
+        syncSaveButtons();
+        renderSavedTours();
+      }
+    };
+  });
+}
+
+/* ============================================================
+ * Marker (alle 100, unabhängig von der Seite)
+ * ============================================================ */
+function makeTourIcon(tour) {
+  const meta = ACTIVITY_META[tour.activity] || ACTIVITY_META.hiking;
+  const html = `<div class="bubble ${tour.activity}" title="${escapeHtml(tour.title || "")}">${meta.icon}</div>`;
+  return L.divIcon({ html, className: "tour-map-marker", iconSize: [34, 34], iconAnchor: [17, 17] });
+}
+
+function makePopupHtml(tour) {
+  const stats = tour.stats || {};
+  const parts = [];
+  if (stats.distance_m != null) parts.push(fmtDistance(stats.distance_m));
+  if (stats.ascent_m) parts.push(`↑ ${Math.round(stats.ascent_m)} m`);
+  if (tour.is_roundtrip) parts.push("↻ Rundtour");
+  return `
+    <div class="tour-popup">
+      <h4>${escapeHtml(tour.title || "Unbenannte Tour")}</h4>
+      <div class="tp-meta">${escapeHtml(parts.map(x => AndromedaI18n.tr(x)).join(" · "))}</div>
+      <button data-id="${escapeHtml(tour.id)}">Im Viewer öffnen</button>
+    </div>
+  `;
+}
+
+function clearMapMarkers() {
+  if (!app.map) return;
+  collapseSpider({ relayout: false });
+  for (const m of app.markers) {
+    try { app.map.removeLayer(m); } catch (e) {}
+  }
+  for (const m of app.stackMarkers) {
+    try { app.map.removeLayer(m); } catch (e) {}
+  }
+  app.markers = [];
+  app.tourEntries = [];
+  app.stackMarkers = [];
+  clearRoutePreview();
+}
+
+/* ============================================================
+ * Übereinanderliegende Touren: Stapel und Auffächern
+ *
+ * Touren, deren Marker sich auf der aktuellen Zoomstufe überdecken,
+ * werden zu einem Stapel-Marker mit Anzahl zusammengefasst. Ein Klick
+ * auf den Stapel fächert die Touren kreisförmig (bei vielen spiralig)
+ * um die Stelle auf; dünne Linien zeigen, wo sie eigentlich liegen.
+ * Ein Klick auf eine aufgefächerte Tour verhält sich wie immer (Popup
+ * und Routenvorschau). Klick in die Karte oder eine neue Suche klappt
+ * den Fächer wieder zu. Beim Zoomen bleibt er offen und wandert mit.
+ * ============================================================ */
+const STACK_PX = 24;            // Abstand (px), ab dem sich Bubbles (34 px) überdecken
+const SPIDER_CIRCLE_MAX = 9;    // bis zu so vielen Touren im Kreis, sonst Spirale
+const SPIDER_ZOOM_FIRST = 12;   // größere Stapel: zuerst hineinzoomen, falls möglich
+const SPIDER_SPACING = 40;      // Abstand der aufgefächerten Bubbles (px)
+
+function makeStackIcon(entries) {
+  const acts = [...new Set(entries.map(e => e.tour.activity))];
+  const cls = acts.length === 1 ? acts[0] : "mixed";
+  const meta = ACTIVITY_META[acts[0]] || ACTIVITY_META.hiking;
+  const html = `<div class="bubble ${cls} stack" title="${entries.length} Touren an dieser Stelle">${meta.icon}<span class="stack-count">${entries.length}</span></div>`;
+  return L.divIcon({ html, className: "tour-map-marker", iconSize: [34, 34], iconAnchor: [17, 17] });
+}
+
+function setMarkerVisible(marker, visible) {
+  const on = app.map.hasLayer(marker);
+  if (visible && !on) marker.addTo(app.map);
+  else if (!visible && on) app.map.removeLayer(marker);
+}
+
+/* Marker je nach Zoomstufe einzeln oder als Stapel zeigen. */
+function layoutMarkers() {
+  if (!app.map) return;
+  for (const m of app.stackMarkers) {
+    try { app.map.removeLayer(m); } catch (e) {}
+  }
+  app.stackMarkers = [];
+
+  const inSpider = new Set(app.spider ? app.spider.entries : []);
+  const groups = [];
+  for (const e of app.tourEntries) {
+    if (inSpider.has(e)) continue;
+    const p = app.map.latLngToContainerPoint(e.latlng);
+    const g = groups.find(g => g.p.distanceTo(p) < STACK_PX);
+    if (g) g.entries.push(e);
+    else groups.push({ p, entries: [e] });
+  }
+
+  for (const g of groups) {
+    if (g.entries.length === 1) {
+      setMarkerVisible(g.entries[0].marker, true);
+      continue;
+    }
+    for (const e of g.entries) setMarkerVisible(e.marker, false);
+    let lat = 0, lng = 0;
+    for (const e of g.entries) { lat += e.latlng.lat; lng += e.latlng.lng; }
+    const center = L.latLng(lat / g.entries.length, lng / g.entries.length);
+    const stack = L.marker(center, { icon: makeStackIcon(g.entries), keyboard: false });
+    stack.on("click", () => openStack(g.entries, center));
+    stack.addTo(app.map);
+    app.stackMarkers.push(stack);
+  }
+}
+
+function openStack(entries, center) {
+  // Viele Touren, die sich nur wegen der Zoomstufe überdecken:
+  // erst hineinzoomen, dann zerfällt der Stapel von selbst.
+  if (entries.length > SPIDER_ZOOM_FIRST && app.map.getZoom() < app.map.getMaxZoom() - 1) {
+    const b = L.latLngBounds(entries.map(e => e.latlng));
+    const sw = b.getSouthWest(), ne = b.getNorthEast();
+    if (sw.distanceTo(ne) > 50) {
+      app.map.fitBounds(b.pad(0.3), { animate: true, maxZoom: app.map.getMaxZoom() });
+      return;
+    }
+  }
+  spiderfy(entries, center);
+}
+
+function spiderfy(entries, center) {
+  collapseSpider({ relayout: false });
+  const hubIcon = L.divIcon({
+    html: '<div class="spider-hub"></div>', className: "tour-map-marker",
+    iconSize: [12, 12], iconAnchor: [6, 6],
+  });
+  app.spider = {
+    entries, center, legs: [],
+    hub: L.marker(center, { icon: hubIcon, keyboard: false, zIndexOffset: 0 }).addTo(app.map),
+  };
+  app.spider.hub.on("click", () => collapseSpider());
+  for (const e of entries) {
+    const leg = L.polyline([center, center], {
+      color: "#555", weight: 1.5, opacity: 0.7, interactive: false,
+    }).addTo(app.map);
+    app.spider.legs.push(leg);
+    e.marker.setZIndexOffset(1000);
+    setMarkerVisible(e.marker, true);
+  }
+  positionSpider();
+  layoutMarkers();
+}
+
+/* Offsets in Bildschirm-Pixeln: Kreis oder archimedische Spirale. */
+function spiderOffsets(n) {
+  const out = [];
+  if (n <= SPIDER_CIRCLE_MAX) {
+    const r = Math.max(44, (SPIDER_SPACING * n) / (2 * Math.PI));
+    for (let i = 0; i < n; i++) {
+      const a = -Math.PI / 2 + (2 * Math.PI * i) / n;
+      out.push([r * Math.cos(a), r * Math.sin(a)]);
+    }
+    return out;
+  }
+  const r0 = 38, b = SPIDER_SPACING / (2 * Math.PI);
+  let theta = 0, r = r0;
+  for (let i = 0; i < n; i++) {
+    out.push([r * Math.cos(theta - Math.PI / 2), r * Math.sin(theta - Math.PI / 2)]);
+    theta += SPIDER_SPACING / r;
+    r = r0 + b * theta;
+  }
+  return out;
+}
+
+function positionSpider() {
+  const sp = app.spider;
+  if (!sp || !app.map) return;
+  const c = app.map.latLngToContainerPoint(sp.center);
+  const offs = spiderOffsets(sp.entries.length);
+  sp.entries.forEach((e, i) => {
+    const ll = app.map.containerPointToLatLng(L.point(c.x + offs[i][0], c.y + offs[i][1]));
+    e.marker.setLatLng(ll);
+    sp.legs[i].setLatLngs([sp.center, ll]);
+  });
+}
+
+function collapseSpider(opts) {
+  const sp = app.spider;
+  if (!sp) return;
+  app.spider = null;
+  for (const l of sp.legs) {
+    try { app.map.removeLayer(l); } catch (e) {}
+  }
+  try { app.map.removeLayer(sp.hub); } catch (e) {}
+  for (const e of sp.entries) {
+    e.marker.setLatLng(e.latlng);
+    e.marker.setZIndexOffset(0);
+  }
+  if (!opts || opts.relayout !== false) layoutMarkers();
+}
+
+/* ============================================================
+ * Routen-Vorschau auf der Karte
+ *
+ * Beim Klick auf einen Tour-Marker wird die Geometrie dieser einen
+ * Tour geladen und als dünne Linie plus Start- und Zielpunkte in der
+ * Aktivitätsfarbe gezeichnet. Erneuter Klick auf denselben Marker
+ * blendet sie aus; Klick auf einen anderen Marker ersetzt sie.
+ *
+ * Geometrie-URL: <handler>/tourpack/<id>/geometry.geojson
+ * Wird nach dem ersten Abruf im Browser-HTTP-Cache gehalten
+ * (Cache-Control: public, max-age=86400) und zusätzlich in
+ * app.previewCache zwischengespeichert.
+ * ============================================================ */
+async function toggleRoutePreview(tour) {
+  if (!tour || !tour.id) return;
+
+  // Klick auf bereits aktive Route → ausblenden
+  if (app.activePreviewId === tour.id) {
+    clearRoutePreview();
+    return;
+  }
+
+  await showRoutePreview(tour);
+}
+
+async function showRoutePreview(tour) {
+  clearRoutePreview();
+  const id = tour.id;
+  const color = activityColor(tour.activity);
+
+  let data = app.previewCache.get(id);
+  if (!data) {
+    try {
+      const url = `${HANDLER_URL}/tourpack/${encodeURIComponent(id)}/geometry.geojson`;
+      const res = await fetch(url, { credentials: "omit" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const geom = await res.json();
+
+      // LineStrings aus der FeatureCollection sammeln
+      const latlngs = [];
+      for (const feat of (geom.features || [])) {
+        const g = feat.geometry;
+        if (!g) continue;
+        if (g.type === "LineString") {
+          for (const c of g.coordinates) {
+            if (Array.isArray(c) && c.length >= 2) {
+              latlngs.push([c[1], c[0]]);
+            }
+          }
+        } else if (g.type === "MultiLineString") {
+          for (const line of g.coordinates) {
+            for (const c of line) {
+              if (Array.isArray(c) && c.length >= 2) {
+                latlngs.push([c[1], c[0]]);
+              }
+            }
+          }
+        }
+      }
+      if (!latlngs.length) {
+        toast("Diese Tour hat keine Routendaten.", "error");
+        return;
+      }
+      data = { latlngs };
+      app.previewCache.set(id, data);
+    } catch (e) {
+      console.error("Route laden fehlgeschlagen:", e);
+      toast("Route konnte nicht geladen werden.", "error");
+      return;
+    }
+  }
+
+  const { latlngs } = data;
+  if (!latlngs || latlngs.length < 2) {
+    toast("Diese Tour hat keine Routendaten.", "error");
+    return;
+  }
+
+  // Linie
+  L.polyline(latlngs, {
+    color, weight: 4, opacity: 0.85,
+    lineJoin: "round", lineCap: "round",
+    interactive: false,
+  }).addTo(app.previewLayer);
+
+  // Start und Ziel als kleine Kreise in Aktivitätsfarbe mit weißem Rand
+  const startMarker = makePreviewDot(latlngs[0], color, "S");
+  const endMarker = makePreviewDot(latlngs[latlngs.length - 1], color, "Z");
+  startMarker.addTo(app.previewLayer);
+  endMarker.addTo(app.previewLayer);
+
+  app.activePreviewId = id;
+
+  // Ansicht auf die Route verschieben (max. Zoom 14, damit man die
+  // Umgebung noch erkennt).
+  try {
+    app.map.fitBounds(L.latLngBounds(latlngs), {
+      padding: [40, 40],
+      maxZoom: 14,
+      animate: true,
+    });
+  } catch (e) {}
+}
+
+function makePreviewDot(latlng, color, letter) {
+  const size = 26;
+  const html = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+    <circle cx="${size/2}" cy="${size/2}" r="${size/2 - 2}"
+            fill="${color}" stroke="white" stroke-width="3"/>
+    <text x="${size/2}" y="${size/2 + 5}" text-anchor="middle"
+          fill="white" font-family="sans-serif"
+          font-size="12" font-weight="bold">${letter}</text>
+  </svg>`;
+  const icon = L.divIcon({
+    html, className: "",
+    iconSize: [size, size], iconAnchor: [size/2, size/2],
+  });
+  return L.marker(latlng, { icon, interactive: false, zIndexOffset: 500 });
+}
+
+function clearRoutePreview() {
+  if (app.previewLayer) app.previewLayer.clearLayers();
+  app.activePreviewId = null;
+}
+
+function updateMapMarkers() {
+  if (!app.map) return;
+  clearMapMarkers();
+
+  const withCoord = app.allResults.filter(t =>
+    Array.isArray(t.center_coord) && t.center_coord.length === 2
+  );
+  if (!withCoord.length) return;
+
+  const bounds = [];
+
+  for (const tour of withCoord) {
+    const [lon, lat] = tour.center_coord;
+    if (typeof lon !== "number" || typeof lat !== "number") continue;
+
+    const marker = L.marker([lat, lon], {
+      icon: makeTourIcon(tour),
+      keyboard: false,
+    });
+    marker.bindPopup(() => makePopupHtml(tour), { maxWidth: 280 });
+
+    marker.on("popupopen", () => {
+      setTimeout(() => {
+        document.querySelectorAll(".tour-popup button").forEach(btn => {
+          btn.onclick = () => openTourpack(btn.dataset.id);
+        });
+      }, 0);
+    });
+
+    marker.on("click", () => {
+      // Nur auf echte Marker-Klicks reagieren, nicht auf die überlagerte
+      // Popup-Schaltfläche (die hat stopPropagation).
+      toggleRoutePreview(tour);
+    });
+
+    app.markers.push(marker);
+    app.tourEntries.push({ tour, marker, latlng: L.latLng(lat, lon) });
+    bounds.push([lat, lon]);
+  }
+  layoutMarkers();
+
+  // Auto-Fit, damit alle Treffer sichtbar sind.
+  // Bei Umkreissuche etwas weniger maxZoom (13 statt 14), damit man
+  // den Bezug zum gewählten Ort/Mittelpunkt noch erkennt.
+  // Bei 0 Treffern bleibt die Karte, wo sie ist.
+  if (bounds.length) {
+    const maxZoom = app.mode === "nearby" ? 13 : 14;
+    try {
+      if (bounds.length === 1) {
+        const targetZoom = Math.min(maxZoom, Math.max(app.map.getZoom(), 11));
+        app.map.setView(bounds[0], targetZoom, { animate: true });
+      } else {
+        app.map.fitBounds(L.latLngBounds(bounds).pad(0.15), {
+          animate: true,
+          maxZoom,
+        });
+      }
+    } catch (e) {}
+  }
+}
+
+/* ============================================================
+ * Paginierung
+ * ============================================================ */
+function updatePagination() {
+  const pag = $("pagination");
+  const prev = $("prevPage");
+  const next = $("nextPage");
+  const info = $("pageInfo");
+
+  const total = app.allResults.length;
+  if (total <= PAGE_SIZE) {
+    pag.classList.remove("show");
+    return;
+  }
+
+  const page = Math.floor(app.pageOffset / PAGE_SIZE) + 1;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  prev.disabled = app.pageOffset <= 0;
+  next.disabled = app.pageOffset + PAGE_SIZE >= total;
+  info.textContent = `Seite ${page} von ${totalPages}`;
+  pag.classList.add("show");
+}
+
+function bindPagination() {
+  $("prevPage").addEventListener("click", () => {
+    if (app.pageOffset <= 0) return;
+    app.pageOffset = Math.max(0, app.pageOffset - PAGE_SIZE);
+    renderPage();
+    scrollToResults();
+  });
+  $("nextPage").addEventListener("click", () => {
+    if (app.pageOffset + PAGE_SIZE >= app.allResults.length) return;
+    app.pageOffset += PAGE_SIZE;
+    renderPage();
+    scrollToResults();
+  });
+}
+
+function scrollToResults() {
+  $("results").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/* ============================================================
+ * Suchformular
+ * ============================================================ */
+function updateClearBtn() {
+  const input = $("searchInput");
+  const btn = $("searchClear");
+  if (input.value.trim()) btn.classList.add("show");
+  else btn.classList.remove("show");
+}
+
+function bindSearchForm() {
+  const form = $("searchForm");
+  const input = $("searchInput");
+  const act = $("activitySelect");
+  const clearBtn = $("searchClear");
+
+  input.addEventListener("input", () => {
+    updateClearBtn();
+    updatePlaceSearchHint();
+  });
+
+  clearBtn.addEventListener("click", () => {
+    input.value = "";
+    updateClearBtn();
+    updatePlaceSearchHint();
+    input.focus();
+  });
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const q = input.value.trim();
+
+    // Leere Suche: nichts tun
+    if (!q) return;
+
+    // Textsuche: Umkreisfilter wird ignoriert
+    app.query = q;
+    app.activity = act.value;
+    app.mode = "search";
+    app.near = null;
+    app.fixedRadiusKm = null;
+
+    runSearch();
+    scrollToResults();
+  });
+
+  act.addEventListener("change", () => {
+    app.activity = act.value;
+    // Nur ausführen, wenn schon eine Suche aktiv ist
+    if (app.allResults.length > 0 || app.query || countActiveFilters() > 0) {
+      runSearch();
+    }
+  });
+}
+
+/* ============================================================
+ * "Touren hier"
+ * ============================================================ */
+function bindSearchTours() {
+  $("searchToursBtn").addEventListener("click", () => {
+    if (!app.map) return;
+    const c = app.map.getCenter();
+
+    // Umkreissuche: Text wird ignoriert, Filter gelten weiter
+    app.mode = "nearby";
+    app.near = `${c.lat.toFixed(6)},${c.lng.toFixed(6)}`;
+    app.fixedRadiusKm = null;
+
+    app.query = "";
+    $("searchInput").value = "";
+    updateClearBtn();
+
+    app.activity = $("activitySelect").value;
+
+    const radiusKm = getRadiusFromZoom(app.map.getZoom());
+    runSearch();
+    scrollToResults();
+    toast(`Suche Touren im Umkreis von ${radiusKm} km …`, "warn");
+  });
+}
+
+/* ============================================================
+ * Detail-Such-Dialog
+ * ============================================================ */
+function openDetailModal() {
+  syncDetailUI();
+  $("detailSearchModal").classList.add("show");
+}
+function closeDetailModal() {
+  $("detailSearchModal").classList.remove("show");
+}
+
+function syncDetailUI() {
+  const d = app.detail;
+
+  const minKm = d.minKm != null ? d.minKm : 0;
+  const maxKm = d.maxKm != null ? d.maxKm : 300;
+  $("ds_minKm").value = String(minKm);
+  $("ds_maxKm").value = String(maxKm);
+  $("ds_minKmVal").textContent = minKm + " km";
+  $("ds_maxKmVal").textContent = maxKm + " km";
+
+  $("ds_diffMin").value = String(d.diffMin);
+  $("ds_diffMax").value = String(d.diffMax);
+  $("ds_region").value = d.region || "";
+  const rtEl = $("ds_roundtrip");
+  if (rtEl) rtEl.checked = !!d.roundtripOnly;
+  const rbEl = $("ds_roadbike");
+  if (rbEl) rbEl.checked = !!d.roadbikeOnly;
+}
+
+function bindDetailModal() {
+  const minSlider = $("ds_minKm");
+  const maxSlider = $("ds_maxKm");
+  const minVal = $("ds_minKmVal");
+  const maxVal = $("ds_maxKmVal");
+
+  function clampSliders() {
+    let lo = parseInt(minSlider.value, 10);
+    let hi = parseInt(maxSlider.value, 10);
+    if (lo > hi) {
+      if (document.activeElement === minSlider) hi = lo;
+      else lo = hi;
+      minSlider.value = String(lo);
+      maxSlider.value = String(hi);
+    }
+    minVal.textContent = lo + " km";
+    maxVal.textContent = hi + " km";
+  }
+
+  minSlider.addEventListener("input", clampSliders);
+  maxSlider.addEventListener("input", clampSliders);
+
+  $("filterBtn").addEventListener("click", openDetailModal);
+  $("ds_cancel").addEventListener("click", closeDetailModal);
+
+  $("ds_reset").addEventListener("click", () => {
+    app.detail = {
+      minKm: null, maxKm: null, diffMin: 0, diffMax: 5,
+      region: "", roundtripOnly: false, roadbikeOnly: false,
+    };
+    syncDetailUI();
+    updateFilterBtnCount();
+  });
+
+  $("ds_apply").addEventListener("click", () => {
+    const lo = parseInt(minSlider.value, 10);
+    const hi = parseInt(maxSlider.value, 10);
+
+    app.detail.minKm = lo > 0 ? lo : null;
+    app.detail.maxKm = hi < 300 ? hi : null;
+    app.detail.diffMin = parseInt($("ds_diffMin").value, 10) || 0;
+    app.detail.diffMax = parseInt($("ds_diffMax").value, 10) || 5;
+    if (app.detail.diffMin > app.detail.diffMax) {
+      const t = app.detail.diffMin;
+      app.detail.diffMin = app.detail.diffMax;
+      app.detail.diffMax = t;
+    }
+    app.detail.region = $("ds_region").value.trim();
+    app.detail.roundtripOnly = !!$("ds_roundtrip").checked;
+    app.detail.roadbikeOnly = !!$("ds_roadbike").checked;
+
+    // Mindestens ein Filter muss gesetzt sein, damit die Detail-Suche
+    // nicht den kompletten Bestand durchkämmt. Region allein reicht,
+    // ein Längen-, Schwierigkeits- oder Rundtour-Filter allein aber auch.
+    const hasOtherFilter =
+      (app.detail.minKm != null && app.detail.minKm > 0) ||
+      (app.detail.maxKm != null) ||
+      (app.detail.diffMin > 0) ||
+      (app.detail.diffMax < 5) ||
+      app.detail.roundtripOnly ||
+      app.detail.roadbikeOnly;
+    if (!app.detail.region && !hasOtherFilter) {
+      toast("Bitte Region oder einen anderen Filter angeben.", "error");
+      return;
+    }
+
+    // Detail-Suche: Umkreisfilter wird ignoriert
+    app.mode = "search";
+    app.near = null;
+    app.fixedRadiusKm = null;
+
+    updateFilterBtnCount();
+    closeDetailModal();
+    runSearch();
+    scrollToResults();
+  });
+
+  $("detailSearchModal").addEventListener("click", (e) => {
+    if (e.target === $("detailSearchModal")) closeDetailModal();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && $("detailSearchModal").classList.contains("show")) {
+      closeDetailModal();
+    }
+  });
+}
+
+function updateFilterBtnCount() {
+  const n = countActiveFilters();
+  const badge = $("filterCount");
+  const btn = $("filterBtn");
+  if (n > 0) {
+    badge.textContent = String(n);
+    badge.hidden = false;
+    btn.classList.add("active");
+  } else {
+    badge.hidden = true;
+    btn.classList.remove("active");
+  }
+}
+
+/* ============================================================
+ * Ortssuche (Touren in der Nähe eines Ortes)
+ * ============================================================ */
+function updatePlaceSearchHint() {
+  const hint = $("placeSearchHint");
+  const termSpan = $("placeSearchHintTerm");
+  if (!hint || !termSpan) return;
+  const input = $("searchInput");
+  const q = input ? input.value.trim() : "";
+  if (q.length >= 2) {
+    termSpan.textContent = q;
+    hint.classList.remove("hidden");
+  } else {
+    hint.classList.add("hidden");
+  }
+}
+
+function openPlaceNearbyModal(prefillTerm) {
+  const input = $("placeNearbyInput");
+  const box = $("placeNearbyResults");
+  if (input) input.value = prefillTerm || "";
+  if (box) {
+    box.innerHTML = prefillTerm
+      ? '<div class="placeholder-small">Suche läuft …</div>'
+      : '<div class="placeholder-small">Bitte einen Ort eingeben.</div>';
+  }
+  $("placeNearbyModal").classList.add("show");
+  if (prefillTerm) {
+    searchNearbyPlace();
+  } else {
+    setTimeout(() => { if (input) input.focus(); }, 100);
+  }
+}
+
+function closePlaceNearbyModal() {
+  $("placeNearbyModal").classList.remove("show");
+}
+
+async function searchNearbyPlace() {
+  const q = ($("placeNearbyInput").value || "").trim();
+  if (!q) return;
+  const box = $("placeNearbyResults");
+  const btn = $("placeNearbySearchBtn");
+  box.innerHTML = '<div class="placeholder-small">Suche läuft …</div>';
+  btn.disabled = true;
+  try {
+    const url = Andromeda.NOMINATIM_URL + "/search?q=" +
+      encodeURIComponent(q) + "&format=json&limit=8&addressdetails=1" +
+      "&accept-language=" + AndromedaI18n.lang();
+    const res = await fetch(url, { headers: { "Accept": "application/json" } });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    if (!Array.isArray(data) || !data.length) {
+      box.innerHTML = '<div class="placeholder-small">Keine Treffer gefunden.</div>';
+      return;
+    }
+    box.innerHTML = "";
+    for (const item of data) {
+      const lat = parseFloat(item.lat);
+      const lon = parseFloat(item.lon);
+      if (!isFinite(lat) || !isFinite(lon)) continue;
+      const name = item.name || (item.display_name || "").split(",")[0] || "Ort";
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "place-pick-item";
+      b.innerHTML =
+        `<div class="pp-name">${escapeHtml(name)}</div>` +
+        `<div class="pp-detail">${escapeHtml(item.display_name || "")}</div>`;
+      b.onclick = () => selectNearbyPlace(lat, lon);
+      box.appendChild(b);
+    }
+  } catch (e) {
+    box.innerHTML = '<div class="placeholder-small">Suche fehlgeschlagen: ' +
+      escapeHtml(e.message) + '</div>';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function selectNearbyPlace(lat, lon) {
+  closePlaceNearbyModal();
+  if (!app.map) return;
+  // Auf den Ort zoomen (Zoom 10 ≈ 50 km Radius)
+  app.map.setView([lat, lon], 10, { animate: true });
+  app.mode = "nearby";
+  app.near = `${lat.toFixed(6)},${lon.toFixed(6)}`;
+  app.fixedRadiusKm = 50;
+  app.query = "";
+  $("searchInput").value = "";
+  updateClearBtn();
+  updatePlaceSearchHint();
+  app.activity = $("activitySelect").value;
+  runSearch();
+  scrollToResults();
+  toast("Suche Touren im Umkreis von 50 km …", "warn");
+}
+
+function bindPlaceNearbyModal() {
+  const hintBtn = $("placeSearchHintBtn");
+  if (hintBtn) {
+    hintBtn.addEventListener("click", () => {
+      const q = ($("searchInput").value || "").trim();
+      if (q) openPlaceNearbyModal(q);
+    });
+  }
+  const cancelBtn = $("placeNearbyCancel");
+  if (cancelBtn) cancelBtn.addEventListener("click", closePlaceNearbyModal);
+  const searchBtn = $("placeNearbySearchBtn");
+  if (searchBtn) searchBtn.addEventListener("click", searchNearbyPlace);
+  const input = $("placeNearbyInput");
+  if (input) {
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); searchNearbyPlace(); }
+    });
+  }
+  const backdrop = $("placeNearbyModal");
+  if (backdrop) {
+    backdrop.addEventListener("click", (e) => {
+      if (e.target === backdrop) closePlaceNearbyModal();
+    });
+  }
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" &&
+        $("placeNearbyModal").classList.contains("show")) {
+      closePlaceNearbyModal();
+    }
+  });
+}
+
+/* ============================================================
+ * Startzustand: Position asynchron nachziehen
+ * Wird nach der ersten Sofort-Suche im Hintergrund aufgerufen.
+ * Nur wenn die ermittelte Position deutlich vom aktuellen
+ * Kartenmittelpunkt abweicht, wird die Karte verschoben und
+ * erneut gesucht.
+ * ============================================================ */
+const SIGNIFICANT_MOVE_KM = 10;
+
+function haversineKm(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const toRad = Math.PI / 180;
+  const dLat = (lat2 - lat1) * toRad;
+  const dLng = (lng2 - lng1) * toRad;
+  const a = Math.sin(dLat / 2) ** 2
+          + Math.cos(lat1 * toRad) * Math.cos(lat2 * toRad)
+            * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+async function fetchPositionAndMaybeMove(startCenter) {
+  // Nur abfragen, wenn der Nutzer schon einmal zugestimmt hat —
+  // sonst würden wir einen Berechtigungsdialog aufwerfen, obwohl die
+  // Seite bereits funktioniert.
+  if (!navigator.permissions || !("geolocation" in navigator)) return;
+  let status;
+  try {
+    status = await navigator.permissions.query({ name: "geolocation" });
+  } catch (e) {
+    return;
+  }
+  if (status.state !== "granted") return;
+
+  const pos = await new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      p => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
+      () => resolve(null),
+      { timeout: 5000, maximumAge: 120000 }
+    );
+  });
+  if (!pos) return;
+
+  const d = haversineKm(startCenter.lat, startCenter.lng, pos.lat, pos.lng);
+  if (d < SIGNIFICANT_MOVE_KM) return;
+
+  // Position liegt deutlich entfernt — Karte verschieben und neu suchen.
+  try { app.map.setView([pos.lat, pos.lng], 10, { animate: false }); } catch (e) {}
+  saveMapView();
+  app.near = `${pos.lat.toFixed(6)},${pos.lng.toFixed(6)}`;
+  runSearch();
+}
+
+/* ============================================================
+ * Init
+ * ============================================================ */
+async function init() {
+  AndromedaDarkmode.init();
+  AndromedaSiteMenu.bind();
+
+  initMap();
+  bindMapAutoLock();
+  bindFullscreen();
+  bindLocation();
+  bindSearchForm();
+  bindSearchTours();
+  bindPagination();
+  bindDetailModal();
+  bindPlaceNearbyModal();
+  $("lockBtn").addEventListener("click", toggleMapLock);
+  updateClearBtn();
+  updateFilterBtnCount();
+
+  // Erst jetzt aus localStorage lesen — dann sind alle Konstanten
+  // und Funktionen definiert.
+  app.savedTours = loadSavedTours();
+  renderSavedTours();
+
+  // URL-Parameter ?q=... → Textsuche
+  const urlParams = new URLSearchParams(window.location.search);
+  const q = urlParams.get("q");
+  const a = urlParams.get("activity");
+  if (q) {
+    $("searchInput").value = q;
+    app.query = q.trim();
+    app.mode = "search";
+    updateClearBtn();
+  }
+  if (a && ["hiking", "cycling", "running"].includes(a)) {
+    $("activitySelect").value = a;
+    app.activity = a;
+  }
+
+  setTimeout(() => { if (app.map) app.map.invalidateSize(); }, 150);
+
+  if (app.mode === "search") {
+    runSearch();
+  } else {
+    // Erst sofort mit dem aktuellen Kartenmittelpunkt suchen — keine
+    // Wartezeit auf die Geolocation. Die Position wird parallel geholt
+    // und ggf. nachgezogen.
+    const saved = loadMapView();
+    const c = app.map.getCenter();
+    const startCenter = saved
+      ? { lat: c.lat, lng: c.lng }
+      : { lat: DEFAULT_CENTER[0], lng: DEFAULT_CENTER[1] };
+
+    app.mode = "nearby";
+    app.near = `${startCenter.lat.toFixed(6)},${startCenter.lng.toFixed(6)}`;
+
+    runSearch();
+
+    // Parallel die Position holen. Nur wenn sie deutlich vom aktuellen
+    // Mittelpunkt abweicht (mehr als 10 km), Karte setzen und neu suchen.
+    if (!saved) {
+      fetchPositionAndMaybeMove(startCenter).catch(() => {});
+    }
+  }
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", init);
+} else {
+  init();
+}
+</script>
+
+</body>
+</html>

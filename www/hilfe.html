@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#2a6fbf">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="favicon.png">
+<title>Hilfe — Andromeda-Explorer</title>
+
+<!-- Shared CSS -->
+<link rel="stylesheet" href="stylesheets/base.css">
+<link rel="stylesheet" href="stylesheets/layout.css">
+<link rel="stylesheet" href="stylesheets/components.css">
+<link rel="stylesheet" href="stylesheets/site.css">
+
+<style>
+  /* ============================================================
+   * hilfe.html — Seitenspezifisch
+   * ============================================================ */
+
+
+  /* ---------- Inhalt ---------- */
+
+
+
+  .doc .warn-note {
+    background: #fff4e5;
+    border-left: 3px solid #b26a00;
+    padding: 12px 16px;
+    border-radius: 4px;
+    font-size: 14px;
+    line-height: 1.55;
+    color: #6b4000;
+    margin: 16px 0;
+  }
+  .doc .warn-note strong { font-weight: 700; color: #4a2c00; }
+  body.dark .doc .warn-note {
+    background: rgba(178,106,0,.15);
+    color: #ffb74d;
+  }
+  body.dark .doc .warn-note strong { color: #ffd08a; }
+
+  /* Inhaltsverzeichnis am Anfang */
+  .doc .toc {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px 20px;
+    margin-bottom: 40px;
+  }
+  .doc .toc h2 {
+    margin: 0 0 10px 0;
+    border: none;
+    padding: 0;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--text-muted);
+    font-weight: 700;
+  }
+  .doc .toc ol {
+    margin: 0; padding-left: 22px;
+    columns: 1;
+    column-gap: 24px;
+  }
+  @media (min-width: 600px) {
+    .doc .toc ol { columns: 2; }
+  }
+  .doc .toc li {
+    margin-bottom: 4px;
+    font-size: 14px;
+  }
+  .doc .toc a {
+    color: var(--text);
+    border-bottom: none;
+  }
+  .doc .toc a:hover { color: var(--primary); }
+
+  /* ---------- Mobile ---------- */
+</style>
+</head>
+<body class="page-scroll">
+
+<!-- ============================================================
+     Header
+     ============================================================ -->
+<header id="header">
+  <button class="icon-btn menu-btn" id="menuBtn" title="Menü" aria-label="Menü öffnen">☰</button>
+
+  <a href="index.html" class="brand">
+    <img src="logo.svg" class="logo" alt="">
+    <span class="brand-name">Andromeda-Explorer</span>
+  </a>
+
+  <nav class="app-nav desktop-only">
+    <a href="routing.html" class="app-primary">🗺️ Route planen</a>
+    <a href="navigation.html">🧭 Navigieren</a>
+    <a href="tourpack-viewer.html">👁️ TourPack ansehen</a>
+    <a href="tourpack-editor.html">✏️ TourPack erstellen</a>
+    <a href="hilfe.html">📖 Hilfe</a>
+    <button class="icon-btn lang-btn" type="button"></button>
+    <button class="icon-btn darkmode-btn" title="Nachtmodus" aria-label="Nachtmodus">🌙</button>
+  </nav>
+</header>
+
+<main>
+    <article class="doc">
+
+    <!-- ============================================================
+         Deutsch
+         ============================================================ -->
+    <div data-lang-block="de" data-no-i18n>
+
+    <h1>Hilfe</h1>
+
+    <div class="toc">
+      <h2>Inhalt</h2>
+      <ol>
+        <li><a href="#worum">Was ist der Andromeda-Explorer?</a></li>
+        <li><a href="#karte">Bedienung der Karte</a></li>
+        <li><a href="#touren-suchen">Touren suchen</a></li>
+        <li><a href="#viewer">Touren ansehen</a></li>
+        <li><a href="#routen">Routen planen</a></li>
+        <li><a href="#navigator">Navigator</a></li>
+        <li><a href="#offline">Offline nutzen</a></li>
+        <li><a href="#tourpack">TourPacks im Detail</a></li>
+        <li><a href="#erstellen">TourPack erstellen</a></li>
+        <li><a href="#sprache">Sprache und Nachtmodus</a></li>
+        <li><a href="#quellcode">Quellcode</a></li>
+      </ol>
+    </div>
+
+    <section id="worum">
+      <h2>Was ist der Andromeda-Explorer?</h2>
+      <p>
+        Der Andromeda-Explorer ist eine Website zum Suchen, Planen und
+        Navigieren von <strong>Wander-, Rad- und Lauftouren</strong>.
+        Vorgeplante Touren können auf der Startseite gesucht, angesehen und
+        im <code>.tourpack</code>-Format heruntergeladen, gespeichert und
+        versendet werden — so stehen sie auch offline zur Verfügung.
+      </p>
+      <p>
+        Im Routenplaner geplante Routen lassen sich als <strong>Link</strong>
+        versenden und auf jedem Gerät mit Webbrowser öffnen. Auf GPS-fähigen
+        Geräten kann eine Route im <strong>Navigator</strong> geöffnet werden;
+        dieser zeigt Route und eigene Position auf der Karte und gibt
+        Abbiegehinweise.
+      </p>
+      <p>
+        Die Kartendaten stammen von <strong>OpenStreetMap</strong>, die
+        Wegfindung übernimmt <strong>BRouter</strong>. Ein Benutzerkonto ist
+        nicht nötig.
+      </p>
+    </section>
+
+    <section id="karte">
+      <h2>Bedienung der Karte</h2>
+      <p>
+        Alle Karten des Andromeda-Explorers funktionieren gleich:
+      </p>
+      <ul>
+        <li><strong>Verschieben</strong> mit einem Finger oder der Maus,
+            <strong>zoomen</strong> mit zwei Fingern, dem Mausrad, einem
+            Doppeltipp/Doppelklick oder den Knöpfen <strong>+</strong> /
+            <strong>−</strong>.</li>
+        <li><strong>Drehen</strong> mit zwei Fingern (auf der Startseite
+            ausgeschaltet). Sobald die Karte gedreht ist, erscheint oben
+            rechts eine kleine <strong>Kompassnadel</strong>. Die rote Spitze
+            zeigt nach Norden; ein Tipp darauf richtet die Karte wieder nach
+            Norden aus.</li>
+        <li><strong>🎯</strong>: zeigt die geladene Route bildfüllend.</li>
+        <li><strong>⛶</strong>: startet den Vollbildmodus.</li>
+        <li><strong>🗺️</strong>: wählt den Kartenstil. OpenTopoMap zeigt zum
+            Beispiel Höhenlinien, CyclOSM Radwege. Zusätzlich lassen sich
+            offizielle Wander- und Radwege als Overlay einblenden.</li>
+      </ul>
+    </section>
+
+    <section id="touren-suchen">
+      <h2>Touren suchen</h2>
+      <p>
+        Auf der Startseite können veröffentlichte Touren nach
+        <strong>Titel</strong>, <strong>Region</strong>, <strong>Ort</strong>
+        oder <strong>Tags</strong> (Schlagwörtern) gesucht werden. Über das
+        Zahnrad gibt es eine <strong>detaillierte Suche</strong> mit Länge,
+        Schwierigkeit, Region sowie Filtern für <strong>Rundtouren</strong>
+        und <strong>rennradtaugliche Touren</strong>.
+      </p>
+      <p>
+        Damit die Seite beim Scrollen nicht an der Karte hängen bleibt, ist
+        die Karte zunächst gesperrt. Mit <strong>„Karte bewegen“</strong>
+        wird sie freigegeben. <strong>„Im Umkreis suchen“</strong> zeigt die
+        Touren rund um das Kartenzentrum, <strong>„Standort“</strong> springt
+        zur eigenen Position.
+      </p>
+      <p>
+        Ein Tipp auf eine Tour in der Karte zeigt ihren Verlauf und ein
+        kleines Fenster mit <strong>„Im Viewer öffnen“</strong>. Verschieben
+        oder Zoomen über einer Tour öffnet nichts — nur ein gezielter Tipp.
+        Mit 📌 lassen sich Touren merken; sie erscheinen dann unter
+        „Gespeicherte Touren“.
+      </p>
+    </section>
+
+    <section id="viewer">
+      <h2>Touren ansehen</h2>
+      <p>
+        Der <strong>Viewer</strong> zeigt eine Tour auf der Karte, dazu
+        Strecke, Höhenmeter, Dauer, Schwierigkeit, Region, Beschreibung,
+        Wegpunkte und Bilder.
+      </p>
+      <ul>
+        <li><strong>Wegpunkte:</strong> ein Tipp öffnet Notiz und Bilder des
+            Wegpunkts, 🗺 zeigt ihn auf der Karte.</li>
+        <li><strong>Bilder</strong> öffnen sich groß. Mit zwei Fingern,
+            Doppeltipp oder Mausrad lässt sich hineinzoomen und das Bild
+            verschieben; ungezoomt wechselt Wischen zum nächsten Bild.</li>
+        <li><strong>Wege &amp; Oberflächenstatistik:</strong> ein Tipp auf
+            eine Wegeart (z. B. Bergwanderweg oder Asphalt) hebt alle diese
+            Abschnitte hervor und zoomt die Karte darauf. Am Handy schließt
+            sich dazu das Menü.</li>
+        <li><strong>📈</strong> zeigt das Höhenprofil mit Steigungsfarben.</li>
+        <li><strong>Anfahrt</strong> öffnet die Route zum Startpunkt in
+            Google Maps oder OpenStreetMap (Auto oder Öffis).</li>
+        <li><strong>Navigation</strong> öffnet die Tour im Navigator,
+            <strong>GPX</strong> und <strong>TourPack</strong> laden sie
+            herunter, <strong>Drucken</strong> erstellt einen Ausdruck oder
+            ein PDF.</li>
+      </ul>
+    </section>
+
+    <section id="routen">
+      <h2>Routen planen</h2>
+      <p>
+        Der <strong>Routenplaner</strong> hat drei Bereiche:
+        <strong>Route</strong>, <strong>Parameter</strong> und
+        <strong>Ergebnis</strong>.
+      </p>
+      <ul>
+        <li>
+          <strong>Route:</strong> Fortbewegungsart (Wandern, Rad, Laufen),
+          Ortssuche und Aktionen: aktuellen Standort als Start verwenden,
+          Richtung umkehren, Wegpunkte als <strong>Off-Grid</strong> markieren
+          (Verbindung als Luftlinie, etwa querfeldein) und eine
+          <strong>GPX-Datei importieren</strong> — entweder nur als Overlay
+          zum Nachzeichnen oder zum Nachplanen mit BRouter. Beim Nachplanen
+          werden Wegpunkte entlang des Tracks gesetzt; weicht die berechnete
+          Route dann noch irgendwo vom Track ab, kommen dort automatisch
+          weitere Wegpunkte dazu.
+        </li>
+        <li>
+          <strong>Parameter:</strong> persönliche Fitness (ändert nur die
+          Zeitangabe), maximale und bevorzugte Schwierigkeit von Wanderwegen
+          sowie weitere Vorlieben. Beim Rad gibt es <em>Trekkingrad</em>
+          (Nebenstraßen und Schotterwege) und <em>Rennrad</em> (gute
+          Asphaltstraßen).
+        </li>
+        <li>
+          <strong>Ergebnis:</strong> Länge, Höhenmeter, geschätzte Dauer und
+          Höhenprofil. Die Route kann als <strong>Link</strong> geteilt
+          (schreibgeschützt), im <strong>Navigator</strong> geöffnet oder als
+          <strong>GPX</strong> exportiert werden. Die GPX enthält die
+          Abbiegeanweisungen aus dem Wegenetz (Kreuzungen, Abzweigungen,
+          Kreisverkehre) im Format von OsmAnd — sie funktionieren also auch
+          dort beim Folgen des Tracks.
+        </li>
+      </ul>
+      <p>
+        Auf der Karte: <strong>tippen</strong> setzt Start- und
+        Zwischenpunkte, ein Tipp auf einen <strong>Punkt</strong> löscht
+        ihn, Punkte lassen sich <strong>ziehen</strong>, und ein Tipp auf die
+        <strong>Route</strong> fügt dort einen Zwischenpunkt ein.
+      </p>
+    </section>
+
+    <section id="navigator">
+      <h2>Navigator</h2>
+
+      <div class="warn-note">
+        <strong>Achtung:</strong> Im Firefox auf Android ist die
+        Positionsbestimmung sehr ungenau (nur über das Netzwerk). Zum
+        Navigieren ist zum Beispiel Chrome deutlich besser geeignet.
+      </div>
+
+      <p>
+        Der Navigator führt entlang einer Tour. Er startet direkt aus dem
+        Routenplaner oder dem Viewer, kann aber auch <code>.gpx</code>- und
+        <code>.tourpack</code>-Dateien öffnen. Im Menü unter
+        <strong>Übersicht</strong> stehen Strecke, Höhenmeter und bei
+        TourPacks auch Dauer, Schwierigkeit, Beschreibung, Wegpunkte und
+        Bilder.
+      </p>
+
+      <h3>Karte und Position</h3>
+      <ul>
+        <li><strong>🧭</strong> zentriert die Karte auf die eigene Position
+            und folgt ihr. Die Zoomstufe dafür lässt sich in den Optionen
+            einstellen.</li>
+        <li>Mit <strong>„Karte in Kompassrichtung drehen“</strong> zeigt die
+            Karte beim Folgen immer in Blickrichtung.</li>
+        <li>Wer die Karte von Hand verschiebt, zoomt oder dreht, beendet das
+            Folgen; die gewählte Ausrichtung bleibt dabei erhalten. Die
+            <strong>Kompassnadel</strong> oben rechts dreht die Karte wieder
+            nach Norden.</li>
+        <li><strong>📈</strong> zeigt das Höhenprofil.</li>
+      </ul>
+
+      <h3>Abbiegehinweise</h3>
+      <ul>
+        <li>Vor einer Abzweigung erscheint oben ein Hinweis mit der
+            Restdistanz in Metern (beim Wandern und Laufen ab 200 m, beim
+            Radfahren ab 1 km). Kurz vor der Abzweigung (etwa 5 m) steht nur
+            noch die Anweisung, z. B. „rechts abbiegen“.</li>
+        <li>Routen aus dem Routenplaner bringen <strong>echte
+            Abbiegeanweisungen</strong> aus dem Wegenetz mit: Der Hinweis kommt
+            dort, wo sich der Weg tatsächlich teilt, auch an Gabelungen
+            („links halten“) und in Kreisverkehren („2. Ausfahrt“).</li>
+        <li>Enthält eine GPX oder Tour keine Abbiegeanweisungen, werden die
+            Hinweise aus der Form der Route berechnet. Das ist ungenauer
+            (ein Knick im Weg kann als Abbiegung gemeldet werden); im
+            Bereich <strong>Übersicht</strong> steht dann ein entsprechender
+            Hinweis.</li>
+        <li>Bei Routen, die zurückführen, kommt der Hinweis
+            <strong>„umdrehen“</strong>.</li>
+        <li>Ist man mehr als 30 m von der Route entfernt, warnt ein roter
+            Hinweis mit der Entfernung. Geht man auf der Route in die
+            falsche Richtung, erscheint <strong>„Falsche Richtung“</strong>.</li>
+      </ul>
+
+      <h3>Zur Route und zu Markierungen navigieren</h3>
+      <p>
+        Ist man beim Start nicht auf der Route, fragt der Navigator, ob zum
+        Start oder zum nächsten Punkt der Route navigiert werden soll. Unter
+        <strong>Übersicht</strong> lässt sich die Navigation zur Route auch
+        später starten, etwa wenn man vom Weg abgekommen ist.
+      </p>
+      <p>
+        Diese Zusatz-Navigation ist <strong>orange</strong> und hat Vorrang,
+        solange sie aktiv ist; danach geht es mit der Tour weiter. Ihre
+        Einstellungen (bevorzugte und maximale SAC-Skala, Radtyp) stehen
+        unter <strong>Optionen</strong>.
+      </p>
+
+      <h3>Suchen und Markierungen</h3>
+      <ul>
+        <li><strong>Langes Drücken</strong> (am Desktop Rechtsklick) setzt
+            eine Markierung. Einmal tippen zeigt Infos und Aktionen, z. B.
+            <strong>„Zu diesem Ort navigieren“</strong> oder
+            <strong>„Online Ortsabfrage“</strong> (Öffnungszeiten, Links und
+            weitere Angaben aus OpenStreetMap). Doppeltippen entfernt die
+            Markierung, Ziehen verschiebt sie.</li>
+        <li>Unter <strong>Suche</strong> lassen sich Orte suchen und als
+            Markierung setzen.</li>
+        <li><strong>„Dinge in der Umgebung suchen“</strong> findet etwa
+            Trinkwasser, Supermärkte, Hütten oder Parkplätze im Umkreis von
+            10 km.</li>
+      </ul>
+    </section>
+
+    <section id="offline">
+      <h2>Offline nutzen</h2>
+      <p>
+        Navigator und Viewer funktionieren nach dem ersten Aufruf auch ohne
+        Internet (im Viewer für geöffnete <code>.tourpack</code>-Dateien). Kartenausschnitte, die im Navigator angesehen wurden,
+        werden auf dem Gerät gespeichert (abschaltbar unter
+        <strong>Weitere Optionen → Offline-Karten</strong>). Fehlt ein
+        Ausschnitt in der gewählten Zoomstufe, zeigt die Karte stattdessen
+        einen gröberen gespeicherten Ausschnitt vergrößert an.
+      </p>
+      <p>
+        Tipp: Vor einer Tour mit schlechtem Empfang die Strecke einmal im
+        Navigator in den Zoomstufen abfahren, die später gebraucht werden.
+        Routenberechnung, Ortssuche und Ortsabfrage brauchen weiterhin eine
+        Internetverbindung.
+      </p>
+    </section>
+
+    <section id="tourpack">
+      <h2>TourPacks im Detail</h2>
+      <p>
+        Ein <strong>TourPack</strong> ist eine einzelne Datei mit der Endung
+        <code>.tourpack</code> — technisch eine <strong>ZIP-Datei</strong> mit
+        festgelegtem Aufbau. So lässt sich eine Tour als eine Datei
+        speichern, verschicken und weitergeben.
+      </p>
+      <h3>Inhalt</h3>
+      <ul>
+        <li>die <strong>Route</strong> als Linie, mit Höhenwerten, sofern
+            vorhanden,</li>
+        <li><strong>Wegpunkte</strong> mit Name, Koordinaten, Notizen und
+            Bildern,</li>
+        <li>eine <strong>Beschreibung</strong> im Markdown-Format,</li>
+        <li><strong>Titel, Aktivität, Schwierigkeit, Tags, Region und
+            Ort</strong>,</li>
+        <li><strong>allgemeine Bilder</strong> mit Bildunterschrift und ein
+            <strong>Titelbild</strong>,</li>
+        <li>technische <strong>Metadaten</strong> wie Erstellungsdatum,
+            Formatversion und eine eindeutige ID.</li>
+      </ul>
+      <h3>Aufbau der Datei</h3>
+      <ul>
+        <li><code>mimetype</code> — Format-Kennung,</li>
+        <li><code>manifest.json</code> — ID, Titel, Erstellungsdatum,
+            Formatversion,</li>
+        <li><code>route.json</code> — alle strukturierten Daten zur Tour,</li>
+        <li><code>geometry.geojson</code> — die Route als GeoJSON,</li>
+        <li><code>description.md</code> — die Beschreibung,</li>
+        <li><code>media/images/…</code> — die Bilder.</li>
+      </ul>
+      <p>
+        Das Format lässt sich erweitern, ohne ältere Dateien ungültig zu
+        machen; fehlende Felder werden beim Öffnen ergänzt.
+      </p>
+    </section>
+
+    <section id="erstellen">
+      <h2>TourPack erstellen</h2>
+      <p>
+        Mit dem <strong>TourPack-Editor</strong> entstehen neue
+        <code>.tourpack</code>-Dateien; vorhandene lassen sich laden und
+        weiterbearbeiten.
+      </p>
+      <ol>
+        <li><strong>Route laden</strong> über „GPX importieren“.</li>
+        <li><strong>Grunddaten:</strong> Titel, Aktivität, geschätzte Dauer
+            und ob die Tour rennradtauglich ist.</li>
+        <li><strong>Region automatisch ermitteln:</strong> Region, Bezirk,
+            Gemeinde und Ort aus Start-, Mittel- und Endpunkt.</li>
+        <li><strong>Schwierigkeit und Tags:</strong> Sterne für
+            Schwierigkeit, Technik und Kondition, dazu eine kurze
+            Einschätzung und Schlagwörter.</li>
+        <li><strong>Beschreibung</strong> in Markdown (Überschriften, fett,
+            kursiv, Listen, Links).</li>
+        <li><strong>Wegpunkte</strong> auf der Karte setzen, verschieben,
+            sortieren und mit Notiz und Bildern versehen.</li>
+        <li><strong>Bilder</strong> hinzufügen und eines als Titelbild
+            markieren.</li>
+        <li><strong>Speichern</strong> lädt die fertige
+            <code>.tourpack</code>-Datei herunter;
+            <strong>Hochladen</strong> reicht sie zur Veröffentlichung ein.
+            Hochgeladene Touren werden vor der Freigabe geprüft und unter
+            der Lizenz
+            <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.de" target="_blank" rel="noopener">CC BY-SA 4.0</a>
+            veröffentlicht.</li>
+      </ol>
+    </section>
+
+    <section id="sprache">
+      <h2>Sprache und Nachtmodus</h2>
+      <p>
+        Die Oberfläche gibt es auf <strong>Deutsch</strong> und
+        <strong>Englisch</strong>. Beim ersten Besuch richtet sie sich nach
+        der Spracheinstellung des Browsers; umschalten lässt sie sich am
+        Desktop oben rechts neben dem Nachtmodus, am Handy im Menü bzw. in
+        den Optionen. Touren bleiben in der Sprache, in der sie erstellt
+        wurden.
+      </p>
+      <p>
+        Der <strong>Nachtmodus</strong> (🌙) gilt für alle Seiten.
+      </p>
+    </section>
+
+    <section id="quellcode">
+      <h2>Quellcode</h2>
+      <p>
+        Der gesamte Quellcode des Andromeda-Explorers – die Website, die
+        Server-Dienste und die BRouter-Profile – steht unter der
+        <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GPLv3</a>.
+        Er darf verwendet, verändert und weitergegeben werden, auch
+        kommerziell, solange abgeleitete Werke wieder unter derselben Lizenz
+        und mitsamt Quellcode veröffentlicht werden.
+      </p>
+      <p>
+        Nicht davon umfasst sind die Kartendaten (© OpenStreetMap-Mitwirkende,
+        ODbL), die Routing-Software BRouter (eigene Lizenz) und die Inhalte
+        der Touren (CC BY-SA 4.0, siehe <a href="rechtliches.html">Rechtliche Hinweise</a>).
+      </p>
+      <div class="note" style="margin-top: 20px;">
+        <strong>Quellcode auf GitHub</strong><br>
+        Der Quellcode samt Anleitung zum Aufsetzen eines eigenen Servers ist
+        öffentlich auf GitHub einsehbar:
+        <br><br>
+        <a href="https://github.com/Andromeda1170/Andromeda-Explorer-Web" target="_blank" rel="noopener" style="display: inline-block; background: var(--primary); color: white; padding: 10px 16px; border-radius: 6px; text-decoration: none; font-weight: bold; margin-top: 5px;">
+          GitHub: Andromeda-Explorer-Web
+        </a>
+      </div>
+    </section>
+
+    </div>
+
+    <!-- ============================================================
+         English
+         ============================================================ -->
+    <div data-lang-block="en" data-no-i18n>
+
+    <h1>Help</h1>
+
+    <div class="toc">
+      <h2>Contents</h2>
+      <ol>
+        <li><a href="#en-about">What is Andromeda-Explorer?</a></li>
+        <li><a href="#en-map">Using the map</a></li>
+        <li><a href="#en-search">Searching for tours</a></li>
+        <li><a href="#en-viewer">Viewing tours</a></li>
+        <li><a href="#en-routes">Planning routes</a></li>
+        <li><a href="#en-navigator">Navigator</a></li>
+        <li><a href="#en-offline">Using it offline</a></li>
+        <li><a href="#en-tourpack">TourPacks in detail</a></li>
+        <li><a href="#en-create">Creating a TourPack</a></li>
+        <li><a href="#en-language">Language and night mode</a></li>
+        <li><a href="#en-source">Source code</a></li>
+      </ol>
+    </div>
+
+    <section id="en-about">
+      <h2>What is Andromeda-Explorer?</h2>
+      <p>
+        Andromeda-Explorer is a website for finding, planning and navigating
+        <strong>hiking, cycling and running tours</strong>. Tours can be
+        searched and viewed on the home page and downloaded, saved and
+        shared in the <code>.tourpack</code> format — so they are also
+        available offline.
+      </p>
+      <p>
+        Routes planned in the route planner can be shared as a
+        <strong>link</strong> and opened on any device with a web browser.
+        On GPS-enabled devices a route can be opened in the
+        <strong>Navigator</strong>, which shows the route and your position
+        on the map and gives turn instructions.
+      </p>
+      <p>
+        Map data comes from <strong>OpenStreetMap</strong>, routing is done
+        by <strong>BRouter</strong>. No user account is needed.
+      </p>
+      <p>
+        The interface is available in English. Tours themselves stay in the
+        language they were written in — most of them are in German.
+      </p>
+    </section>
+
+    <section id="en-map">
+      <h2>Using the map</h2>
+      <p>All maps on Andromeda-Explorer work the same way:</p>
+      <ul>
+        <li><strong>Move</strong> the map with one finger or the mouse;
+            <strong>zoom</strong> with two fingers, the mouse wheel, a double
+            tap/double click or the <strong>+</strong> / <strong>−</strong>
+            buttons.</li>
+        <li><strong>Rotate</strong> with two fingers (switched off on the
+            home page). As soon as the map is rotated, a small
+            <strong>compass needle</strong> appears at the top right. Its red
+            tip points north; tap it to turn the map back to north.</li>
+        <li><strong>🎯</strong>: fits the loaded route to the screen.</li>
+        <li><strong>⛶</strong>: switches to full screen.</li>
+        <li><strong>🗺️</strong>: chooses the map style. OpenTopoMap, for
+            example, shows contour lines, CyclOSM shows cycle routes. Official
+            hiking and cycle routes can also be shown as an overlay.</li>
+      </ul>
+    </section>
+
+    <section id="en-search">
+      <h2>Searching for tours</h2>
+      <p>
+        On the home page, published tours can be searched by
+        <strong>title</strong>, <strong>region</strong>,
+        <strong>place</strong> or <strong>tags</strong>. The gear icon opens
+        a <strong>detailed search</strong> with length, difficulty and region
+        as well as filters for <strong>round trips</strong> and tours
+        <strong>suitable for road bikes</strong>.
+      </p>
+      <p>
+        So that scrolling the page doesn’t get stuck on the map, the map is
+        locked at first. <strong>“Move map”</strong> unlocks it.
+        <strong>“Search nearby”</strong> shows tours around the centre of the
+        map, <strong>“Location”</strong> jumps to your own position.
+      </p>
+      <p>
+        Tapping a tour on the map shows its route and a small window with
+        <strong>“Open in viewer”</strong>. Moving or zooming over a tour
+        doesn’t open anything — only a deliberate tap does. Use 📌 to save
+        tours; they then appear under “Saved tours”.
+      </p>
+    </section>
+
+    <section id="en-viewer">
+      <h2>Viewing tours</h2>
+      <p>
+        The <strong>viewer</strong> shows a tour on the map together with
+        distance, elevation gain, duration, difficulty, region, description,
+        waypoints and images.
+      </p>
+      <ul>
+        <li><strong>Waypoints:</strong> tap one to see its note and images,
+            🗺 shows it on the map.</li>
+        <li><strong>Images</strong> open full size. Zoom in with two fingers,
+            a double tap or the mouse wheel and drag the image around; when
+            not zoomed, swipe to get to the next image.</li>
+        <li><strong>Ways &amp; surface statistics:</strong> tapping a way
+            type (e.g. mountain trail or asphalt) highlights all those
+            sections and zooms the map to them. On a phone the menu closes
+            for this.</li>
+        <li><strong>📈</strong> shows the elevation profile, coloured by
+            gradient.</li>
+        <li><strong>Directions</strong> opens the route to the start in
+            Google Maps or OpenStreetMap (car or public transport).</li>
+        <li><strong>Navigation</strong> opens the tour in the Navigator,
+            <strong>GPX</strong> and <strong>TourPack</strong> download it,
+            <strong>Print</strong> creates a printout or a PDF.</li>
+      </ul>
+    </section>
+
+    <section id="en-routes">
+      <h2>Planning routes</h2>
+      <p>
+        The <strong>route planner</strong> has three sections:
+        <strong>Route</strong>, <strong>Parameters</strong> and
+        <strong>Result</strong>.
+      </p>
+      <ul>
+        <li>
+          <strong>Route:</strong> mode of travel (hiking, bike, running),
+          place search and actions: use your current location as the start,
+          reverse the direction, mark waypoints as <strong>off-grid</strong>
+          (connected by a straight line, e.g. cross-country) and
+          <strong>import a GPX file</strong> — either just as an overlay to
+          trace, or to re-plan it with BRouter. When re-planning, waypoints
+          are placed along the track; wherever the calculated route still
+          deviates from the track, further waypoints are added
+          automatically.
+        </li>
+        <li>
+          <strong>Parameters:</strong> personal fitness (only changes the
+          time estimate), maximum and preferred difficulty of hiking trails
+          and further preferences. For bikes there is <em>trekking bike</em>
+          (minor roads and gravel tracks) and <em>road bike</em> (good
+          asphalt roads).
+        </li>
+        <li>
+          <strong>Result:</strong> distance, elevation gain, estimated
+          duration and elevation profile. The route can be shared as a
+          <strong>link</strong> (read-only), opened in the
+          <strong>Navigator</strong> or exported as <strong>GPX</strong>.
+          The GPX contains the turn instructions from the path network
+          (junctions, forks, roundabouts) in OsmAnd format, so they also
+          work there when following the track.
+        </li>
+      </ul>
+      <p>
+        On the map: <strong>tap</strong> to set start and via points, tap a
+        <strong>point</strong> to delete it, <strong>drag</strong> points to
+        move them, and tap the <strong>route</strong> to insert a via point
+        there.
+      </p>
+    </section>
+
+    <section id="en-navigator">
+      <h2>Navigator</h2>
+
+      <div class="warn-note">
+        <strong>Note:</strong> in Firefox on Android, positioning is very
+        inaccurate (network only). For navigating, Chrome for example works
+        much better.
+      </div>
+
+      <p>
+        The Navigator guides you along a tour. It starts directly from the
+        route planner or the viewer, and it can also open
+        <code>.gpx</code> and <code>.tourpack</code> files. In the menu under
+        <strong>Overview</strong> you’ll find distance and elevation gain, and
+        for TourPacks also duration, difficulty, description, waypoints and
+        images.
+      </p>
+
+      <h3>Map and position</h3>
+      <ul>
+        <li><strong>🧭</strong> centres the map on your position and follows
+            it. The zoom level for this can be set in the options.</li>
+        <li>With <strong>“Rotate map to compass heading”</strong> the map
+            always points in your viewing direction while following.</li>
+        <li>Moving, zooming or rotating the map by hand stops following; the
+            chosen orientation is kept. The <strong>compass needle</strong>
+            at the top right turns the map back to north.</li>
+        <li><strong>📈</strong> shows the elevation profile.</li>
+      </ul>
+
+      <h3>Turn instructions</h3>
+      <ul>
+        <li>Before a junction, a notice with the remaining distance in metres
+            appears at the top (from 200 m when hiking and running, from 1 km
+            when cycling). Shortly before the junction (about 5 m) only the
+            instruction is shown, e.g. “turn right”.</li>
+        <li>Routes from the route planner come with <strong>real turn
+            instructions</strong> from the path network: the notice appears
+            where the path actually splits, including forks (“keep left”)
+            and roundabouts (“exit 2”).</li>
+        <li>If a GPX file or tour has no turn instructions, the notices are
+            calculated from the shape of the route. This is less accurate
+            (a bend in the path may be reported as a turn); a note in the
+            <strong>Overview</strong> section points this out.</li>
+        <li>On routes that double back, you get a <strong>“make a
+            U-turn”</strong> notice.</li>
+        <li>If you are more than 30 m away from the route, a red notice warns
+            you and shows the distance. If you walk along the route in the
+            wrong direction, <strong>“Wrong direction”</strong> appears.</li>
+      </ul>
+
+      <h3>Navigating to the route and to markers</h3>
+      <p>
+        If you are not on the route when you start, the Navigator asks
+        whether to navigate to the start or to the nearest point of the
+        route. Under <strong>Overview</strong> you can also start navigating
+        to the route later, for example if you have left the path.
+      </p>
+      <p>
+        This additional navigation is shown in <strong>orange</strong> and
+        takes priority while it is active; afterwards the tour continues. Its
+        settings (preferred and maximum SAC scale, bike type) are under
+        <strong>Options</strong>.
+      </p>
+
+      <h3>Search and markers</h3>
+      <ul>
+        <li>A <strong>long press</strong> (right-click on a desktop) sets a
+            marker. Tap it once for info and actions, e.g.
+            <strong>“Navigate to this place”</strong> or <strong>“Online place
+            lookup”</strong> (opening hours, links and more details from
+            OpenStreetMap). Double-tap removes the marker, dragging moves
+            it.</li>
+        <li>Under <strong>Search</strong> you can look for places and set
+            them as markers.</li>
+        <li><strong>“Search for things nearby”</strong> finds e.g. drinking
+            water, supermarkets, huts or car parks within 10 km.</li>
+      </ul>
+    </section>
+
+    <section id="en-offline">
+      <h2>Using it offline</h2>
+      <p>
+        After the first visit, the Navigator and the viewer also work without
+        internet (the viewer for <code>.tourpack</code> files you open). Map tiles you have looked at in the Navigator are stored on
+        your device (can be switched off under <strong>More options →
+        Offline maps</strong>). If a tile is missing at the current zoom
+        level, the map shows an enlarged, coarser tile that is stored
+        instead.
+      </p>
+      <p>
+        Tip: before a tour with poor reception, go through the route once in
+        the Navigator at the zoom levels you will need. Route calculation,
+        place search and place lookup still need an internet connection.
+      </p>
+    </section>
+
+    <section id="en-tourpack">
+      <h2>TourPacks in detail</h2>
+      <p>
+        A <strong>TourPack</strong> is a single file with the extension
+        <code>.tourpack</code> — technically a <strong>ZIP file</strong> with a
+        fixed structure. This way a tour can be saved, sent and shared as a
+        single file.
+      </p>
+      <h3>Contents</h3>
+      <ul>
+        <li>the <strong>route</strong> as a line, with elevations if
+            available,</li>
+        <li><strong>waypoints</strong> with name, coordinates, notes and
+            images,</li>
+        <li>a <strong>description</strong> in Markdown format,</li>
+        <li><strong>title, activity, difficulty, tags, region and
+            place</strong>,</li>
+        <li><strong>general images</strong> with captions and a
+            <strong>cover image</strong>,</li>
+        <li>technical <strong>metadata</strong> such as creation date, format
+            version and a unique ID.</li>
+      </ul>
+      <h3>File structure</h3>
+      <ul>
+        <li><code>mimetype</code> — format identifier,</li>
+        <li><code>manifest.json</code> — ID, title, creation date, format
+            version,</li>
+        <li><code>route.json</code> — all structured data of the tour,</li>
+        <li><code>geometry.geojson</code> — the route as GeoJSON,</li>
+        <li><code>description.md</code> — the description,</li>
+        <li><code>media/images/…</code> — the images.</li>
+      </ul>
+      <p>
+        The format can be extended without making older files invalid;
+        missing fields are filled in when a file is opened.
+      </p>
+    </section>
+
+    <section id="en-create">
+      <h2>Creating a TourPack</h2>
+      <p>
+        The <strong>TourPack editor</strong> creates new
+        <code>.tourpack</code> files; existing ones can be loaded and edited.
+      </p>
+      <ol>
+        <li><strong>Load the route</strong> via “Import GPX”.</li>
+        <li><strong>Basic data:</strong> title, activity, estimated duration
+            and whether the tour is suitable for road bikes.</li>
+        <li><strong>Detect region automatically:</strong> region, district,
+            municipality and place from the start, middle and end point.</li>
+        <li><strong>Difficulty and tags:</strong> stars for difficulty,
+            technique and fitness, plus a short assessment and keywords.</li>
+        <li><strong>Description</strong> in Markdown (headings, bold, italic,
+            lists, links).</li>
+        <li>Set <strong>waypoints</strong> on the map, move and reorder them
+            and add notes and images.</li>
+        <li>Add <strong>images</strong> and mark one as the cover image.</li>
+        <li><strong>Save</strong> downloads the finished
+            <code>.tourpack</code> file; <strong>Upload</strong> submits it
+            for publication. Uploaded tours are reviewed and then published
+            under the
+            <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.en" target="_blank" rel="noopener">CC BY-SA 4.0</a>
+            licence.</li>
+      </ol>
+    </section>
+
+    <section id="en-language">
+      <h2>Language and night mode</h2>
+      <p>
+        The interface is available in <strong>German</strong> and
+        <strong>English</strong>. On your first visit it follows your
+        browser’s language setting; you can switch it at the top right next
+        to night mode on a desktop, and in the menu or the options on a phone.
+        Tours stay in the language they were written in.
+      </p>
+      <p>
+        <strong>Night mode</strong> (🌙) applies to all pages.
+      </p>
+    </section>
+
+    <section id="en-source">
+      <h2>Source code</h2>
+      <p>
+        The entire source code of Andromeda-Explorer – the website, the
+        server services and the BRouter profiles – is licensed under the
+        <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GPLv3</a>.
+        It may be used, modified and shared, including commercially, as long
+        as derived works are published under the same licence together with
+        their source code.
+      </p>
+      <p>
+        This does not cover the map data (© OpenStreetMap contributors, ODbL),
+        the BRouter routing software (its own licence) or the content of the
+        tours (CC BY-SA 4.0, see <a href="rechtliches.html">Legal information</a>).
+      </p>
+      <div class="note" style="margin-top: 20px;">
+        <strong>Source code on GitHub</strong><br>
+        The source code, including a guide for setting up your own server, is
+        publicly available on GitHub:
+        <br><br>
+        <a href="https://github.com/Andromeda1170/Andromeda-Explorer-Web" target="_blank" rel="noopener" style="display: inline-block; background: var(--primary); color: white; padding: 10px 16px; border-radius: 6px; text-decoration: none; font-weight: bold; margin-top: 5px;">
+          GitHub: Andromeda-Explorer-Web
+        </a>
+      </div>
+    </section>
+
+    </div>
+
+  </article>
+</main>
+
+<!-- ============================================================
+     Footer
+     ============================================================ -->
+<footer id="footer">
+  <div class="footer-inner">
+
+    <div class="footer-col">
+      <div class="footer-brand">
+        <img src="logo.svg" class="logo" alt="">
+        <span>Andromeda-Explorer</span>
+      </div>
+      <p>
+        Werkzeuge für Wander-, Rad- und Lauftouren
+      </p>
+    </div>
+
+    <div class="footer-col">
+      <h4>Daten</h4>
+      <p>
+        Kartendaten von
+        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>.
+      </p>
+      <p>
+        Routing mit
+        <a href="https://brouter.de/" target="_blank" rel="noopener">BRouter</a>.
+      </p>
+      <p>
+        Danke an die OpenStreetMap-Community und die BRouter-Entwickler:innen.
+      </p>
+    </div>
+
+    <div class="footer-col">
+      <h4>Links</h4>
+      <ul>
+        <li><a href="index.html">Startseite</a></li>
+        <li><a href="hilfe.html">Hilfe</a></li>
+        <li><a href="impressum.html">Impressum</a></li>
+        <li><a href="rechtliches.html">Rechtliche Hinweise</a></li>
+      </ul>
+    </div>
+
+  </div>
+</footer>
+
+<!-- ============================================================
+     Mobiles Menü
+     ============================================================ -->
+<div id="mobileMenu">
+  <div class="menu-sheet">
+    <div class="menu-head">
+      <div class="grabber"></div>
+      <h2>Menü</h2>
+      <button class="close-btn" id="closeMobileMenu" title="Schließen">✕</button>
+    </div>
+    <div class="menu-body">
+
+      <a class="menu-item primary" href="navigation.html">
+        <span class="mi-icon">🧭</span>
+        <span class="mi-title">Navigieren</span>
+      </a>
+
+      <a class="menu-item primary" href="routing.html">
+        <span class="mi-icon">🗺️</span>
+        <span class="mi-title">Route planen</span>
+      </a>
+
+      <a class="menu-item secondary" href="tourpack-viewer.html">
+        <span class="mi-icon">👁️</span>
+        <span class="mi-title">TourPack ansehen</span>
+      </a>
+
+      <a class="menu-item secondary" href="tourpack-editor.html">
+        <span class="mi-icon">✏️</span>
+        <span class="mi-title">TourPack erstellen</span>
+      </a>
+
+      <a class="menu-item secondary" href="hilfe.html">
+        <span class="mi-icon">📖</span>
+        <span class="mi-title">Hilfe</span>
+      </a>
+
+      <div class="menu-sep"></div>
+
+      <label class="menu-switch">
+        <span class="mi-icon">🌙</span>
+        <span class="mi-title">Nachtmodus</span>
+        <span class="switch">
+          <input type="checkbox" class="darkmode-switch">
+          <span class="slider"></span>
+        </span>
+      </label>
+      <div class="menu-lang">
+        <span class="mi-icon">🌐</span>
+        <span class="mi-title">Sprache</span>
+        <div class="lang-seg"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     Scripts
+     ============================================================ -->
+<script src="scripts/config.js"></script>
+<script src="scripts/i18n.js"></script>
+<script src="scripts/lang/de.js"></script>
+<script src="scripts/lang/en.js"></script>
+<script src="scripts/lang/en-phrases.js"></script>
+<script src="scripts/utils.js"></script>
+<script src="scripts/toast.js"></script>
+<script src="scripts/darkmode.js"></script>
+<script src="scripts/sitemenu.js"></script>
+
+<script>AndromedaSiteMenu.initStaticPage();</script>
+
+</body>
+</html>

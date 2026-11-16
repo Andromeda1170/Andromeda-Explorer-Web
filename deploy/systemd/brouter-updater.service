@@ -1,0 +1,49 @@
+[Unit]
+Description=Andromeda brouter-updater (BRouter-Segmente) :8084
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=brouter
+Group=brouter
+Environment=PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
+EnvironmentFile=-/etc/andromeda/andromeda.env
+ExecStart=/usr/bin/python3 /opt/andromeda/app/services/brouter-updater.py
+Restart=on-failure
+RestartSec=3
+UMask=0022
+# Darf ins Internet (brouter.de).
+ReadWritePaths=/var/lib/andromeda/brouter
+MemoryDenyWriteExecute=yes
+# AF_NETLINK für `ss` (prüft, ob BRouter gerade rechnet)
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+MemoryMax=512M
+Nice=10
+IOSchedulingClass=idle
+# --- Härtung ---------------------------------------------------------
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RemoveIPC=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
+
+[Install]
+WantedBy=multi-user.target

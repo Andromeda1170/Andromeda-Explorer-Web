@@ -1,0 +1,47 @@
+[Unit]
+Description=Andromeda tours-api (Suche, Tourseiten) :8081
+After=network.target
+
+[Service]
+Type=simple
+User=andromeda-tours
+Group=andromeda-tours
+Environment=PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
+EnvironmentFile=-/etc/andromeda/andromeda.env
+ExecStart=/usr/bin/python3 /opt/andromeda/app/services/tours-api.py
+Restart=on-failure
+RestartSec=3
+UMask=0027
+# Liest tours/published (Gruppe andromeda-tours), schreibt nur tours-api/.
+ReadWritePaths=/var/lib/andromeda/tours-api
+MemoryDenyWriteExecute=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+IPAddressDeny=any
+IPAddressAllow=localhost
+MemoryMax=768M
+# --- Härtung ---------------------------------------------------------
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RemoveIPC=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
+
+[Install]
+WantedBy=multi-user.target

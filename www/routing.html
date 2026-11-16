@@ -1,0 +1,2682 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#2a6fbf">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="favicon.png">
+<title>Routenplaner</title>
+
+<!-- Shared CSS -->
+<link rel="stylesheet" href="stylesheets/base.css">
+<link rel="stylesheet" href="stylesheets/layout.css">
+<link rel="stylesheet" href="stylesheets/components.css">
+<link rel="stylesheet" href="stylesheets/map.css">
+<link rel="stylesheet" href="stylesheets/elevation.css">
+<!-- Leaflet -->
+<link rel="stylesheet" href="stylesheets/andromap.css">
+
+<style>
+  /* ============================================================
+   * routing.html — Seitenspezifisch
+   * ============================================================ */
+  .desktop-only { display: initial; }
+  @media (max-width: 900px) {
+    .desktop-only { display: none !important; }
+    .tab-bar button[data-tab="options"] { display: block !important; }
+  }
+  @media (min-width: 901px) {
+    .mobile-only { display: none !important; }
+  }
+
+  .tab-bar button[data-tab="options"] { display: none; }
+
+  /* Read-Only-Modus: Route und Parameter ausblenden,
+     Optionen nur auf Mobil sichtbar, Ergebnis bleibt aktiv. */
+  body.read-only .tab-bar button[data-tab="route"],
+  body.read-only .tab-bar button[data-tab="route-settings"] {
+    display: none !important;
+  }
+  body.read-only .tab-bar button[data-tab="options"] {
+    display: none !important;
+  }
+  @media (max-width: 900px) {
+    body.read-only .tab-bar button[data-tab="options"] {
+      display: block !important;
+    }
+  }
+
+  /* Suchergebnisse: Größere, farbige Buttons */
+  .search-result .actions button {
+    padding: 8px 14px;
+    font-size: 13px;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    color: white;
+    font-family: inherit;
+    transition: background .12s;
+  }
+  .search-result .actions button.btn-add-start {
+    background: var(--start);
+  }
+  .search-result .actions button.btn-add-start:hover {
+    filter: brightness(0.9);
+  }
+  .search-result .actions button.btn-add-dest {
+    background: var(--end);
+  }
+  .search-result .actions button.btn-add-dest:hover {
+    filter: brightness(0.9);
+  }
+
+  #mapWrap { min-height: 0; }
+
+  /* Read-Only-Info im Ergebnis-Tab: Aktivität + gesetzte Parameter */
+  .readonly-info { margin-bottom: 16px; }
+
+  .readonly-activity {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    padding: 10px 14px;
+    background: var(--primary-soft);
+    border-radius: var(--radius-sm);
+    margin-bottom: 10px;
+  }
+  body.dark .readonly-activity { color: var(--primary); }
+  .readonly-activity .act-icon { font-size: 20px; }
+
+  .readonly-params {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 4px 12px;
+  }
+  .readonly-params .ro-param {
+    display: flex;
+    gap: 10px;
+    font-size: 13px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+    line-height: 1.4;
+  }
+  .readonly-params .ro-param:last-child { border-bottom: none; }
+  .readonly-params .ro-key {
+    color: var(--text-muted);
+    min-width: 140px;
+    flex-shrink: 0;
+  }
+  .readonly-params .ro-val {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  /* GPX-Import-Footer im Route-Tab */
+  .route-import-footer {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .gpx-overlay-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .gpx-overlay-info .link-btn {
+    background: none;
+    border: none;
+    color: var(--primary);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 2px 4px;
+    font-family: inherit;
+  }
+  .gpx-overlay-info .link-btn:hover { text-decoration: underline; }
+  @media (min-width: 901px) {
+    .tab-pane[data-pane="route"].active {
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
+    }
+    .tab-pane[data-pane="route"].active .route-import-footer {
+      margin-top: auto;
+      padding-top: 16px;
+    }
+  }
+
+  /* Off-Grid-Modus */
+  .btn.active {
+    background: #9b59b6;
+    color: white;
+  }
+  .btn.active:hover { background: #8e44ad; }
+
+  /* Wegearten- und Oberflächen-Statistik (ausgelagert nach components.css) */
+</style>
+</head>
+<body>
+
+<header id="header">
+  <button class="icon-btn menu-btn" id="menuBtn" title="Menü">☰</button>
+  <a class="home-logo desktop-only" href="index.html" title="Startseite"><img src="logo.svg" alt="Andromeda-Explorer"></a>
+  <span class="brand">Routenplaner</span>
+  <div class="spacer"></div>
+
+  <button class="header-btn primary desktop-only" id="btnDownloadGPX"
+          title="GPX-Datei für den Navigator. Nach dem Export nicht mehr bearbeitbar.">GPX exportieren</button>
+  <button class="header-btn success desktop-only" id="btnNavigate"
+          title="Aktuelle Route in den Navigator öffnen.">Im Navigator öffnen</button>
+  <button class="header-btn desktop-only" id="btnShareLink"
+          title="Link zur Route teilen (Read-Only).">Link teilen</button>
+  <button class="header-btn desktop-only" id="btnEditRoute" style="display:none;"
+          title="Route bearbeiten (Read-Only aufheben).">Route bearbeiten</button>
+  <button class="header-btn danger desktop-only" id="btnClearRoute">Route löschen</button>
+  <button class="icon-btn lang-btn desktop-only" type="button"></button>
+    <button class="icon-btn desktop-only darkmode-btn" id="darkmodeBtn" title="Nachtmodus">🌙</button>
+</header>
+
+<main>
+  <aside id="sidebar">
+    <div class="panel-inner">
+      <div class="panel-head">
+        <h2 id="panelTitle">Menü</h2>
+        <button class="close-btn" id="panelClose">✕</button>
+      </div>
+
+      <nav class="tab-bar">
+        <button data-tab="route" class="active">Route</button>
+        <button data-tab="route-settings">Parameter</button>
+        <button data-tab="result">Ergebnis</button>
+        <button data-tab="options">Optionen</button>
+      </nav>
+
+      <div class="tab-panes">
+        <!-- ================================================================ -->
+        <!-- Route -->
+        <!-- ================================================================ -->
+        <section class="tab-pane active" data-pane="route">
+          <div class="field">
+            <label>Fortbewegung</label>
+            <div class="segmented" id="activitySegmented">
+              <button data-value="hiking" class="active">🥾 Wandern</button>
+              <button data-value="cycling">🚴 Rad</button>
+              <button data-value="running">🏃 Laufen</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Ort suchen</label>
+            <div class="search-row">
+              <input type="text" id="searchInput" placeholder="Ort, Adresse, Gipfel…" autocomplete="off">
+              <button id="btnSearch">Los</button>
+              <button id="btnClearSearch" class="clear-btn" title="Liste schließen" style="display:none;">×</button>
+            </div>
+            <div class="search-results" id="searchResults"></div>
+          </div>
+
+          <div class="field">
+            <label>Aktionen</label>
+            <button class="btn" id="btnUseLocation">📍 Aktuellen Standort als Startpunkt</button>
+            <button class="btn" id="btnSwapDirection">↔ Richtung umkehren</button>
+            <button class="btn" id="btnStraightLineMode" style="margin-top:8px;">Off-Grid</button>
+            <div class="hint" id="straightLineHint" style="display:none;margin-top:6px;">
+              Einen Wegpunkt anklicken, um ihn als Off-Grid zu markieren. Alle Verbindungen zu diesem Punkt (zum vorherigen und zum nächsten) werden als direkte Luftlinie angenommen. Erneuter Klick entfernt die Markierung. Die Route wird sofort neu berechnet.
+            </div>
+          </div>
+
+          <div class="hint" style="margin-top:8px;">
+            <b>Karte antippen</b>, um Start- und Zwischenpunkte zu setzen.<br>
+            Auf einen <b>Punkt tippen</b> löscht ihn.<br>
+            Punkte <b>ziehen</b>, um sie zu verschieben.<br>
+            Auf die <b>Route tippen</b>, um einen Zwischenpunkt einzufügen.
+          </div>
+
+          <div class="route-import-footer">
+            <button class="btn" id="btnGpxImport">
+              GPX importieren
+            </button>
+            <div class="gpx-overlay-info" id="gpxOverlayInfo" style="display:none;">
+              <span>GPX-Overlay aktiv</span>
+              <button type="button" class="link-btn" id="btnGpxOverlayRemove">Entfernen</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================ -->
+        <!-- Parameter -->
+        <!-- ================================================================ -->
+        <section class="tab-pane" data-pane="route-settings">
+          <div class="field">
+            <label>Persönliche Einstellung</label>
+            <select id="fitnessSelect">
+              <option value="0.85">Sehr fit / sportlich</option>
+              <option value="1.0">Fit</option>
+              <option value="1.2" selected>Durchschnittlich</option>
+              <option value="1.4">Gemütlich</option>
+              <option value="1.6">Entspannt / mit Pausen</option>
+            </select>
+            <div class="hint">Zeitangabe wird mit diesem Faktor multipliziert.</div>
+          </div>
+
+          <div class="field" id="profileFieldCycling" style="display:none;">
+            <label>Rad-Profil</label>
+            <select id="cyclingProfile">
+              <option value="trekking" selected>Trekkingrad</option>
+              <option value="rennrad">Rennrad</option>
+            </select>
+          </div>
+
+          <div id="hikingOptions">
+            <div class="field">
+              <label>Maximale SAC-Schwierigkeit</label>
+              <select id="optSacLimit">
+                <option value="0">T0 – nur einfachste Wege</option>
+                <option value="1">T1 – Wandern</option>
+                <option value="2">T2 – Bergwandern</option>
+                <option value="3" selected>T3 – anspruchsvolles Bergwandern</option>
+                <option value="4">T4 – Alpinwandern</option>
+                <option value="5">T5 – anspruchsvolles Alpinwandern</option>
+                <option value="6">T6 – schwieriges Alpinwandern</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Bevorzugte SAC-Schwierigkeit</label>
+              <select id="optSacPreferred">
+                <option value="0">T0</option>
+                <option value="1" selected>T1</option>
+                <option value="2">T2</option>
+                <option value="3">T3</option>
+                <option value="4">T4</option>
+                <option value="5">T5</option>
+                <option value="6">T6</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Präferenzen</label>
+              <label class="check-row"><input type="checkbox" id="optHikingConsiderElevation"><span>Höhenmeter berücksichtigen</span></label>
+              <label class="check-row"><input type="checkbox" id="optHikingConsiderRiver"><span>Flüsse / Seen bevorzugen</span></label>
+              <label class="check-row"><input type="checkbox" id="optHikingConsiderForest"><span>Wald / Grünflächen bevorzugen</span></label>
+              <label class="check-row"><input type="checkbox" id="optHikingConsiderTown"><span>Städte meiden</span></label>
+              <label class="check-row"><input type="checkbox" id="optHikingIsWet"><span>Nasses Wetter berücksichtigen</span></label>
+            </div>
+          </div>
+
+          <div id="cyclingOptions" style="display:none;">
+            <div class="field">
+              <label>Sicherheit & Wegewahl</label>
+              <label class="check-row"><input type="checkbox" id="optStickToCycleroutes"><span>Auf Radrouten bleiben</span></label>
+              <label class="check-row"><input type="checkbox" id="optUseProposedCycleroutes"><span>Vorgeschlagene Radrouten einbeziehen</span></label>
+              <label class="check-row"><input type="checkbox" id="optAvoidUnsafe"><span>Hauptstraßen vermeiden</span></label>
+            </div>
+            <div class="field">
+              <label>Präferenzen</label>
+              <label class="check-row"><input type="checkbox" id="optCyclingConsiderElevation" checked><span>Höhenmeter berücksichtigen</span></label>
+              <label class="check-row"><input type="checkbox" id="optCyclingConsiderTraffic"><span>Verkehr berücksichtigen</span></label>
+              <label class="check-row"><input type="checkbox" id="optCyclingConsiderRiver"><span>Flüsse / Seen bevorzugen</span></label>
+              <label class="check-row"><input type="checkbox" id="optCyclingConsiderForest"><span>Wald / Grünflächen bevorzugen</span></label>
+              <label class="check-row"><input type="checkbox" id="optCyclingConsiderTown"><span>Städte meiden</span></label>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================ -->
+        <!-- Ergebnis -->
+        <!-- ================================================================ -->
+        <section class="tab-pane" data-pane="result">
+          <div id="resultPlaceholder" class="placeholder">
+            <div class="icon">📊</div>
+            <p>Noch keine Route berechnet.</p>
+            <p style="font-size:12px;">Start und Ziel auf der Karte setzen.</p>
+          </div>
+
+          <div id="resultContent" style="display:none;">
+            <div class="readonly-info" id="readonlyInfo" style="display:none;">
+              <div class="readonly-activity" id="readonlyActivity"></div>
+              <div class="readonly-params" id="readonlyParams"></div>
+            </div>
+
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="lbl">Strecke</div>
+                <div class="val" id="statDistance">—</div>
+              </div>
+              <div class="stat-card">
+                <div class="lbl" id="statTimeLbl">Gehzeit</div>
+                <div class="val" id="statTime">—</div>
+                <div class="sub" id="statTimeRaw"></div>
+              </div>
+              <div class="stat-card">
+                <div class="lbl">Anstieg</div>
+                <div class="val" id="statAscent">—</div>
+              </div>
+              <div class="stat-card">
+                <div class="lbl">Abstieg</div>
+                <div class="val" id="statDescent">—</div>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Höhenprofil</label>
+              <button class="btn" id="btnToggleElevation" type="button" disabled>Höhenprofil anzeigen</button>
+            </div>
+
+            <div id="wayStatsContainer" style="display:none;"></div>
+
+            <div class="action-sep"></div>
+
+            <div class="field">
+              <label>Route verwenden</label>
+              <button class="btn" id="btnResultShareLink"
+                      title="Link zur Route teilen (Read-Only).">Link teilen</button>
+              <button class="btn success" id="btnResultNavigate"
+                      title="Aktuelle Route in den Navigator öffnen.">Im Navigator öffnen</button>
+              <button class="btn primary" id="btnResultGpx"
+                      title="GPX-Datei für den Navigator.">GPX exportieren</button>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ================================================================ -->
+        <!-- Optionen (nur Mobile sichtbar) -->
+        <!-- ================================================================ -->
+        <section class="tab-pane" data-pane="options">
+          <div class="field">
+            <label style="display:flex;align-items:center;justify-content:space-between;">
+              <span>Nachtmodus</span>
+              <label class="check-row" style="padding:0;margin:0;flex-shrink:0;">
+                <input type="checkbox" class="darkmode-switch" id="set_darkmode" style="margin:0;transform:scale(1.2);">
+              </label>
+            </label>
+            <div class="hint">Dunkles Design für alle Seiten.</div>
+          </div>
+
+          <div class="field">
+            <label>Sprache</label>
+            <div class="lang-seg"></div>
+            <div class="hint">Sprache der Oberfläche. Touren bleiben in ihrer Originalsprache.</div>
+          </div>
+
+          <div class="field">
+            <label>Routendarstellung</label>
+            <div style="display:flex;align-items:center;gap:10px;padding:8px 0;">
+              <span style="font-size:13px;color:var(--text-muted);min-width:80px;">Linienfarbe</span>
+              <input type="color" class="line-color-input" value="#2a6fbf"
+                     style="flex:1;height:34px;padding:2px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--panel);">
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:8px 0;">
+              <span style="font-size:13px;color:var(--text-muted);min-width:80px;">Transparenz</span>
+              <input type="range" class="line-opacity-input" min="0.15" max="1" step="0.05" value="0.9"
+                     style="flex:1;accent-color:var(--primary);">
+              <span class="line-opacity-value" style="font-family:ui-monospace,monospace;font-size:12px;min-width:46px;text-align:right;">90 %</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;">
+              <span style="font-size:13px;color:var(--text-muted);">Richtungspfeile</span>
+              <label style="display:inline-block;position:relative;width:44px;height:26px;flex-shrink:0;">
+                <input type="checkbox" class="show-arrows-input" checked style="opacity:0;width:0;height:0;">
+                <span style="position:absolute;cursor:pointer;inset:0;background:#ccc;transition:.15s;border-radius:26px;"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="action-sep"></div>
+
+          <div class="field">
+            <label>Route verwenden</label>
+            <button class="btn" id="btnShareLinkM"
+                    title="Link zur Route teilen (Read-Only).">Link teilen</button>
+            <button class="btn success" id="btnNavigateM"
+                    title="Aktuelle Route in den Navigator öffnen.">Im Navigator öffnen</button>
+            <button class="btn primary" id="btnDownloadGPXM"
+                    title="GPX-Datei für den Navigator.">GPX exportieren</button>
+          </div>
+
+          <div class="field">
+            <label>Route</label>
+            <button class="btn" id="btnEditRouteM" style="display:none;"
+                    title="Route bearbeiten (Read-Only aufheben).">Route bearbeiten</button>
+            <button class="btn danger" id="btnClearRouteM">Route löschen</button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </aside>
+
+  <div id="mapCol">
+    <div id="mapWrap">
+      <div id="map"></div>
+      <div id="hint"></div>
+
+      <div id="layerPicker">
+        <h4>Kartenstil</h4>
+        <button data-base="osm">OpenStreetMap</button>
+        <button data-base="topo">OpenTopoMap</button>
+        <button data-base="cyclosm">CyclOSM</button>
+        <div class="sep"></div>
+        <h4>Overlays</h4>
+        <button data-overlay="hiking">🟢 Wanderwege</button>
+        <button data-overlay="cycling">🔵 Radwege</button>
+      </div>
+
+      <div class="map-float tr">
+        <button class="float-btn" id="layerBtn" title="Kartenstil">🗺️</button>
+      </div>
+    </div>
+
+    <div id="elevPanel">
+      <div class="elev-head">
+        <span>Höhenprofil <span class="stats" id="elevStats"></span></span>
+        <button id="closeElev" title="Schließen">×</button>
+      </div>
+      <div id="elevCanvasWrap">
+        <canvas id="elevChart"></canvas>
+        <div id="elevTooltip"></div>
+      </div>
+      <div id="slopeLegend"></div>
+    </div>
+
+    <footer id="mapFooter">
+      <span class="status" id="status">Bereit. Auf die Karte klicken, um den Startpunkt zu setzen.</span>
+      <span class="footer-stats" id="footerStats"></span>
+      <button id="elevBtn" disabled>Höhenprofil anzeigen</button>
+      <div class="display-settings" title="Darstellung der Route">
+        <label title="Linienfarbe">
+          <input type="color" class="line-color-input" value="#2a6fbf">
+        </label>
+        <label title="Transparenz">
+          <input type="range" class="line-opacity-input" min="0.15" max="1" step="0.05" value="0.9">
+          <span class="val line-opacity-value">90 %</span>
+        </label>
+        <label title="Richtungspfeile anzeigen">
+          <input type="checkbox" class="show-arrows-input" checked>
+          Pfeile
+        </label>
+      </div>
+    </footer>
+  </div>
+</main>
+
+<div id="bottomBar">
+  <div class="info-col">
+    <div class="primary-line" id="primaryLine">Keine Route</div>
+    <div class="secondary-line" id="secondaryLine">Karte antippen, um Start zu setzen</div>
+  </div>
+  <button class="bar-btn" id="elevBtnM" title="Höhenprofil" disabled>📈</button>
+</div>
+
+<!-- ============================================================
+     GPX-Import-Modal
+     ============================================================ -->
+<div class="modal-backdrop" id="gpxImportModal">
+  <div class="modal">
+    <div id="gpxStep1">
+      <h3>GPX importieren</h3>
+      <p>Wie soll die GPX-Datei verwendet werden?</p>
+      <div class="actions" style="flex-direction:column;align-items:stretch;gap:8px;">
+        <button class="ok" id="gpxAsOverlay">Als Overlay anzeigen</button>
+        <button class="ok" id="gpxAsRoute">Route nachplanen</button>
+        <button class="cancel" id="gpxCancel">Abbrechen</button>
+      </div>
+      <p style="margin:12px 0 0 0;font-size:11.5px;color:var(--text-muted);line-height:1.45;text-align:left;">
+        <b>Overlay:</b> Zeigt die Linie nur an, ohne Punkte zu setzen. Ideal zum Nachzeichnen.<br>
+        <b>Nachplanen:</b> Extrahiert Wegpunkte aus der GPX und berechnet die Route durch BRouter neu.
+      </p>
+    </div>
+    <div id="gpxStep2" style="display:none;">
+      <h3>Fortbewegungsart</h3>
+      <p>Mit welcher Fortbewegungsart soll die Route nachgeplant werden?</p>
+      <div class="actions" style="flex-direction:column;align-items:stretch;gap:8px;">
+        <button class="ok" data-activity="hiking">Wandern</button>
+        <button class="ok" data-activity="cycling">Rad</button>
+        <button class="ok" data-activity="running">Laufen</button>
+      </div>
+      <div class="actions" style="margin-top:12px;">
+        <button class="cancel" id="gpxBack">Zurück</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="scripts/andromap.js"></script>
+
+<!-- Shared Scripts (Reihenfolge beachten) -->
+<script src="scripts/config.js"></script>
+<script src="scripts/i18n.js"></script>
+<script src="scripts/lang/de.js"></script>
+<script src="scripts/lang/en.js"></script>
+<script src="scripts/lang/en-phrases.js"></script>
+<script src="scripts/utils.js"></script>
+<script src="scripts/toast.js"></script>
+<script src="scripts/darkmode.js"></script>
+<script src="scripts/modal.js"></script>
+<script src="scripts/mapkit.js"></script>
+<script src="scripts/elevation.js"></script>
+<script src="scripts/waystats.js"></script>
+<script src="scripts/turninstr.js"></script>
+<script src="scripts/gpx.js"></script>
+
+<script>
+"use strict";
+
+/* ============================================================
+ * Aliase auf Shared-Module
+ * ============================================================ */
+const {
+  $, $$,
+  escapeHtml, escapeXml,
+  fmtDistance, fmtElevation, fmtDuration,
+  haversineM, sanitizeFilename, timestampSlug,
+} = AndromedaUtils;
+const { PROXY_URL, NAV_URL } = Andromeda;
+const ACTIVITY_BASE_TIME_MULT = Andromeda.ACTIVITY_BASE_TIME_MULT;
+/* ============================================================
+ * State
+ * ============================================================ */
+const app = {
+  map: null,
+  baseLayers: {},
+  overlayLayers: {},
+  activeBaseLayer: null,
+  activeBaseKey: "osm",
+  activeOverlays: { hiking: false, cycling: false },
+
+  routeLayer: null,
+  arrowLayer: null,
+  highlightLayer: null,
+  activeHighlightCat: null,
+  markerLayer: null,
+  hoverMarkerLayer: null,
+  searchMarkerLayer: null,
+  gpxOverlayLayer: null,
+
+  waypoints: [],
+  straightLineMode: false,
+  currentActivity: "hiking",
+  currentProfile: "wandern",
+  serverProfileName: null,
+  currentRouteData: null,
+  fitnessMultiplier: 1.2,
+  planRouteAbortController: null,
+
+  lineColor: "#2a6fbf",
+  lineOpacity: 0.9,
+  showArrows: true,
+
+  markerIndex: new Map(),
+  draggingMarker: null,
+  searchMarker: null,
+  hasCalculated: false,
+
+  elevationData: null,
+  elevationOpen: false,
+  hoverMarker: null,
+
+  readOnly: false,
+};
+
+/* Höhenprofil-Panel und Wege-Hervorhebung (gemeinsame Module) */
+const elevPanel = AndromedaElevation.createPanel({
+  state: app,
+  getMap: () => app.map,
+  getActivity: () => app.currentActivity,
+  extraButtons: ["btnToggleElevation"],
+});
+const wayHighlight = AndromedaWayStats.createHighlighter({
+  getMap: () => app.map,
+  getLayer: () => app.highlightLayer,
+  getSegments: () => app.currentRouteData && app.currentRouteData.tagSegments,
+  getColor: () => app.lineColor,
+});
+
+function isMobile() { return window.matchMedia("(max-width: 900px)").matches; }
+
+/* ============================================================
+ * URL-Parameter und Read-Only-Modus
+ * ============================================================ */
+function base64UrlEncode(str) {
+  const utf8 = unescape(encodeURIComponent(str));
+  return btoa(utf8).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+function base64UrlDecode(str) {
+  str = str.replace(/-/g, '+').replace(/_/g, '/');
+  while (str.length % 4) str += '=';
+  const raw = atob(str);
+  return decodeURIComponent(escape(raw));
+}
+
+function serializeRoute() {
+  const o = {};
+
+  const sacLimitEl = $("optSacLimit");
+  const sacPrefEl = $("optSacPreferred");
+  if (sacLimitEl) o.optSacLimit = sacLimitEl.value;
+  if (sacPrefEl) o.optSacPreferred = sacPrefEl.value;
+
+  const hikingIds = [
+    "optHikingConsiderElevation", "optHikingConsiderRiver",
+    "optHikingConsiderForest", "optHikingConsiderTown",
+    "optHikingIsWet",
+  ];
+  for (const id of hikingIds) {
+    const el = $(id);
+    if (el) o[id] = el.checked;
+  }
+
+  const cyclingIds = [
+    "optStickToCycleroutes", "optUseProposedCycleroutes", "optAvoidUnsafe",
+    "optCyclingConsiderElevation", "optCyclingConsiderTraffic",
+    "optCyclingConsiderRiver", "optCyclingConsiderForest",
+    "optCyclingConsiderTown",
+  ];
+  for (const id of cyclingIds) {
+    const el = $(id);
+    if (el) o[id] = el.checked;
+  }
+
+  return {
+    v: 2,
+    w: app.waypoints.map(wp => ({
+      lat: wp.lat,
+      lng: wp.lng,
+      sl: !!wp.straightLine,
+    })),
+    a: app.currentActivity,
+    p: app.currentProfile,
+    f: app.fitnessMultiplier,
+    o: o,
+    c: app.lineColor,
+    op: app.lineOpacity,
+    arr: app.showArrows,
+  };
+}
+
+function deserializeRoute(obj) {
+  if (!obj || (obj.v !== 1 && obj.v !== 2) || !Array.isArray(obj.w)) return false;
+
+  app.waypoints = obj.w
+    .filter(p => p && typeof p.lat === "number" && typeof p.lng === "number")
+    .map(p => ({
+      lat: p.lat,
+      lng: p.lng,
+      straightLine: !!(p.sl || p.straightLine),
+    }));
+
+  if (obj.a && ["hiking", "cycling", "running"].includes(obj.a)) {
+    setActivity(obj.a);
+  }
+
+  if (obj.p) app.currentProfile = obj.p;
+  if (obj.a === "cycling" && obj.p) {
+    const sel = $("cyclingProfile");
+    if (sel) sel.value = obj.p;
+  }
+
+  if (obj.f != null && !isNaN(parseFloat(obj.f))) {
+    app.fitnessMultiplier = parseFloat(obj.f);
+    const sel = $("fitnessSelect");
+    if (sel) sel.value = String(app.fitnessMultiplier);
+  }
+
+  if (obj.o && typeof obj.o === "object") {
+    const o = obj.o;
+    for (const id of Object.keys(o)) {
+      let targetId = id;
+      if (id === "sacLimit") targetId = "optSacLimit";
+      if (id === "sacPreferred") targetId = "optSacPreferred";
+
+      const el = $(targetId);
+      if (!el) continue;
+      if (el.type === "checkbox") el.checked = !!o[id];
+      else el.value = o[id];
+    }
+  }
+
+  if (obj.c) setLineColor(obj.c);
+  if (obj.op != null) setLineOpacity(parseFloat(obj.op));
+  if (obj.arr != null) setShowArrows(!!obj.arr);
+
+  return true;
+}
+
+function enterReadOnlyMode() {
+  app.readOnly = true;
+  document.body.classList.add("read-only");
+
+  $$('.tab-bar button').forEach(b => {
+    const tab = b.dataset.tab;
+    if (tab === "route" || tab === "route-settings") {
+      b.style.display = "none";
+    } else if (tab === "options" && !isMobile()) {
+      b.style.display = "none";
+    }
+  });
+
+  switchTab("result");
+  renderReadOnlyInfo();
+
+  const editBtn = $("btnEditRoute");
+  if (editBtn) editBtn.style.display = "";
+  const editBtnM = $("btnEditRouteM");
+  if (editBtnM) editBtnM.style.display = "";
+  const clearBtn = $("btnClearRoute");
+  if (clearBtn) clearBtn.style.display = "none";
+
+  app.markerLayer.eachLayer(m => {
+    if (m.dragging) m.dragging.disable();
+    m.off("click");
+  });
+
+  app.map.off("click", onMapClick);
+}
+
+function exitReadOnlyMode() {
+  app.readOnly = false;
+  document.body.classList.remove("read-only");
+
+  $$('.tab-bar button').forEach(b => {
+    const tab = b.dataset.tab;
+    if (tab === "options") {
+      b.style.display = isMobile() ? "block" : "";
+    } else {
+      b.style.display = "";
+    }
+  });
+
+  const editBtn = $("btnEditRoute");
+  if (editBtn) editBtn.style.display = "none";
+  const editBtnM = $("btnEditRouteM");
+  if (editBtnM) editBtnM.style.display = "none";
+  const clearBtn = $("btnClearRoute");
+  if (clearBtn) clearBtn.style.display = "";
+
+  const info = $("readonlyInfo");
+  if (info) info.style.display = "none";
+
+  renderWaypoints();
+  app.map.on("click", onMapClick);
+  switchTab("route");
+}
+
+function renderReadOnlyInfo() {
+  const info = $("readonlyInfo");
+  if (!info) return;
+  if (!app.readOnly) {
+    info.style.display = "none";
+    return;
+  }
+  info.style.display = "";
+
+  const activityMeta = {
+    hiking:  { label: "Wanderung", icon: "🥾" },
+    cycling: { label: "Radtour",   icon: "🚴" },
+    running: { label: "Lauf",      icon: "🏃" },
+  };
+  const act = activityMeta[app.currentActivity] || activityMeta.hiking;
+  const actEl = $("readonlyActivity");
+  if (actEl) {
+    actEl.innerHTML =
+      `<span class="act-icon">${act.icon}</span><span>${act.label}</span>`;
+  }
+
+  const params = [];
+
+  const fitnessLabels = {
+    "0.85": "Sehr fit / sportlich",
+    "1.0":  "Fit",
+    "1.2":  "Durchschnittlich",
+    "1.4":  "Gemütlich",
+    "1.6":  "Entspannt / mit Pausen",
+  };
+  const fitVal = String(app.fitnessMultiplier);
+  if (fitVal !== "1.2") {
+    params.push(["Kondition", fitnessLabels[fitVal] || fitVal]);
+  }
+
+  if (app.currentActivity === "cycling") {
+    if (app.currentProfile === "rennrad") {
+      params.push(["Rad-Profil", "Rennrad"]);
+    }
+    if ($("optStickToCycleroutes").checked)
+      params.push(["Radrouten", "bevorzugt"]);
+    if ($("optUseProposedCycleroutes").checked)
+      params.push(["Vorgeschlagene Radrouten", "einbezogen"]);
+    if ($("optAvoidUnsafe").checked)
+      params.push(["Hauptstraßen", "vermieden"]);
+    if (!$("optCyclingConsiderElevation").checked)
+      params.push(["Höhenmeter", "ignoriert"]);
+    if ($("optCyclingConsiderTraffic").checked)
+      params.push(["Verkehr", "berücksichtigt"]);
+    if ($("optCyclingConsiderRiver").checked)
+      params.push(["Flüsse / Seen", "bevorzugt"]);
+    if ($("optCyclingConsiderForest").checked)
+      params.push(["Wald / Grünflächen", "bevorzugt"]);
+    if ($("optCyclingConsiderTown").checked)
+      params.push(["Städte", "gemieden"]);
+  } else {
+    const sacLimit = $("optSacLimit").value;
+    if (sacLimit !== "3")
+      params.push(["Max. Schwierigkeit", "T" + sacLimit]);
+    const sacPref = $("optSacPreferred").value;
+    if (sacPref !== "1")
+      params.push(["Bevorzugte Schwierigkeit", "T" + sacPref]);
+    if ($("optHikingConsiderElevation").checked)
+      params.push(["Höhenmeter", "berücksichtigt"]);
+    if ($("optHikingConsiderRiver").checked)
+      params.push(["Flüsse / Seen", "bevorzugt"]);
+    if ($("optHikingConsiderForest").checked)
+      params.push(["Wald / Grünflächen", "bevorzugt"]);
+    if ($("optHikingConsiderTown").checked)
+      params.push(["Städte", "gemieden"]);
+    if ($("optHikingIsWet").checked)
+      params.push(["Nasses Wetter", "berücksichtigt"]);
+  }
+
+  const pEl = $("readonlyParams");
+  if (pEl) {
+    if (params.length) {
+      pEl.innerHTML = params.map(([k, v]) =>
+        `<div class="ro-param"><span class="ro-key">${escapeHtml(k)}</span>` +
+        `<span class="ro-val">${escapeHtml(v)}</span></div>`
+      ).join("");
+      pEl.style.display = "";
+    } else {
+      pEl.innerHTML = "";
+      pEl.style.display = "none";
+    }
+  }
+}
+
+function buildShareUrl() {
+  const data = serializeRoute();
+  const encoded = base64UrlEncode(JSON.stringify(data));
+  return `https://andromeda-explorer.com/routing.html?r=${encoded}`;
+}
+
+function handleShareLink() {
+  if (app.waypoints.length < 2) {
+    toast("Erst eine Route mit mindestens zwei Punkten setzen.", "error");
+    return;
+  }
+  const url = buildShareUrl();
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(() => {
+      toast("Link in die Zwischenablage kopiert.", "success");
+    }).catch(() => showShareDialog(url));
+  } else {
+    showShareDialog(url);
+  }
+}
+
+function showShareDialog(url) {
+  const dlg = document.createElement("div");
+  dlg.className = "modal-backdrop show";
+  dlg.innerHTML = `
+    <div class="modal">
+      <h3>Link teilen</h3>
+      <p>Dieser Link öffnet die Route im Read-Only-Modus:</p>
+      <input type="text" readonly onclick="this.select()">
+      <div class="actions">
+        <button class="ok">Schließen</button>
+      </div>
+    </div>
+  `;
+  dlg.querySelector("input").value = url;
+  document.body.appendChild(dlg);
+  dlg.querySelector(".ok").onclick = () => dlg.remove();
+  dlg.addEventListener("click", e => {
+    if (e.target === dlg) dlg.remove();
+  });
+}
+
+function checkUrlParams() {
+  const params = new URLSearchParams(window.location.search);
+  const r = params.get("r");
+  if (!r) return;
+  try {
+    const json = base64UrlDecode(r);
+    const obj = JSON.parse(json);
+    if (!obj || (obj.v !== 1 && obj.v !== 2) || !Array.isArray(obj.w)) {
+      throw new Error("Ungültiges Datenformat");
+    }
+    deserializeRoute(obj);
+    enterReadOnlyMode();
+    renderWaypoints();
+    updatePlanButton();
+    if (app.waypoints.length >= 2) planRoute();
+    toast("Geteilte Route geladen (Read-Only).", "success");
+  } catch (e) {
+    console.error("[share] Fehler beim Dekodieren:", e);
+    toast("Der geteilte Link ist ungültig.", "error");
+  }
+}
+
+/* ============================================================
+ * Statuszeile
+ * ============================================================ */
+function setStatus(msg, loading) {
+  const el = $("status");
+  if (!el) return;
+  el.innerHTML = loading ? `⋯ ${escapeHtml(msg)}` : escapeHtml(msg);
+}
+
+/* ============================================================
+ * Karten-Init
+ * ============================================================ */
+function initMap() {
+  app.map = AndromedaMap.createMap("map", [47.5, 11.0], 8);
+
+  const { baseLayers, overlayLayers } = AndromedaMap.createLayers();
+  app.baseLayers = baseLayers;
+  app.overlayLayers = overlayLayers;
+
+  app.markerLayer = L.layerGroup().addTo(app.map);
+  app.hoverMarkerLayer = L.layerGroup().addTo(app.map);
+  app.searchMarkerLayer = L.layerGroup().addTo(app.map);
+  app.arrowLayer = L.layerGroup().addTo(app.map);
+  app.highlightLayer = L.layerGroup().addTo(app.map);
+  AndromedaMap.onZoomDebounced(app.map, () => {
+    if (app.arrowLatLngs) renderArrows(app.arrowLatLngs);
+  });
+
+  AndromedaMap.addFocusControl(app.map, () => {
+    const pts = [];
+    if (app.currentRouteData && app.currentRouteData.coords.length) {
+      for (const c of app.currentRouteData.coords) pts.push([c[1], c[0]]);
+    }
+    if (!pts.length) {
+      for (const wp of app.waypoints) pts.push([wp.lat, wp.lng]);
+    }
+    return pts;
+  });
+  AndromedaMap.addFullscreenControl(app.map, $("mapWrap"));
+  AndromedaMap.bindSaveView(app.map);
+
+  const picker = AndromedaMap.bindLayerPicker(
+    app.map, baseLayers, overlayLayers, app
+  );
+  picker.setBase("osm");
+
+  app.map.on("click", onMapClick);
+
+  requestAnimationFrame(() => { if (app.map) app.map.invalidateSize(); });
+  setTimeout(() => { if (app.map) app.map.invalidateSize(); }, 200);
+}
+
+/* ============================================================
+ * Karten-Klicks
+ * ============================================================ */
+function onMapClick(e) {
+  if (app.readOnly) return;
+  if (app.straightLineMode) return;
+  if (e.originalEvent && e.originalEvent.target) {
+    const t = e.originalEvent.target;
+    if (t.closest && (
+      t.closest(".leaflet-control") || t.closest(".leaflet-bar") ||
+      t.closest(".leaflet-control-zoom") || t.closest(".leaflet-control-attribution") ||
+      t.closest(".leaflet-control-scale")
+    )) return;
+  }
+  if (app.draggingMarker) return;
+  app.waypoints.push({ lat: e.latlng.lat, lng: e.latlng.lng });
+  renderWaypoints();
+  updatePlanButton();
+  if (app.waypoints.length >= 2) planRoute();
+  else setStatus("Startpunkt gesetzt. Nun das Ziel anklicken.");
+}
+
+/* ============================================================
+ * Hinweis-Banner
+ * ============================================================ */
+function showHint(msg, kind) {
+  const el = $("hint");
+  el.textContent = msg;
+  el.className = "show" + (kind ? " " + kind : "");
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove("show"), 4000);
+}
+function hideHint() { $("hint").classList.remove("show"); }
+
+/* ============================================================
+ * Wegpunkte
+ * ============================================================ */
+function renderWaypoints() {
+  app.markerLayer.clearLayers();
+  app.markerIndex.clear();
+  app.waypoints.forEach((wp, i) => {
+    const isFirst = i === 0;
+    const isLast = i === app.waypoints.length - 1 && i > 0;
+    let color = "#3a7ca5", label = String(i + 1);
+    if (isFirst) { color = "#2e8b57"; label = "S"; }
+    else if (isLast) { color = "#c0392b"; label = "Z"; }
+    const isOffGrid = !!wp.straightLine && !isFirst;
+    const strokeAttr = isOffGrid
+      ? 'stroke="white" stroke-width="3" stroke-dasharray="4,3"'
+      : 'stroke="white" stroke-width="3"';
+    const html = `<svg width="30" height="30" viewBox="0 0 30 30">
+      <circle cx="15" cy="15" r="12" fill="${color}" ${strokeAttr}/>
+      <text x="15" y="20" text-anchor="middle" fill="white"
+            font-family="sans-serif" font-size="13" font-weight="bold">${label}</text>
+    </svg>`;
+    const icon = L.divIcon({ html, className: "wp-marker", iconSize: [30, 30], iconAnchor: [15, 15] });
+    const marker = L.marker([wp.lat, wp.lng], {
+      icon,
+      draggable: !app.readOnly,
+      autoPan: false,
+    });
+    marker.on("click", ev => {
+      L.DomEvent.stopPropagation(ev);
+      if (app.readOnly) return;
+      if (app.draggingMarker) return;
+      if (app.straightLineMode) {
+        if (i === 0) {
+          toast("Der Startpunkt kann nicht als Off-Grid markiert werden.", "warn");
+          return;
+        }
+        app.waypoints[i].straightLine = !app.waypoints[i].straightLine;
+        renderWaypoints();
+        if (app.waypoints.length >= 2) planRoute();
+        return;
+      }
+      if (confirm(`Punkt ${i + 1} löschen?`)) {
+        app.waypoints.splice(i, 1);
+        renderWaypoints();
+        updatePlanButton();
+        if (app.waypoints.length < 2) clearRoute();
+        else planRoute();
+      }
+    });
+    marker.on("dragstart", () => { app.draggingMarker = marker; });
+    marker.on("dragend", ev => {
+      const pos = ev.target.getLatLng();
+      wp.lat = pos.lat; wp.lng = pos.lng;
+      setTimeout(() => { app.draggingMarker = null; }, 50);
+      renderWaypoints();
+      if (app.waypoints.length >= 2) planRoute();
+    });
+    app.markerLayer.addLayer(marker);
+    app.markerIndex.set(marker, i);
+  });
+  updateBottomBar();
+}
+function updatePlanButton() {
+  const btn = $("planBtn");
+  if (btn) btn.disabled = app.waypoints.length < 2;
+}
+function updatePlanButtonLabel() {
+  const btn = $("planBtn");
+  if (btn) btn.textContent = app.hasCalculated ? "🔄" : "▶";
+}
+
+/* ============================================================
+ * BRouter-Proxy
+ * ============================================================ */
+function collectProfileRequest() {
+  const changes = {};
+  changes.processUnusedTags = true;
+  // Abbiegeanweisungen im OsmAnd-Stil (landen in der GPX, siehe turninstr.js)
+  changes.turnInstructionMode = 3;
+  let baseProfile;
+  if (app.currentActivity === "cycling") {
+    baseProfile = app.currentProfile;
+    changes.stick_to_cycleroutes = $("optStickToCycleroutes").checked;
+    changes.use_proposed_cycleroutes = $("optUseProposedCycleroutes").checked;
+    changes.avoid_unsafe = $("optAvoidUnsafe").checked;
+    changes.consider_elevation = $("optCyclingConsiderElevation").checked;
+    changes.consider_traffic = $("optCyclingConsiderTraffic").checked;
+    changes.consider_river = $("optCyclingConsiderRiver").checked;
+    changes.consider_forest = $("optCyclingConsiderForest").checked;
+    changes.consider_town = $("optCyclingConsiderTown").checked;
+  } else {
+    baseProfile = app.currentActivity === "running" ? "laufen" : "wandern";
+    changes.SAC_scale_limit = $("optSacLimit").value;
+    changes.SAC_scale_preferred = $("optSacPreferred").value;
+    changes.SAC_access_penalty = "100000";
+    changes.iswet = $("optHikingIsWet").checked;
+    changes.consider_elevation = $("optHikingConsiderElevation").checked;
+    changes.consider_river = $("optHikingConsiderRiver").checked;
+    changes.consider_forest = $("optHikingConsiderForest").checked;
+    changes.consider_town = $("optHikingConsiderTown").checked;
+  }
+  return { profile: baseProfile, changes };
+}
+async function prepareProfile() {
+  const req = collectProfileRequest();
+  const res = await fetch(`${PROXY_URL}/profile/prepare`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(req),
+    signal: app.planRouteAbortController?.signal,
+  });
+  const text = await res.text();
+  let data;
+  try { data = JSON.parse(text); }
+  catch { throw new Error(`Proxy-Antwort ungültig (HTTP ${res.status}): ${text.slice(0, 200)}`); }
+  if (!res.ok) throw new Error((data && data.error) || `HTTP ${res.status}`);
+  return data;
+}
+
+/* ============================================================
+ * Segmentierung: BRouter-Abschnitte und Off-Grid-Abschnitte
+ * ============================================================ */
+function buildRouteSegments() {
+  const wps = app.waypoints;
+  if (wps.length < 2) return [];
+
+  const segments = [];
+  let group = [wps[0]];
+
+  for (let i = 1; i < wps.length; i++) {
+    const isStraight = !!(wps[i - 1].straightLine || wps[i].straightLine);
+    if (isStraight) {
+      if (group.length >= 2) {
+        segments.push({ type: "brouter", waypoints: group });
+      }
+      segments.push({ type: "straight", from: wps[i - 1], to: wps[i] });
+      group = [wps[i]];
+    } else {
+      group.push(wps[i]);
+    }
+  }
+  if (group.length >= 2) {
+    segments.push({ type: "brouter", waypoints: group });
+  }
+  return segments;
+}
+
+/* Höchstens so viele Punkte je BRouter-Anfrage (wie MAX_LONLATS_POINTS
+ * im Proxy). Längere Punktfolgen werden geteilt; die Teile überlappen
+ * sich um einen Punkt, damit die Route lückenlos bleibt. */
+const BROUTER_MAX_POINTS = 40;
+function chunkWaypoints(wps) {
+  if (wps.length <= BROUTER_MAX_POINTS) return [wps];
+  const out = [];
+  for (let i = 0; i < wps.length - 1; i += BROUTER_MAX_POINTS - 1) {
+    out.push(wps.slice(i, i + BROUTER_MAX_POINTS));
+  }
+  return out;
+}
+
+/* Abbiegung am Stoßpunkt zweier Anfragen aus der Geometrie (je ~25 m
+ * davor und danach). null, wenn es dort geradeaus geht. */
+function jointTurnHint(coords, gi) {
+  if (gi <= 0 || gi >= coords.length - 1) return null;
+  const c = coords[gi];
+  const walk = (dir) => {
+    let j = gi, d = 0;
+    while (j + dir >= 0 && j + dir < coords.length && d < 25) {
+      d += haversineM(coords[j][1], coords[j][0], coords[j + dir][1], coords[j + dir][0]);
+      j += dir;
+    }
+    return d >= 8 ? coords[j] : null;
+  };
+  const a = walk(-1), b = walk(1);
+  if (!a || !b) return null;
+  const brg = (p, q) => {
+    const f1 = p[1] * Math.PI / 180, f2 = q[1] * Math.PI / 180, dl = (q[0] - p[0]) * Math.PI / 180;
+    return Math.atan2(Math.sin(dl) * Math.cos(f2), Math.cos(f1) * Math.sin(f2) - Math.sin(f1) * Math.cos(f2) * Math.cos(dl)) * 180 / Math.PI;
+  };
+  let delta = brg(c, b) - brg(a, c);
+  while (delta > 180) delta -= 360;
+  while (delta < -180) delta += 360;
+  const abs = Math.abs(delta);
+  if (abs < 30) return null;
+  const d = abs >= 160 ? { kind: "uturn", direction: delta > 0 ? "right" : "left" }
+    : { kind: "turn", direction: delta > 0 ? "right" : "left", severity: abs < 60 ? "slight" : abs < 120 ? "normal" : "sharp" };
+  return { index: gi, lat: c[1], lon: c[0], turn: AndromedaTurns.codeFor(d), angle: Math.round(delta) };
+}
+
+async function fetchBrouterSegment(waypoints, profileName) {
+  const lonlats = waypoints.map(wp =>
+    `${wp.lng.toFixed(6)},${wp.lat.toFixed(6)}`).join("|");
+  const params = new URLSearchParams();
+  params.set("lonlats", lonlats);
+  params.set("alternativeidx", "0");
+  params.set("format", "geojson");
+  params.set("profile", profileName || "trekking");
+  params.set("timode", "3");   // Abbiegeanweisungen im OsmAnd-Stil
+
+  const url = `${PROXY_URL}/brouter?${params.toString()}`;
+  const res = await fetch(url, { signal: app.planRouteAbortController?.signal });
+  const text = await res.text();
+  if (!res.ok) throw new Error(`HTTP ${res.status}${text ? ": " + text.slice(0, 400) : ""}`);
+
+  let geojson;
+  try { geojson = JSON.parse(text); }
+  catch (e) {
+    const preview = text.slice(0, 500).replace(/\s+/g, " ").trim();
+    throw new Error("BRouter-Antwort ist kein gültiges JSON. Server sagte: " + (preview || "(leere Antwort)"));
+  }
+
+  const coords = [];
+  const messages = [];
+  let duration_s = 0;
+  for (const feat of (geojson.features || [])) {
+    const g = feat.geometry;
+    if (!g) continue;
+    if (g.type === "LineString") coords.push(...g.coordinates);
+    else if (g.type === "MultiLineString") {
+      for (const line of g.coordinates) coords.push(...line);
+    }
+    const props = feat.properties || {};
+    if (props["total-time"] && duration_s === 0) {
+      duration_s = parseFloat(props["total-time"]) || 0;
+    }
+    if (Array.isArray(props.messages)) {
+      for (const m of props.messages) messages.push(m);
+    }
+  }
+  // Abbiegeanweisungen von BRouter: index zählt in coords
+  let hints = [];
+  try { hints = AndromedaTurns.fromBrouterGeojson(geojson).filter(h => h.index < coords.length); }
+  catch (e) { hints = []; }
+  return { coords, duration_s, messages, hints };
+}
+
+function parseMessagesSegments(messages, coords) {
+  if (!Array.isArray(messages) || messages.length < 2) return [];
+  if (!Array.isArray(coords) || coords.length < 2) return [];
+
+  // 1. Kumulative Distanz für die gesamte Geometrie berechnen
+  const cumDist = [0];
+  for (let i = 1; i < coords.length; i++) {
+    cumDist.push(cumDist[i - 1] + haversineM(coords[i-1][1], coords[i-1][0], coords[i][1], coords[i][0]));
+  }
+
+  // 2. Hilfsfunktion: Findet den nächstgelegenen Punkt in der Geometrie
+  function findCoordIndex(lon, lat, fromIdx) {
+    let best = fromIdx, bestD = Infinity;
+    for (let i = fromIdx; i < coords.length; i++) {
+      const c = coords[i];
+      const d = (c[0] - lon) ** 2 + (c[1] - lat) ** 2;
+      if (d < bestD) { bestD = d; best = i; }
+    }
+    return best;
+  }
+
+  const result = [];
+  let skippedEmpty = 0;
+  let lastIdx = 0;
+  let sumRow3 = 0;
+
+  // 3. Erstes verfügbares WayTags suchen (für den Start der Route)
+  let lastKnownWayTags = "";
+  for (let i = 1; i < messages.length; i++) {
+    const row = messages[i];
+    if (Array.isArray(row) && row.length >= 10 && typeof row[9] === "string" && row[9].length) {
+      lastKnownWayTags = row[9];
+      break;
+    }
+  }
+
+  // 4. Durch alle Messages iterieren.
+  // WICHTIG: Die Tags in messages[i] markieren das ENDE des Wegstücks.
+  for (let i = 1; i < messages.length; i++) {
+    const row = messages[i];
+    if (!Array.isArray(row) || row.length < 10) continue;
+
+    // Endpunkt dieses Segments
+    const lon = parseFloat(row[0]) / 1000000;
+    const lat = parseFloat(row[1]) / 1000000;
+    if (!isFinite(lon) || !isFinite(lat)) continue;
+
+    const length_m = parseFloat(row[3]) || 0;
+    sumRow3 += length_m;
+
+    // WayTags holen (mit Fallback auf das letzte bekannte Tag)
+    let wayTags = (typeof row[9] === "string" && row[9].length) ? row[9] : "";
+    if (wayTags) {
+      lastKnownWayTags = wayTags;
+    } else {
+      wayTags = lastKnownWayTags;
+    }
+    if (!wayTags) { skippedEmpty++; continue; }
+
+    // Startpunkt dieses Segments bestimmen
+    let startLon, startLat;
+    if (i === 1) {
+      startLon = coords[0][0];
+      startLat = coords[0][1];
+    } else {
+      const prevRow = messages[i - 1];
+      startLon = parseFloat(prevRow[0]) / 1000000;
+      startLat = parseFloat(prevRow[1]) / 1000000;
+    }
+
+    // Startpunkt auf der Route suchen
+    let startIdx = findCoordIndex(startLon, startLat, lastIdx);
+
+    // Sicherheitsnetz: Wenn der Punkt mehr als ~100m entfernt ist, von vorne suchen
+    const startDistSq = (coords[startIdx][0] - startLon) ** 2 + (coords[startIdx][1] - startLat) ** 2;
+    if (startDistSq > 0.0001) {
+      startIdx = findCoordIndex(startLon, startLat, 0);
+    }
+
+    // Endpunkt auf der Route suchen
+    let endIdx = findCoordIndex(lon, lat, startIdx + 1);
+    if (endIdx <= startIdx) {
+      endIdx = Math.min(startIdx + 1, coords.length - 1);
+    }
+
+    const segCoords = coords.slice(startIdx, endIdx + 1);
+    if (segCoords.length < 2) continue;
+
+    // Die tatsächliche Länge aus der Geometrie berechnen
+    const actual_length = cumDist[endIdx] - cumDist[startIdx];
+
+    lastIdx = endIdx;
+
+    result.push({
+      coords: segCoords,
+      length_m: actual_length,
+      properties: { wayTags },
+    });
+  }
+
+  if (window.console && console.debug) {
+    const totalLen = result.reduce((s, r) => s + r.length_m, 0);
+    console.debug(
+      `[parseMessagesSegments] segments=${result.length}, ` +
+      `skippedEmpty=${skippedEmpty}, ` +
+      `totalLen=${(totalLen / 1000).toFixed(2)} km, ` +
+      `sumRow3=${(sumRow3 / 1000).toFixed(2)} km, ` +
+      `coordsLen=${(cumDist[cumDist.length - 1] / 1000).toFixed(2)} km`
+    );
+  }
+
+  return result;
+}
+
+function estimateStraightDuration(wp1, wp2) {
+  const d = haversineM(wp1.lat, wp1.lng, wp2.lat, wp2.lng);
+  const speeds = { hiking: 4.0, cycling: 15.0, running: 9.0 };
+  const speed = speeds[app.currentActivity] || 4.0;
+  const baseSeconds = (d / 1000) / speed * 3600;
+  const mult = (Andromeda.ACTIVITY_BASE_TIME_MULT || {})[app.currentActivity] ?? 1.0;
+  return baseSeconds / (mult || 1.0);
+}
+
+/* Wie concatCoords, merkt sich aber für jeden Abschnitt, an welchem
+ * Index der Gesamtroute jeder seiner Punkte landet (für die
+ * Abbiegeanweisungen, die sich auf die Abschnitte beziehen). */
+function concatCoordsWithMap(segments) {
+  const out = [];
+  const maps = [];
+  for (const seg of segments) {
+    const map = [];
+    for (const c of seg.coords || []) {
+      if (!Array.isArray(c) || c.length < 2) { map.push(out.length - 1); continue; }
+      const last = out[out.length - 1];
+      if (last && Math.abs(last[0] - c[0]) < 1e-9 && Math.abs(last[1] - c[1]) < 1e-9) {
+        map.push(out.length - 1);
+        continue;
+      }
+      map.push(out.length);
+      out.push(c);
+    }
+    maps.push(map);
+  }
+  return { coords: out, maps };
+}
+
+/* Nach Änderung der Einstellungen: laufende Berechnung sofort abbrechen
+ * (der Server verwirft sie dann, solange sie noch wartet) und erst nach
+ * einer kurzen Pause neu rechnen — so lösen mehrere schnelle Änderungen
+ * hintereinander nur eine einzige Berechnung aus. */
+let planRouteTimer = null;
+function schedulePlanRoute(delayMs) {
+  if (app.waypoints.length < 2) return;
+  if (app.planRouteAbortController) { app.planRouteAbortController.abort(); app.planRouteAbortController = null; }
+  clearTimeout(planRouteTimer);
+  setStatus("Route wird berechnet …", true);
+  planRouteTimer = setTimeout(() => { planRouteTimer = null; planRoute(); }, delayMs == null ? 600 : delayMs);
+}
+
+async function planRoute() {
+  if (app.waypoints.length < 2) return;
+  clearTimeout(planRouteTimer);
+
+  if (app.planRouteAbortController) {
+    app.planRouteAbortController.abort();
+  }
+  app.planRouteAbortController = new AbortController();
+
+  wayHighlight.clear();
+
+  setStatus("Route wird berechnet …", true);
+  try {
+    const prep = await prepareProfile();
+    app.serverProfileName = prep.profile_name;
+
+    const segments = buildRouteSegments();
+    if (!segments.length) throw new Error("Keine berechenbaren Segmente.");
+
+    const resultSegments = [];
+    const tagSegments = [];
+    const gpxSegments = [];
+    let totalDuration_s = 0;
+
+    for (const seg of segments) {
+      if (seg.type === "brouter") {
+        // Viele Punkte (z. B. nach GPX-Import) gehen in mehreren Anfragen
+        const chunks = chunkWaypoints(seg.waypoints);
+        for (let ci = 0; ci < chunks.length; ci++) {
+          const r = await fetchBrouterSegment(chunks[ci], app.serverProfileName);
+          if (!r.coords.length) throw new Error("BRouter hat keine Route geliefert.");
+          resultSegments.push({ type: "brouter", coords: r.coords, hints: r.hints, joint: ci > 0 });
+          totalDuration_s += r.duration_s;
+
+          for (const rs of parseMessagesSegments(r.messages, r.coords)) {
+            tagSegments.push({
+              type: "brouter",
+              coords: rs.coords,
+              length_m: rs.length_m,
+              properties: rs.properties,
+            });
+            gpxSegments.push({
+              coords: rs.coords,
+              tags: rs.properties.wayTags || ""
+            });
+          }
+        }
+      } else {
+        const coords = [
+          [seg.from.lng, seg.from.lat],
+          [seg.to.lng, seg.to.lat],
+        ];
+        resultSegments.push({ type: "straight", coords });
+        tagSegments.push({ type: "straight", coords, properties: {} });
+        gpxSegments.push({
+          coords: coords,
+          tags: "type=offgrid"
+        });
+        totalDuration_s += estimateStraightDuration(seg.from, seg.to);
+      }
+    }
+
+    const joined = concatCoordsWithMap(resultSegments);
+    const allCoords = joined.coords;
+    if (!allCoords.length) throw new Error("Keine Routendaten in der Antwort.");
+
+    // Abbiegeanweisungen auf die Gesamtroute umrechnen
+    const turnHints = [];
+    resultSegments.forEach((seg, k) => {
+      for (const h of seg.hints || []) {
+        const gi = joined.maps[k][h.index];
+        if (gi == null || gi < 0) continue;
+        const c = allCoords[gi];
+        turnHints.push({ index: gi, lat: c[1], lon: c[0], turn: h.turn, angle: h.angle });
+      }
+      // Wo zwei Anfragen aneinanderstoßen, kennt keine der beiden die
+      // Abbiegung am Stoßpunkt: dort aus der Geometrie ergänzen.
+      if (seg.joint) {
+        const gi = joined.maps[k][0];
+        const h = jointTurnHint(allCoords, gi);
+        if (h && !turnHints.some(t => Math.abs(t.index - gi) <= 3)) turnHints.push(h);
+      }
+    });
+    turnHints.sort((a, b) => a.index - b.index);
+
+    const distance_m = computeDistanceFromCoords(allCoords);
+    const { ascent, descent } = computeAscentDescent(allCoords);
+
+    const parsed = {
+      coords: allCoords,
+      segments: resultSegments,
+      tagSegments,
+      gpxSegments,
+      turnHints,
+      stats: {
+        distance_m,
+        ascent_m: ascent,
+        descent_m: descent,
+        duration_s: totalDuration_s,
+      },
+      messages: [],
+    };
+
+    app.currentRouteData = parsed;
+    app.hasCalculated = true;
+    renderRoute(parsed);
+    updateStats(parsed);
+    updateElevationProfile(parsed);
+    updatePlanButtonLabel();
+    hideHint();
+    setStatus("Route berechnet.");
+    app.planRouteAbortController = null;
+
+    // Bei geteilten Routen (Read-Only) automatisch auf die Route zoomen,
+    // damit man sie nicht erst suchen muss. Die 200ms Verzögerung stellt
+    // sicher, dass die Karte bereits ihre endgültige Größe hat
+    // (invalidateSize in der init() ist sonst noch nicht durch).
+    if (app.readOnly && app.currentRouteData && app.currentRouteData.coords.length > 0) {
+      const latlngs = app.currentRouteData.coords.map(c => [c[1], c[0]]);
+      setTimeout(() => {
+        try {
+          app.map.fitBounds(L.latLngBounds(latlngs), {
+            padding: [40, 40],
+            animate: true,
+          });
+        } catch (e) {}
+      }, 200);
+    }
+  } catch (err) {
+    if (err.name === "AbortError") {
+      return;
+    }
+    console.error(err);
+    setStatus("Fehler bei der Routenberechnung.");
+    toast("Fehler: " + err.message, "error");
+    showHint("Routenberechnung fehlgeschlagen: " + err.message, "err");
+    app.planRouteAbortController = null;
+  }
+}
+
+function computeDistanceFromCoords(coords) {
+  let dist = 0;
+  for (let i = 1; i < coords.length; i++) {
+    dist += haversineM(coords[i-1][1], coords[i-1][0], coords[i][1], coords[i][0]);
+  }
+  return dist;
+}
+function computeAscentDescent(coords) {
+  const elevs = coords.map(c => (Array.isArray(c) && c.length >= 3 && isFinite(c[2])) ? c[2] : null);
+  const smoothed = elevs.map((e, i) => {
+    if (e == null) return null;
+    let sum = 0, count = 0;
+    for (let j = Math.max(0, i - 1); j <= Math.min(elevs.length - 1, i + 1); j++) {
+      const v = elevs[j];
+      if (v != null) { sum += v; count++; }
+    }
+    return count > 0 ? sum / count : e;
+  });
+  let asc = 0, desc = 0, ref = null;
+  const THRESHOLD = 1.0;
+  for (const e of smoothed) {
+    if (e == null) continue;
+    if (ref == null) { ref = e; continue; }
+    const d = e - ref;
+    if (d >= THRESHOLD) { asc += d; ref = e; }
+    else if (d <= -THRESHOLD) { desc -= d; ref = e; }
+  }
+  return { ascent: asc, descent: desc };
+}
+
+/* ============================================================
+ * Route zeichnen
+ * ============================================================ */
+function renderRoute(parsed) {
+  if (app.routeLayer && app.routeLayer.eachLayer) {
+    app.routeLayer.eachLayer(line => {
+      try { app.map.removeLayer(line); } catch (e) {}
+    });
+  } else if (app.routeLayer) {
+    try { app.map.removeLayer(app.routeLayer); } catch (e) {}
+  }
+  app.routeLayer = null;
+  app.arrowLayer.clearLayers();
+
+  const segments = parsed.segments || [{ type: "brouter", coords: parsed.coords }];
+  const group = L.layerGroup();
+  for (const seg of segments) {
+    if (!seg.coords || seg.coords.length < 2) continue;
+    const latlngs = seg.coords.map(c => [c[1], c[0]]);
+    const opts = {
+      color: app.lineColor,
+      weight: 6,
+      opacity: app.lineOpacity,
+      lineJoin: "round",
+      lineCap: "round",
+    };
+    if (seg.type === "straight") {
+      opts.dashArray = "10,8";
+    }
+    const line = L.polyline(latlngs, opts);
+    line.on("click", onRouteClick);
+    group.addLayer(line);
+  }
+  group.addTo(app.map);
+  app.routeLayer = group;
+
+  const latlngs = parsed.coords.map(c => [c[1], c[0]]);
+  renderArrows(latlngs);
+}
+function renderArrows(latlngs) {
+  app.arrowLatLngs = latlngs;
+  if (!app.showArrows) { app.arrowLayer.clearLayers(); return; }
+  AndromedaMap.drawArrows(app.arrowLayer, latlngs, { map: app.map, size: 24 });
+}
+function updateRouteStyle() {
+  if (!app.routeLayer) return;
+  if (app.routeLayer.eachLayer) {
+    app.routeLayer.eachLayer(line => {
+      line.setStyle({ color: app.lineColor, opacity: app.lineOpacity });
+    });
+  } else {
+    app.routeLayer.setStyle({ color: app.lineColor, opacity: app.lineOpacity });
+  }
+}
+function onRouteClick(e) {
+  L.DomEvent.stopPropagation(e);
+  if (app.readOnly) return;
+  if (app.straightLineMode) return;
+  if (app.waypoints.length < 2) return;
+  if (!app.currentRouteData || !app.currentRouteData.coords.length) return;
+  const clickLL = e.latlng;
+  const routeCoords = app.currentRouteData.coords;
+  const clickPx = app.map.latLngToContainerPoint(clickLL);
+  let nearestIdx = 0, minPx = Infinity;
+  for (let i = 0; i < routeCoords.length; i++) {
+    const px = app.map.latLngToContainerPoint(L.latLng(routeCoords[i][1], routeCoords[i][0]));
+    const d = clickPx.distanceTo(px);
+    if (d < minPx) { minPx = d; nearestIdx = i; }
+  }
+  if (minPx > 30) return;
+  const wpRouteIdx = app.waypoints.map(wp => {
+    const wpPx = app.map.latLngToContainerPoint(L.latLng(wp.lat, wp.lng));
+    let idx = 0, md = Infinity;
+    for (let i = 0; i < routeCoords.length; i++) {
+      const px = app.map.latLngToContainerPoint(L.latLng(routeCoords[i][1], routeCoords[i][0]));
+      const d = wpPx.distanceTo(px);
+      if (d < md) { md = d; idx = i; }
+    }
+    return idx;
+  });
+  let insertIdx = 1;
+  for (let i = 0; i < wpRouteIdx.length - 1; i++) {
+    if (nearestIdx >= wpRouteIdx[i] && nearestIdx <= wpRouteIdx[i+1]) {
+      insertIdx = i + 1; break;
+    }
+  }
+  app.waypoints.splice(insertIdx, 0, {
+    lat: routeCoords[nearestIdx][1],
+    lng: routeCoords[nearestIdx][0],
+  });
+  renderWaypoints();
+  updatePlanButton();
+  planRoute();
+  toast(`Zwischenpunkt ${insertIdx + 1} eingefügt`, "success");
+}
+function clearRoute() {
+  wayHighlight.clear();
+  if (app.routeLayer && app.routeLayer.eachLayer) {
+    app.routeLayer.eachLayer(line => {
+      try { app.map.removeLayer(line); } catch (e) {}
+    });
+  } else if (app.routeLayer) {
+    try { app.map.removeLayer(app.routeLayer); } catch (e) {}
+  }
+  app.routeLayer = null;
+  app.arrowLayer.clearLayers();
+  app.currentRouteData = null;
+  app.hoverMarkerLayer.clearLayers();
+  updateStats(null);
+  elevPanel.setData(null);
+  updateBottomBar();
+}
+
+/* ============================================================
+ * Statistik
+ * ============================================================ */
+function computeAdjustedTime(baseSeconds) {
+  if (baseSeconds == null || !isFinite(baseSeconds) || baseSeconds <= 0) return null;
+  const base = ACTIVITY_BASE_TIME_MULT[app.currentActivity] ?? 1.0;
+  return baseSeconds * base * app.fitnessMultiplier;
+}
+function updateStats(parsed) {
+  const placeholder = $("resultPlaceholder");
+  const content = $("resultContent");
+  if (!parsed) {
+    if (placeholder) placeholder.style.display = "";
+    if (content) content.style.display = "none";
+    renderStatsBlocks(null);
+    updateFooterStats(null);
+    updateBottomBar();
+    return;
+  }
+  const s = parsed.stats;
+  $("statDistance").textContent = fmtDistance(s.distance_m);
+  $("statAscent").textContent = fmtElevation(s.ascent_m);
+  $("statDescent").textContent = fmtElevation(s.descent_m);
+  const adj = computeAdjustedTime(s.duration_s);
+  $("statTime").textContent = fmtDuration(adj);
+  $("statTimeRaw").textContent = s.duration_s ? `BRouter: ${fmtDuration(s.duration_s)}` : "";
+  const label = app.currentActivity === "cycling" ? "Fahrzeit"
+              : app.currentActivity === "running" ? "Laufzeit" : "Gehzeit";
+  $("statTimeLbl").textContent = label + " (angepasst)";
+  if (placeholder) placeholder.style.display = "none";
+  if (content) content.style.display = "block";
+  renderStatsBlocks(parsed);
+  updateFooterStats(parsed);
+  updateBottomBar();
+}
+function updateFooterStats(parsed) {
+  const el = $("footerStats");
+  if (!el) return;
+  if (!parsed) { el.textContent = ""; return; }
+  const s = parsed.stats;
+  const adj = computeAdjustedTime(s.duration_s);
+  el.innerHTML = `
+    <span class="st">${fmtDistance(s.distance_m)}</span>
+    <span class="st">${fmtDuration(adj)}</span>
+    <span class="st">↑ ${fmtElevation(s.ascent_m)}</span>
+  `;
+}
+function updateBottomBar() {
+  const prim = $("primaryLine");
+  const sec = $("secondaryLine");
+  if (!prim || !sec) return;
+  if (!app.currentRouteData) {
+    const n = app.waypoints.length;
+    if (!n) {
+      prim.textContent = app.readOnly ? "Route wird geladen …" : "Keine Route";
+      sec.textContent = app.readOnly ? "" : "Karte antippen, um Start zu setzen";
+    } else {
+      prim.textContent = `${n} Punkt${n === 1 ? "" : "e"}`;
+      sec.textContent = n >= 2 ? "Route wird berechnet…" : "Karte für Ziel antippen";
+    }
+    return;
+  }
+  const s = app.currentRouteData.stats;
+  const adj = computeAdjustedTime(s.duration_s);
+  prim.textContent = `${fmtDistance(s.distance_m)} · ${fmtDuration(adj)}`;
+  sec.textContent = `↑ ${fmtElevation(s.ascent_m)} · ↓ ${fmtElevation(s.descent_m)}`;
+}
+function recomputeAdjustedTime() {
+  if (!app.currentRouteData) return;
+  const s = app.currentRouteData.stats;
+  $("statTime").textContent = fmtDuration(computeAdjustedTime(s.duration_s));
+  updateFooterStats(app.currentRouteData);
+  updateBottomBar();
+}
+
+/* ============================================================
+ * Wegearten-Statistik
+ * ============================================================ */
+function renderStatsBlocks(parsed) {
+  const container = $("wayStatsContainer");
+  if (!container) return;
+  if (!parsed || !parsed.tagSegments || !parsed.tagSegments.length) {
+    container.innerHTML = "";
+    container.style.display = "none";
+    return;
+  }
+
+  container.style.display = "";
+  AndromedaWayStats.mount(container, parsed.tagSegments, wayHighlight);
+}
+
+/* ============================================================
+ * Höhenprofil
+ * ============================================================ */
+function updateElevationProfile(parsed) {
+  elevPanel.setCoords(parsed ? parsed.coords : [], app.currentActivity);
+}
+function updateSlopeLegend() {
+  AndromedaElevation.updateLegend($("slopeLegend"), app.currentActivity);
+}
+/* ============================================================
+ * Suche (Nominatim)
+ * ============================================================ */
+let searchAbortController = null;
+function clearSearchResults() {
+  $("searchResults").innerHTML = "";
+  $("searchResults").classList.remove("show");
+  $("btnClearSearch").style.display = "none";
+  app.searchMarkerLayer.clearLayers();
+  app.searchMarker = null;
+}
+async function searchPlace() {
+  if (app.readOnly) return;
+  const query = $("searchInput").value.trim();
+  if (!query) return;
+  $("btnSearch").disabled = true;
+  const resultsBox = $("searchResults");
+  resultsBox.innerHTML = '<div class="no-results">Suche läuft …</div>';
+  resultsBox.classList.add("show");
+  $("btnClearSearch").style.display = "";
+  if (searchAbortController) searchAbortController.abort();
+  searchAbortController = new AbortController();
+  try {
+    const url = `${Andromeda.NOMINATIM_URL}/search?q=${encodeURIComponent(query)}&format=json&limit=8&addressdetails=1&accept-language=${AndromedaI18n.lang()}`;
+    const res = await fetch(url, {
+      signal: searchAbortController.signal,
+      headers: { "Accept": "application/json" },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (!data.length) {
+      resultsBox.innerHTML = '<div class="no-results">Keine Treffer gefunden.</div>';
+      return;
+    }
+    resultsBox.innerHTML = "";
+    for (const item of data) {
+      const div = document.createElement("div");
+      div.className = "search-result";
+      const displayName = item.display_name || item.name || "Ort";
+      const lat = parseFloat(item.lat), lon = parseFloat(item.lon);
+      const nameEl = document.createElement("div");
+      nameEl.className = "name";
+      nameEl.textContent = displayName;
+      nameEl.onclick = () => {
+        app.map.setView([lat, lon], 15, { animate: true });
+        showSearchMarker(lat, lon);
+      };
+      div.appendChild(nameEl);
+      const actions = document.createElement("div");
+      actions.className = "actions";
+      // Ein Ziel gibt es erst, wenn mindestens Start und Ziel (2 Punkte) gesetzt sind.
+      const hasDestination = app.waypoints.length >= 2;
+      const bWp = document.createElement("button");
+      bWp.className = "btn-add-dest";
+      bWp.textContent = hasDestination ? "Als neues Ziel" : "Als Ziel";
+      bWp.onclick = () => {
+        app.waypoints.push({ lat, lng: lon });
+        renderWaypoints();
+        updatePlanButton();
+        app.map.setView([lat, lon], Math.max(app.map.getZoom(), 13), { animate: true });
+        if (app.waypoints.length >= 2) planRoute();
+        toast("Als Ziel hinzugefügt", "success");
+      };
+      actions.appendChild(bWp);
+
+      const bStart = document.createElement("button");
+      bStart.className = "btn-add-start";
+      bStart.textContent = "Als Start";
+      bStart.onclick = () => {
+        app.waypoints.unshift({ lat, lng: lon });
+        renderWaypoints();
+        updatePlanButton();
+        app.map.setView([lat, lon], Math.max(app.map.getZoom(), 13), { animate: true });
+        if (app.waypoints.length >= 2) planRoute();
+        toast("Als Start eingefügt", "success");
+      };
+      actions.appendChild(bStart);
+      div.appendChild(actions);
+      resultsBox.appendChild(div);
+    }
+  } catch (err) {
+    if (err.name === "AbortError") return;
+    console.error(err);
+    resultsBox.innerHTML = `<div class="no-results">Fehler: ${escapeHtml(err.message)}</div>`;
+  } finally {
+    $("btnSearch").disabled = false;
+  }
+}
+function showSearchMarker(lat, lon) {
+  app.searchMarkerLayer.clearLayers();
+  const html = `<svg width="32" height="42" viewBox="0 0 32 42">
+    <path d="M16 0 C7.2 0 0 7.2 0 16 C0 28 16 42 16 42 C16 42 32 28 32 16 C32 7.2 24.8 0 16 0 Z"
+          fill="#3a7ca5" stroke="white" stroke-width="2.5"/>
+    <circle cx="16" cy="16" r="5.5" fill="white"/>
+  </svg>`;
+  const icon = L.divIcon({ html, className: "search-marker",
+    iconSize: [32, 42], iconAnchor: [16, 42] });
+  const m = L.marker([lat, lon], { icon, interactive: false });
+  app.searchMarkerLayer.addLayer(m);
+  app.searchMarker = m;
+}
+
+/* ============================================================
+ * Standort als Start
+ * ============================================================ */
+async function useCurrentLocationAsStart() {
+  if (app.readOnly) return;
+  if (!("geolocation" in navigator)) {
+    toast("Standort wird nicht unterstützt.", "error"); return;
+  }
+  if (!window.isSecureContext) {
+    toast("Standort nur über HTTPS möglich.", "error"); return;
+  }
+  if (AndromedaUtils.IS_FIREFOX) {
+    toast("Firefox auf Android: Position wird ungenau (Netzwerk-basiert). Für GPS bitte Chrome verwenden.", "warn");
+  } else {
+    toast("Standort wird ermittelt …", "warn");
+  }
+  try {
+    const pos = await AndromedaUtils.getGpsPosition({ maxWaitMs: 15000 });
+    const lat = pos.coords.latitude, lon = pos.coords.longitude;
+    app.waypoints.unshift({ lat, lng: lon });
+    renderWaypoints();
+    updatePlanButton();
+    app.map.setView([lat, lon], Math.max(app.map.getZoom(), 14), { animate: true });
+    if (app.waypoints.length >= 2) planRoute();
+    toast("Standort als Startpunkt eingefügt.", "success");
+  } catch (err) {
+    if (err && err.code === "no-gps") {
+      if (AndromedaUtils.IS_FIREFOX) {
+        toast("Kein Standort empfangen. Ist die Ortung aktiviert?", "warn");
+      } else {
+        toast("Kein GPS-Signal. Bitte GPS einschalten.", "warn");
+      }
+    } else if (err && err.code === "permission-denied") {
+      toast("Standort-Zugriff verweigert.", "error");
+    } else if (err && err.code === "not-supported") {
+      toast("Geolocation nicht unterstützt.", "error");
+    } else {
+      toast("Standort konnte nicht ermittelt werden.", "error");
+    }
+  }
+}
+
+/* ============================================================
+ * GPX + Navigator-Handoff
+ * ============================================================ */
+function suggestGpxName() {
+  const slug = app.currentActivity === "cycling" ? "rad"
+              : app.currentActivity === "running" ? "laufen" : "wandern";
+  return `Route_${slug}_${timestampSlug()}`;
+}
+function buildGpxString(name) {
+  const wayStats = app.wayStats || [];
+  const surfStats = app.surfStats || [];
+
+  function statsDescText(label, stats) {
+    if (!stats.length) return "";
+    const parts = stats.map(s => {
+      const km = s.length_m / 1000;
+      return s.name + " " + (km < 0.1 ? "<100m" : AndromedaI18n.fmtNumber(km, 2) + " km");
+    });
+    return label + ": " + parts.join(", ");
+  }
+
+  const descText = [
+    statsDescText("Wegearten", wayStats),
+    statsDescText("Oberflächen", surfStats),
+  ].filter(Boolean).join(" · ");
+
+  const segments = app.currentRouteData.gpxSegments
+                || [{ coords: app.currentRouteData.coords, tags: "" }];
+
+  // Track zuerst bauen: Die Abbiegeanweisungen brauchen die Nummern
+  // der Trackpunkte, so wie sie in der Datei stehen (über alle
+  // <trkseg> hinweg gezählt, Grenzpunkte doppelt).
+  const points = [];
+  let trk = `  <trk>\n    <name>${escapeXml(name)}</name>\n`;
+  trk += `    <type>${escapeXml(app.currentActivity || "hiking")}</type>\n`;
+  for (const seg of segments) {
+    trk += `    <trkseg>\n`;
+
+    if (seg.tags) {
+      trk += `      <extensions>\n`;
+      trk += `        <andromeda:way-tags xmlns:andromeda="https://andromeda-explorer.com/gpx">${escapeXml(seg.tags)}</andromeda:way-tags>\n`;
+      trk += `      </extensions>\n`;
+    }
+
+    for (const c of seg.coords) {
+      points.push(c);
+      const lon = c[0].toFixed(7), lat = c[1].toFixed(7);
+      trk += `      <trkpt lat="${lat}" lon="${lon}">`;
+      if (c.length >= 3) trk += `<ele>${c[2].toFixed(1)}</ele>`;
+      trk += `</trkpt>\n`;
+    }
+    trk += `    </trkseg>\n`;
+  }
+  trk += `  </trk>\n`;
+
+  // Abbiegeanweisungen als <rte> im OsmAnd-Format (GPX 1.1: vor <trk>).
+  // OsmAnd verwendet sie nur bei diesem Erzeuger, siehe turninstr.js.
+  const hints = AndromedaTurns.remap(app.currentRouteData.turnHints || [], app.currentRouteData.coords, points);
+  const rte = AndromedaTurns.gpxRte(points, hints, { durationS: app.currentRouteData.stats && app.currentRouteData.stats.duration_s });
+
+  let gpx = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+  gpx += `<gpx version="1.1" creator="${rte ? AndromedaTurns.OSMAND_CREATOR : "Routenplaner"}" xmlns="http://www.topografix.com/GPX/1/1">\n`;
+  gpx += `  <metadata>\n    <name>${escapeXml(name)}</name>\n`;
+  if (descText) {
+    gpx += `    <desc>${escapeXml(descText)}</desc>\n`;
+  }
+  gpx += `    <time>${new Date().toISOString()}</time>\n`;
+  gpx += `  </metadata>\n`;
+  gpx += rte;
+  gpx += trk;
+  gpx += `</gpx>\n`;
+  return gpx;
+}
+function downloadGpx() {
+  if (!app.currentRouteData || !app.currentRouteData.coords.length) {
+    toast("Keine Route zum Exportieren.", "error"); return;
+  }
+  AndromedaModal.askForName({
+    title: "GPX exportieren",
+    hint: "Eine GPX-Datei ist für den Navigator bestimmt und kann nachträglich nicht mehr geändert werden.",
+    defaultValue: suggestGpxName(),
+    extension: ".gpx",
+    onConfirm: (name) => {
+      const clean = sanitizeFilename(name);
+      const gpx = buildGpxString(name);
+      const blob = new Blob([gpx], { type: "application/gpx+xml" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = clean + ".gpx";
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      toast(`GPX gespeichert: ${clean}.gpx`, "success");
+    },
+  });
+}
+async function saveGpxToNavState(gpxText, fileName) {
+  const idbOk = await new Promise((resolve) => {
+    let finished = false;
+    const finish = v => { if (!finished) { finished = true; resolve(v); } };
+    try {
+      const req = indexedDB.open(Andromeda.NAV_HANDOFF_DB, 1);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains(Andromeda.NAV_HANDOFF_STORE)) {
+          db.createObjectStore(Andromeda.NAV_HANDOFF_STORE);
+        }
+      };
+      req.onsuccess = () => {
+        const db = req.result;
+        const tx = db.transaction(Andromeda.NAV_HANDOFF_STORE, "readwrite");
+        const blob = new Blob([gpxText], { type: "application/gpx+xml" });
+        tx.objectStore(Andromeda.NAV_HANDOFF_STORE).put({
+          type: "gpx", fileName, blob,
+          savedAt: new Date().toISOString(),
+        }, Andromeda.NAV_HANDOFF_KEY);
+        tx.oncomplete = () => finish(true);
+        tx.onerror = () => finish(false);
+        tx.onabort = () => finish(false);
+      };
+      req.onerror = () => finish(false);
+      setTimeout(() => finish(false), 3000);
+    } catch (e) { finish(false); }
+  });
+
+  let lsOk = false;
+  try {
+    const b64 = btoa(unescape(encodeURIComponent(gpxText)));
+    localStorage.setItem("brouter_nav_handoff_v1", JSON.stringify({
+      fileName, gpx_b64: b64, savedAt: new Date().toISOString(),
+    }));
+    lsOk = true;
+  } catch (e) {}
+
+  return idbOk || lsOk;
+}
+async function openInNavigator() {
+  if (!app.currentRouteData || !app.currentRouteData.coords.length) {
+    toast("Keine Route zum Navigieren.", "error"); return;
+  }
+  const fileName = sanitizeFilename(suggestGpxName()) + ".gpx";
+  const gpxText = buildGpxString(fileName.replace(/\.gpx$/, ""));
+  try {
+    const ok = await saveGpxToNavState(gpxText, fileName);
+    if (!ok) {
+      toast("Route konnte nicht gespeichert werden. Bitte den GPX-Download verwenden.", "error");
+      return;
+    }
+    toast("Route bereit — Navigator wird geöffnet …", "success");
+    setTimeout(() => { window.location.href = NAV_URL; }, 500);
+  } catch (e) {
+    console.error(e);
+    toast("Navigator konnte nicht gestartet werden.", "error");
+  }
+}
+
+/* ============================================================
+ * GPX-Import (Overlay oder Nachplanen)
+ * ============================================================ */
+let _pendingGpxCoords = null;
+
+function clearGpxOverlay() {
+  if (app.gpxOverlayLayer && app.map) {
+    try { app.map.removeLayer(app.gpxOverlayLayer); } catch (e) {}
+  }
+  app.gpxOverlayLayer = null;
+  const info = $("gpxOverlayInfo");
+  if (info) info.style.display = "none";
+}
+
+function applyGpxOverlay(coords, silent) {
+  if (!coords || coords.length < 2 || !app.map) return;
+  clearGpxOverlay();
+  const latlngs = coords.map(c => [c[1], c[0]]);
+  app.gpxOverlayLayer = L.polyline(latlngs, {
+    color: "#9b59b6",
+    weight: 3,
+    opacity: 0.75,
+    dashArray: "8,6",
+    interactive: false,
+  }).addTo(app.map);
+  try {
+    app.map.fitBounds(L.latLngBounds(latlngs), { padding: [30, 30], maxZoom: 15 });
+  } catch (e) {}
+  const info = $("gpxOverlayInfo");
+  if (info) info.style.display = "flex";
+  if (!silent) toast("GPX als Overlay eingeblendet.", "success");
+}
+
+/* GPX nachplanen — so viele Punkte wie nötig, so wenige wie möglich:
+ * 1. Grobe Wegpunkte per Douglas-Peucker: Der Track weicht höchstens
+ *    GPX_MAX_DEVIATION_M von der Linie durch die Wegpunkte ab. Meist
+ *    folgt BRouter dem Weg auch zwischen weit entfernten Punkten.
+ * 2. BRouter rechnet, dann wird die Route mit dem Track verglichen. Nur
+ *    wo sie mehr als GPX_REFINE_TOLERANCE_M daneben liegt (BRouter hat
+ *    einen anderen Weg genommen), kommt an der weitesten Stelle EIN
+ *    Wegpunkt dazu, und es wird neu gerechnet. Höchstens
+ *    GPX_REFINE_PASSES Runden (Serverlast); was danach noch abweicht,
+ *    bleibt so. Sehr kurze Abweichungen (GPS-Zittern) zählen nicht. */
+const GPX_MAX_DEVIATION_M = 150;
+const GPX_MAX_WAYPOINTS = 25;
+const GPX_REFINE_TOLERANCE_M = 30;
+const GPX_REFINE_MIN_RUN_M = 40;
+const GPX_REFINE_PASSES = 2;
+const GPX_MAX_WAYPOINTS_TOTAL = 60;
+
+function _distPointToSegment(lat, lon, a, b) {
+  const midLat = (a[1] + b[1] + lat) / 3;
+  const cosLat = Math.cos(midLat * Math.PI / 180);
+  const ax = a[0] * cosLat, ay = a[1];
+  const bx = b[0] * cosLat, by = b[1];
+  const px = lon * cosLat, py = lat;
+  const dx = bx - ax, dy = by - ay;
+  const lenSq = dx * dx + dy * dy;
+  let t = 0;
+  if (lenSq > 0) {
+    t = ((px - ax) * dx + (py - ay) * dy) / lenSq;
+    t = Math.max(0, Math.min(1, t));
+  }
+  const projX = ax + t * dx, projY = ay + t * dy;
+  const ddx = (px - projX) / cosLat, ddy = py - projY;
+  return Math.sqrt(ddx * ddx + ddy * ddy) * 111320;
+}
+
+/* Liefert die Indizes der Trackpunkte, die Wegpunkte werden. */
+function extractWaypointsFromGpx(coords) {
+  const N = coords.length;
+  if (N < 2) return N ? [0] : [];
+  if (N === 2) return [0, 1];
+
+  const segments = [{ start: 0, end: N - 1, maxD: 0, maxIdx: -1 }];
+
+  function updateSegment(seg) {
+    const a = coords[seg.start];
+    const b = coords[seg.end];
+    let maxD = 0, maxIdx = -1;
+    for (let i = seg.start + 1; i < seg.end; i++) {
+      const d = _distPointToSegment(coords[i][1], coords[i][0], a, b);
+      if (d > maxD) { maxD = d; maxIdx = i; }
+    }
+    seg.maxD = maxD;
+    seg.maxIdx = maxIdx;
+  }
+
+  updateSegment(segments[0]);
+  let waypointCount = 2;
+
+  while (waypointCount < GPX_MAX_WAYPOINTS) {
+    let worst = null;
+    for (const seg of segments) {
+      if (seg.maxIdx >= 0 && seg.maxD > GPX_MAX_DEVIATION_M) {
+        if (!worst || seg.maxD > worst.maxD) worst = seg;
+      }
+    }
+    if (!worst) break;
+
+    const midIdx = worst.maxIdx;
+    const s1 = { start: worst.start, end: midIdx, maxD: 0, maxIdx: -1 };
+    const s2 = { start: midIdx, end: worst.end, maxD: 0, maxIdx: -1 };
+    updateSegment(s1);
+    updateSegment(s2);
+    const idx = segments.indexOf(worst);
+    segments.splice(idx, 1, s1, s2);
+    waypointCount++;
+  }
+
+  const idxSet = new Set([0, N - 1]);
+  for (const seg of segments) {
+    idxSet.add(seg.start);
+    idxSet.add(seg.end);
+  }
+  return Array.from(idxSet).sort((a, b) => a - b);
+}
+
+/* Abstand jedes Trackpunkts zur berechneten Route (Raster aus
+ * Routensegmenten, damit auch lange Tracks schnell gehen). Liefert für
+ * Punkte ohne Routensegment in der Nähe Infinity. */
+function trackDeviationFromRoute(track, route) {
+  const CELL = 0.001;   // ~110 m
+  const cosLat = Math.cos(((track[0] && track[0][1]) || 47) * Math.PI / 180);
+  const key = (x, y) => x + ":" + y;
+  const grid = new Map();
+  for (let i = 0; i < route.length - 1; i++) {
+    const a = route[i], b = route[i + 1];
+    const x0 = Math.floor(Math.min(a[0], b[0]) * cosLat / CELL), x1 = Math.floor(Math.max(a[0], b[0]) * cosLat / CELL);
+    const y0 = Math.floor(Math.min(a[1], b[1]) / CELL), y1 = Math.floor(Math.max(a[1], b[1]) / CELL);
+    if ((x1 - x0 + 1) * (y1 - y0 + 1) > 400) continue;   // gerade Linie über weite Strecke
+    for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) {
+      const k = key(x, y);
+      if (!grid.has(k)) grid.set(k, []);
+      grid.get(k).push(i);
+    }
+  }
+  return track.map(p => {
+    const cx = Math.floor(p[0] * cosLat / CELL), cy = Math.floor(p[1] / CELL);
+    let best = Infinity;
+    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+      for (const i of grid.get(key(cx + dx, cy + dy)) || []) {
+        const d = _distPointToSegment(p[1], p[0], route[i], route[i + 1]);
+        if (d < best) best = d;
+      }
+    }
+    return best;
+  });
+}
+
+/* Neue Wegpunkte (Track-Indizes) dort, wo die Route vom Track abweicht:
+ * höchstens EINER je Abschnitt zwischen zwei Wegpunkten, an der Stelle
+ * der größten Abweichung. Ein Punkt zwingt BRouter meist schon auf den
+ * richtigen Weg; was dann noch fehlt, holt die nächste Runde. */
+function refineIndicesAgainstRoute(track, wpIdx, route) {
+  const dev = trackDeviationFromRoute(track, route);
+  const add = [];
+  for (let k = 0; k < wpIdx.length - 1; k++) {
+    let maxD = -1, maxI = -1, offLen = 0;
+    for (let i = wpIdx[k] + 1; i < wpIdx[k + 1]; i++) {
+      const d = isFinite(dev[i]) ? dev[i] : 1e9;
+      if (d > GPX_REFINE_TOLERANCE_M) {
+        offLen += haversineM(track[i - 1][1], track[i - 1][0], track[i][1], track[i][0]);
+        if (d > maxD) { maxD = d; maxI = i; }
+      }
+    }
+    // sehr kurze, knappe Abweichungen (GPS-Zittern) zählen nicht
+    if (maxI >= 0 && (offLen >= GPX_REFINE_MIN_RUN_M || maxD > 3 * GPX_REFINE_TOLERANCE_M)) add.push(maxI);
+  }
+  // Die größten Abweichungen zuerst, bis zur Obergrenze
+  const room = Math.max(0, GPX_MAX_WAYPOINTS_TOTAL - wpIdx.length);
+  return add.sort((a, b) => dev[b] - dev[a]).slice(0, room);
+}
+
+async function planFromGpx(coords) {
+  if (!coords || coords.length < 2) {
+    toast("GPX enthält keine brauchbaren Track-Punkte.", "error");
+    return;
+  }
+  if (app.waypoints.length > 0) {
+    if (!confirm("Bestehende Punkte werden ersetzt. Fortfahren?")) return;
+  }
+  let wpIdx = extractWaypointsFromGpx(coords);
+  if (wpIdx.length < 2) {
+    toast("Konnte keine Wegpunkte aus der GPX extrahieren.", "error");
+    return;
+  }
+  const setWaypoints = () => {
+    app.waypoints = wpIdx.map(i => ({ lat: coords[i][1], lng: coords[i][0] }));
+    renderWaypoints();
+    updatePlanButton();
+    return JSON.stringify(app.waypoints);
+  };
+  const firstCount = wpIdx.length;
+  let signature = setWaypoints();
+  applyGpxOverlay(coords, true);
+  let before = app.currentRouteData;
+  await planRoute();
+
+  // Route mit dem Track vergleichen und nachschärfen. Abbruch, sobald
+  // jemand die Punkte selbst ändert oder die Berechnung scheitert.
+  for (let pass = 0; pass < GPX_REFINE_PASSES; pass++) {
+    if (!app.currentRouteData || app.currentRouteData === before) break;
+    if (JSON.stringify(app.waypoints) !== signature) break;
+    before = app.currentRouteData;
+    const add = refineIndicesAgainstRoute(coords, wpIdx, app.currentRouteData.coords);
+    if (!add.length) break;
+    wpIdx = Array.from(new Set(wpIdx.concat(add))).sort((a, b) => a - b);
+    signature = setWaypoints();
+    setStatus("Route wird an den Track angepasst …", true);
+    await planRoute();
+  }
+  if (JSON.stringify(app.waypoints) === signature) {
+    const extra = wpIdx.length - firstCount;
+    toast(extra > 0
+      ? `${wpIdx.length} Punkte aus GPX übernommen (${extra} davon nachgebessert).`
+      : `${wpIdx.length} Punkte aus GPX übernommen.`, "success");
+  }
+}
+
+/* Übergabe aus dem TourPack-Editor („Im Routenplaner nachplanen“):
+ * Aufzeichnung aus localStorage holen und gleich nach der
+ * Fortbewegungsart fragen. */
+function checkGpxHandoff() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("gpx") !== "editor") return;
+  let data = null;
+  try {
+    data = JSON.parse(localStorage.getItem("andromeda_gpx_handoff_v1") || "null");
+    localStorage.removeItem("andromeda_gpx_handoff_v1");
+  } catch (e) { data = null; }
+  // Parameter entfernen, damit ein Neuladen nichts wiederholt
+  try { history.replaceState(null, "", window.location.pathname); } catch (e) {}
+  if (!data || !Array.isArray(data.coords) || data.coords.length < 2 || Date.now() - (data.t || 0) > 30 * 60 * 1000) {
+    toast("Keine Aufzeichnung übergeben – bitte „GPX importieren“ verwenden.", "error");
+    return;
+  }
+  openGpxImportModal(data.coords);
+  $("gpxStep1").style.display = "none";
+  $("gpxStep2").style.display = "";
+}
+
+function openGpxImportModal(coords) {
+  _pendingGpxCoords = coords;
+  $("gpxStep1").style.display = "";
+  $("gpxStep2").style.display = "none";
+  $("gpxImportModal").classList.add("show");
+}
+
+function closeGpxImportModal() {
+  $("gpxImportModal").classList.remove("show");
+  $("gpxStep1").style.display = "";
+  $("gpxStep2").style.display = "none";
+  _pendingGpxCoords = null;
+}
+
+function bindGpxImport() {
+  const fileInput = document.createElement("input");
+  fileInput.type = "file";
+  fileInput.accept = ".gpx,application/gpx+xml";
+  fileInput.style.display = "none";
+  document.body.appendChild(fileInput);
+
+  $("btnGpxImport").addEventListener("click", () => fileInput.click());
+
+  fileInput.addEventListener("change", async (e) => {
+    const f = e.target.files[0];
+    e.target.value = "";
+    if (!f) return;
+    try {
+      const text = await f.text();
+      const coords = AndromedaGpx.parse(text).coords.map(c => [c[0], c[1]]);
+      if (coords.length < 2) {
+        toast("GPX enthält keine Track-Punkte.", "error");
+        return;
+      }
+      openGpxImportModal(coords);
+    } catch (err) {
+      toast("Fehler beim Lesen der GPX: " + err.message, "error");
+    }
+  });
+
+  $("gpxAsOverlay").addEventListener("click", () => {
+    if (_pendingGpxCoords) applyGpxOverlay(_pendingGpxCoords);
+    closeGpxImportModal();
+  });
+  $("gpxAsRoute").addEventListener("click", () => {
+    if (!_pendingGpxCoords) return;
+    $("gpxStep1").style.display = "none";
+    $("gpxStep2").style.display = "";
+  });
+  $("gpxBack").addEventListener("click", () => {
+    $("gpxStep2").style.display = "none";
+    $("gpxStep1").style.display = "";
+  });
+  document.querySelectorAll("#gpxStep2 [data-activity]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const activity = btn.dataset.activity;
+      if (!activity) return;
+      setActivity(activity);
+      const coords = _pendingGpxCoords;
+      closeGpxImportModal();
+      if (coords) planFromGpx(coords);
+    });
+  });
+  $("gpxCancel").addEventListener("click", closeGpxImportModal);
+  $("gpxImportModal").addEventListener("click", (e) => {
+    if (e.target === $("gpxImportModal")) closeGpxImportModal();
+  });
+
+  $("btnGpxOverlayRemove").addEventListener("click", clearGpxOverlay);
+}
+
+/* ============================================================
+ * Darstellung
+ * ============================================================ */
+function setLineColor(v) {
+  app.lineColor = v;
+  $$(".line-color-input").forEach(el => el.value = v);
+  updateRouteStyle();
+}
+function setLineOpacity(v) {
+  app.lineOpacity = v;
+  $$(".line-opacity-input").forEach(el => el.value = v);
+  $$(".line-opacity-value").forEach(el => el.textContent = Math.round(v * 100) + " %");
+  updateRouteStyle();
+}
+function setShowArrows(v) {
+  app.showArrows = v;
+  $$(".show-arrows-input").forEach(el => el.checked = v);
+  if (app.currentRouteData && app.currentRouteData.coords.length) {
+    const latlngs = app.currentRouteData.coords.map(c => [c[1], c[0]]);
+    renderArrows(latlngs);
+  }
+}
+
+/* ============================================================
+ * Panel / Tabs
+ * ============================================================ */
+function openPanel(tab) {
+  if (tab) switchTab(tab);
+  if (isMobile()) $("sidebar").classList.add("show");
+}
+function closePanel() {
+  if (isMobile()) $("sidebar").classList.remove("show");
+}
+function switchTab(name) {
+  $$(".tab-bar button").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+  $$(".tab-pane").forEach(p => p.classList.toggle("active", p.dataset.pane === name));
+  if (app.map) setTimeout(() => app.map.invalidateSize(), 80);
+}
+
+/* ============================================================
+ * Aktivität
+ * ============================================================ */
+function setActivity(activity) {
+  if (!["hiking", "cycling", "running"].includes(activity)) activity = "hiking";
+  app.currentActivity = activity;
+  $$("#activitySegmented button").forEach(b => {
+    b.classList.toggle("active", b.dataset.value === activity);
+  });
+  $("profileFieldCycling").style.display = activity === "cycling" ? "" : "none";
+  $("hikingOptions").style.display = (activity === "hiking" || activity === "running") ? "" : "none";
+  $("cyclingOptions").style.display = activity === "cycling" ? "" : "none";
+
+  if (activity === "cycling") app.currentProfile = $("cyclingProfile").value || "trekking";
+  else if (activity === "running") app.currentProfile = "laufen";
+  else app.currentProfile = "wandern";
+
+  const label = activity === "cycling" ? "Fahrzeit"
+              : activity === "running" ? "Laufzeit" : "Gehzeit";
+  $("statTimeLbl").textContent = label + " (angepasst)";
+
+  updateSlopeLegend();
+  if (app.elevationOpen) elevPanel.redraw();
+  if (app.currentRouteData) {
+    updateFooterStats(app.currentRouteData);
+    updateBottomBar();
+  }
+}
+
+/* ============================================================
+ * UI-Bindings
+ * ============================================================ */
+function bindUI() {
+  $("menuBtn").addEventListener("click", () => openPanel());
+  $("panelClose").addEventListener("click", closePanel);
+  $("sidebar").addEventListener("click", e => {
+    if (isMobile() && e.target === $("sidebar")) closePanel();
+  });
+  $$(".tab-bar button").forEach(btn => {
+    btn.addEventListener("click", () => switchTab(btn.dataset.tab));
+  });
+
+  $$("#activitySegmented button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      if (app.readOnly) return;
+      setActivity(btn.dataset.value);
+      schedulePlanRoute();
+    });
+  });
+  $("cyclingProfile").addEventListener("change", () => {
+    if (app.readOnly) return;
+    if (app.currentActivity === "cycling") {
+      app.currentProfile = $("cyclingProfile").value;
+      schedulePlanRoute();
+    }
+  });
+
+  $("fitnessSelect").addEventListener("change", e => {
+    if (app.readOnly) return;
+    app.fitnessMultiplier = parseFloat(e.target.value);
+    recomputeAdjustedTime();
+  });
+  const autoRecompute = [
+    "optSacLimit", "optSacPreferred",
+    "optHikingConsiderElevation", "optHikingConsiderRiver",
+    "optHikingConsiderForest", "optHikingConsiderTown", "optHikingIsWet",
+    "optStickToCycleroutes", "optUseProposedCycleroutes", "optAvoidUnsafe",
+    "optCyclingConsiderElevation", "optCyclingConsiderTraffic",
+    "optCyclingConsiderRiver", "optCyclingConsiderForest", "optCyclingConsiderTown",
+  ];
+  for (const id of autoRecompute) {
+    const el = $(id);
+    if (!el) continue;
+    el.addEventListener("change", () => {
+      if (app.readOnly) return;
+      schedulePlanRoute();
+    });
+  }
+
+  $$(".line-color-input").forEach(el => {
+    el.addEventListener("input", e => setLineColor(e.target.value));
+  });
+  $$(".line-opacity-input").forEach(el => {
+    el.addEventListener("input", e => setLineOpacity(parseFloat(e.target.value)));
+  });
+  $$(".show-arrows-input").forEach(el => {
+    el.addEventListener("change", e => setShowArrows(e.target.checked));
+  });
+
+  $("elevBtn").onclick = elevPanel.toggle;
+  $("elevBtnM").onclick = elevPanel.toggle;
+  $("closeElev").onclick = elevPanel.hide;
+  $("btnToggleElevation").onclick = elevPanel.toggle;
+
+  $("btnSearch").addEventListener("click", searchPlace);
+  $("searchInput").addEventListener("keydown", e => {
+    if (e.key === "Enter") { e.preventDefault(); searchPlace(); }
+  });
+  $("btnClearSearch").addEventListener("click", clearSearchResults);
+
+  $("btnUseLocation").onclick = useCurrentLocationAsStart;
+  $("btnSwapDirection").onclick = () => {
+    if (app.readOnly) return;
+    if (app.waypoints.length < 2) return;
+    app.waypoints.reverse();
+    renderWaypoints();
+    planRoute();
+  };
+  const clearAll = () => {
+    if (app.readOnly) return;
+    if (!app.waypoints.length && !app.routeLayer) return;
+    if (confirm("Route und alle Punkte löschen?")) {
+      app.waypoints = [];
+      app.hasCalculated = false;
+      renderWaypoints();
+      clearRoute();
+      updatePlanButton();
+      updatePlanButtonLabel();
+      hideHint();
+      setStatus("Bereit. Auf die Karte klicken, um den Startpunkt zu setzen.");
+      if (isMobile()) closePanel();
+    }
+  };
+  $("btnClearRoute").onclick = clearAll;
+  $("btnClearRouteM").onclick = clearAll;
+
+  $("btnStraightLineMode").addEventListener("click", () => {
+    if (app.readOnly) return;
+    app.straightLineMode = !app.straightLineMode;
+    const btn = $("btnStraightLineMode");
+    const hint = $("straightLineHint");
+    btn.classList.toggle("active", app.straightLineMode);
+    hint.style.display = app.straightLineMode ? "" : "none";
+  });
+
+  $("btnShareLink").onclick = handleShareLink;
+  const shareM = $("btnShareLinkM");
+  if (shareM) shareM.onclick = handleShareLink;
+  const shareResult = $("btnResultShareLink");
+  if (shareResult) shareResult.onclick = handleShareLink;
+  $("btnEditRoute").onclick = exitReadOnlyMode;
+  const editBtnM = $("btnEditRouteM");
+  if (editBtnM) editBtnM.onclick = exitReadOnlyMode;
+
+  bindGpxImport();
+
+  $("btnDownloadGPX").onclick = downloadGpx;
+  $("btnDownloadGPXM").onclick = downloadGpx;
+  $("btnResultGpx").onclick = downloadGpx;
+
+  $("btnNavigate").onclick = openInNavigator;
+  $("btnNavigateM").onclick = openInNavigator;
+  $("btnResultNavigate").onclick = openInNavigator;
+
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape") {
+      closePanel();
+      const nd = $("nameDialog");
+      if (nd) nd.classList.remove("show");
+    }
+  });
+
+  window.addEventListener("resize", () => {
+    if (app.map) app.map.invalidateSize();
+    if (app.elevationOpen) elevPanel.redraw();
+  });
+  window.addEventListener("orientationchange", () => {
+    setTimeout(() => {
+      if (app.map) app.map.invalidateSize();
+      if (app.elevationOpen) elevPanel.redraw();
+    }, 300);
+  });
+}
+
+/* ============================================================
+ * Init
+ * ============================================================ */
+function init() {
+  AndromedaDarkmode.init();
+  initMap();
+  bindUI();
+  setActivity("hiking");
+  updatePlanButton();
+  updatePlanButtonLabel();
+  updateSlopeLegend();
+  elevPanel.updateButtons();
+  updateBottomBar();
+
+  checkUrlParams();
+  checkGpxHandoff();
+
+  if (!app.readOnly) {
+    setStatus("Bereit. Auf die Karte klicken, um den Startpunkt zu setzen.");
+  }
+}
+
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
+else init();
+</script>
+</body>
+</html>

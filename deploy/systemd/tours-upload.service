@@ -1,0 +1,49 @@
+[Unit]
+Description=Andromeda tours-upload (öffentlicher Upload) :8083
+After=network.target
+
+[Service]
+Type=simple
+User=andromeda-upload
+Group=andromeda-upload
+SupplementaryGroups=andromeda-pipeline
+Environment=PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
+EnvironmentFile=-/etc/andromeda/andromeda.env
+ExecStart=/usr/bin/python3 /opt/andromeda/app/services/tours-upload.py
+Restart=on-failure
+RestartSec=3
+UMask=0007
+ReadWritePaths=/var/lib/andromeda/tours/inbox /var/lib/andromeda/tours/jobs
+# Teilt die Gruppe mit sanitizer/admin, braucht staging/ aber nie
+InaccessiblePaths=-/var/lib/andromeda/tours/staging
+MemoryDenyWriteExecute=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+IPAddressDeny=any
+IPAddressAllow=localhost
+MemoryMax=512M
+# --- Härtung ---------------------------------------------------------
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RemoveIPC=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
+
+[Install]
+WantedBy=multi-user.target

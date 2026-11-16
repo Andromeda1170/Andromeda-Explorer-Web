@@ -1,0 +1,2947 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#2a6fbf">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="favicon.png">
+<title>TourPack Viewer</title>
+
+<!-- Shared CSS -->
+<link rel="stylesheet" href="stylesheets/base.css">
+<link rel="stylesheet" href="stylesheets/layout.css">
+<link rel="stylesheet" href="stylesheets/components.css">
+<link rel="stylesheet" href="stylesheets/map.css">
+<link rel="stylesheet" href="stylesheets/elevation.css">
+<link rel="stylesheet" href="stylesheets/tourdetail.css">
+<!-- Leaflet -->
+<link rel="stylesheet" href="stylesheets/andromap.css">
+
+<style>
+  /* ============================================================
+   * tourpack-viewer.html — Seitenspezifisch
+   * ============================================================ */
+
+  /* Desktop-Grid: Karte links (breit), Panel rechts.
+     Im Viewer breiter als auf den anderen Seiten: Beschreibung,
+     Bilder und Statistik brauchen hier den meisten Platz. */
+  @media (min-width: 901px) {
+    main {
+      --sidebar-w: clamp(400px, 36vw, 580px);
+      grid-template-columns: minmax(0, 1fr) var(--sidebar-w);
+    }
+    #mapCol { grid-column: 1; grid-row: 1; }
+    #sidebar { grid-column: 2; grid-row: 1; }
+  }
+
+  /* ---------- Header: Brand-Wrap mit Titel ---------- */
+  #header .brand-wrap {
+    flex: 1 1 0; min-width: 0;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  /* Der Titel nimmt den freien Platz selbst ein; kein Platzhalter nötig,
+     sonst teilen sich beide den Platz und der Name wird zu früh gekürzt. */
+  #header .spacer { display: none; }
+  #titleRow {
+    display: flex; align-items: center; gap: 10px;
+    min-width: 0;
+  }
+  #titleRow h1 {
+    margin: 0; font-size: 16px; font-weight: 700;
+    letter-spacing: -0.01em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    min-width: 0;
+  }
+  .badge {
+    background: var(--accent); color: white;
+    padding: 3px 10px; border-radius: 20px;
+    font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    flex-shrink: 0;
+  }
+  .badge.hidden { display: none; }
+
+  /* ---------- Übersicht / Beschreibung ---------- */
+  .description {
+    font-size: 13.5px; line-height: 1.6;
+    color: var(--text); word-wrap: break-word;
+  }
+  .description h4, .description h5 { margin: 14px 0 6px 0; font-weight: 700; color: var(--text); }
+  .description h4 { font-size: 15px; }
+  .description h5 { font-size: 13.5px; }
+  .description h4:first-child, .description h5:first-child { margin-top: 0; }
+  .description li { margin: 3px 0; }
+
+  .rating-row {
+    display: grid; grid-template-columns: 100px 1fr 52px;
+    gap: 8px; align-items: center; padding: 4px 0; font-size: 13px;
+  }
+  .rating-row .stars {
+    color: var(--gold); font-size: 18px;
+    letter-spacing: 2px; line-height: 1;
+  }
+  .duration-box {
+    padding: 11px 14px; background: var(--primary-soft);
+    border-radius: var(--radius-sm); font-size: 14.5px;
+    font-weight: 600; color: var(--primary-dark);
+  }
+  body.dark .duration-box { color: var(--primary); }
+
+  .loc-row {
+    display: flex; gap: 12px; padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px; line-height: 1.4;
+  }
+  .loc-row:last-child { border-bottom: none; }
+  .loc-row .loc-lbl {
+    color: var(--text-muted); min-width: 70px;
+    font-weight: 500; flex-shrink: 0;
+  }
+  .loc-row .loc-val { color: var(--text); font-weight: 500; word-break: break-word; }
+
+  /* ---------- Wegpunkt-Liste ---------- */
+  .wp-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: var(--radius-sm);
+    cursor: pointer; border: 1px solid transparent;
+    margin-bottom: 3px; transition: all .12s;
+  }
+  .wp-item:hover {
+    background: var(--primary-soft);
+    border-color: var(--primary);
+  }
+  .wp-item .dot {
+    width: 11px; height: 11px; border-radius: 50%;
+    background: var(--wp); border: 2px solid white;
+    box-shadow: 0 0 0 1px #999; flex-shrink: 0;
+  }
+  .wp-item .name {
+    flex: 1; font-size: 13.5px; font-weight: 500;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  .wp-item .nav-btn { display: none; }
+
+  /* Mobil: Wegpunktliste und -detail wie im Navigator */
+  @media (max-width: 900px) {
+    .wp-item {
+      padding: 11px 12px; margin-bottom: 6px;
+      background: var(--panel); border: 1px solid var(--border);
+    }
+    .wp-item:hover { background: var(--panel); border-color: var(--border); }
+    .wp-item:active { background: var(--primary-soft); }
+    .wp-item .dot { width: 12px; height: 12px; }
+    .wp-item .name { font-weight: 400; color: var(--text); }
+    .wp-item .nav-btn {
+      background: var(--primary-soft); border: none;
+      color: var(--primary-dark);
+      width: 34px; height: 34px; border-radius: 50%;
+      font-size: 16px; padding: 0;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    body.dark .wp-item .nav-btn { color: var(--primary); }
+  }
+  .wp-inline h2 { margin: 0 0 6px 0; font-size: 18px; }
+  .wp-inline .wp-inline-sub {
+    font-size: 12px; color: var(--text-muted);
+    font-family: ui-monospace, monospace; margin-bottom: 12px;
+  }
+  .wp-inline .wp-inline-note {
+    background: var(--bg); padding: 10px 12px;
+    border-left: 3px solid var(--primary); border-radius: 4px;
+    margin-bottom: 12px; font-size: 13.5px; line-height: 1.5; white-space: pre-wrap;
+  }
+  .wp-inline .gallery { margin-top: 12px; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+  .wp-inline .btn-full { margin-top: 8px; }
+  .wp-inline .btn-full.primary { margin-top: 16px; }
+
+  /* ---------- Galerie ---------- */
+  .gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+  }
+  .img-card {
+    cursor: zoom-in; border-radius: var(--radius-sm);
+    overflow: hidden; transition: transform .15s, box-shadow .15s;
+    background: var(--panel); border: 1px solid var(--border);
+  }
+  .img-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+  .img-card .thumb {
+    width: 100%; height: 110px; object-fit: cover;
+    display: block; background: var(--bg);
+  }
+  .img-card .thumb-missing {
+    height: 110px; display: flex; align-items: center;
+    justify-content: center; background: var(--bg);
+    color: var(--text-muted); font-size: 11px;
+  }
+  .img-card .caption {
+    padding: 7px 9px; font-size: 11.5px; line-height: 1.35;
+    color: var(--text);
+  }
+
+  /* ---------- Wegpunkt-Detail-Sheet / Anfahrt-Dialog ---------- */
+  .wpd-inner .wpd-head .wpd-sub {
+    font-size: 12px; color: var(--text-muted);
+    margin-top: 4px; line-height: 1.4;
+    font-family: ui-monospace, monospace;
+  }
+  .wpd-inner .wpd-body {
+    overflow-y: auto; padding: 4px 16px 16px 16px;
+    -webkit-overflow-scrolling: touch; flex: 1;
+    min-height: 60px;
+  }
+  .wpd-inner .wpd-footer {
+    padding: 10px 16px calc(10px + var(--safe-bottom)) 16px;
+    border-top: 1px solid var(--border);
+    display: flex; gap: 8px; flex-shrink: 0;
+    background: var(--panel);
+  }
+  .wpd-inner .wpd-footer button {
+    flex: 1; padding: 11px 14px;
+    border: none; border-radius: var(--radius-sm);
+    font-size: 13.5px; font-weight: 600;
+    font-family: inherit; cursor: pointer;
+    background: var(--primary); color: white;
+  }
+  .wpd-inner .wpd-footer button:active { background: var(--primary-dark); }
+
+  .wpd-note {
+    background: var(--bg);
+    padding: 12px 14px;
+    border-left: 3px solid var(--primary);
+    border-radius: 4px;
+    margin: 12px 0;
+    font-size: 13.5px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    color: var(--text);
+  }
+  .wpd-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .wpd-gallery .wpd-img-card {
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    cursor: zoom-in;
+    aspect-ratio: 4 / 3;
+  }
+  .wpd-gallery img {
+    width: 100%; height: 100%;
+    object-fit: cover; display: block;
+  }
+  .wpd-gallery .missing {
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; height: 100%;
+    color: var(--text-muted); font-size: 11px;
+  }
+
+  /* ---------- Print-Dialog: eigene Breite ---------- */
+  .modal .group {
+    margin-bottom: 16px; padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal .group:last-of-type { border-bottom: none; padding-bottom: 0; }
+  .modal .group > strong {
+    display: block; font-size: 11.5px;
+    text-transform: uppercase; letter-spacing: .05em;
+    color: var(--text-muted); font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .modal .option-list {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 4px 14px;
+  }
+  .modal .option-list label {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 13px; cursor: pointer; padding: 4px 0;
+  }
+  .modal .option-list input[type=checkbox],
+  .modal .option-list input[type=radio] { accent-color: var(--primary); }
+  .modal .format-row { display: flex; gap: 16px; font-size: 13px; }
+  .modal .format-row label {
+    display: flex; align-items: center; gap: 6px; cursor: pointer;
+  }
+  .modal .progress {
+    display: none; margin-top: 12px;
+    font-size: 12px; color: var(--primary-dark);
+    font-family: ui-monospace, monospace;
+  }
+  body.dark .modal .progress { color: var(--primary); }
+  .modal .progress.show { display: block; }
+  .modal .hint {
+    font-size: 11.5px; color: var(--text-muted);
+    margin-top: 12px; line-height: 1.4;
+  }
+
+  /* ---------- Drop-Overlay ---------- */
+  #dropOverlay {
+    position: fixed; inset: 20px;
+    background: rgba(42,111,191,.85);
+    border: 4px dashed white; border-radius: 16px;
+    display: none; align-items: center; justify-content: center;
+    color: white; font-size: 22px; font-weight: 700;
+    z-index: 10000; pointer-events: none;
+    text-align: center; padding: 20px;
+  }
+
+  /* ---------- Ladebildschirm ---------- */
+  #loadingOverlay {
+    position: fixed;
+    inset: 0;
+    background: var(--panel);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+    z-index: 9999;
+  }
+  #loadingOverlay.hidden { display: none; }
+  #loadingOverlay .loading-spinner {
+    width: 56px; height: 56px;
+    border: 5px solid var(--border);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: loadingSpin 0.9s linear infinite;
+  }
+  @keyframes loadingSpin {
+    to { transform: rotate(360deg); }
+  }
+  #loadingOverlay .loading-text {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 0 20px;
+    max-width: 90%;
+  }
+
+  /* ---------- Mobile Stats (im Übersicht-Tab) ---------- */
+  .mobile-stats-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px; margin-bottom: 16px;
+  }
+  .mobile-stat-card {
+    background: var(--bg); border-radius: var(--radius-sm);
+    padding: 10px 12px;
+  }
+  .mobile-stat-card .lbl {
+    font-size: 10.5px; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: .05em;
+    font-weight: 700; margin-bottom: 3px;
+  }
+  .mobile-stat-card .val {
+    font-size: 16px; font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .mobile-tags {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    margin-bottom: 16px;
+  }
+  .mobile-tags .tag {
+    background: var(--primary-soft); color: var(--primary-dark);
+    padding: 2px 9px; border-radius: 10px;
+    font-size: 11.5px; font-weight: 500;
+  }
+  body.dark .mobile-tags .tag { color: var(--primary); }
+
+  /* ---------- Header: Button-Beschriftung kurz/lang ---------- */
+
+  /* Disabled-Zustand für Header-Buttons */
+  .header-btn:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  /* Buttons, die per JS ausgeblendet werden (hidden-Attribut) */
+  .header-btn[hidden] { display: none !important; }
+
+  /* ---------- Title-Popup ---------- */
+  #titlePopup {
+    position: fixed;
+    top: calc(60px + var(--safe-top));
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--panel);
+    color: var(--text);
+    padding: 12px 18px;
+    border-radius: 8px;
+    box-shadow: var(--shadow-lg);
+    max-width: calc(90vw - 20px);
+    z-index: 800;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    word-break: break-word;
+    line-height: 1.4;
+    border: 1px solid var(--border);
+    animation: titlePopIn .15s ease-out;
+  }
+  @keyframes titlePopIn {
+    from { transform: translateX(-50%) translateY(-8px); opacity: 0; }
+    to   { transform: translateX(-50%) translateY(0); opacity: 1; }
+  }
+
+  @media (max-width: 900px) {
+    #header .brand-wrap { flex-direction: row; align-items: center; gap: 6px; }
+    #header #titleRow { flex: 1 1 auto; min-width: 0; }
+    #header #titleRow h1 { font-size: 15px; cursor: pointer; }
+
+    #header .badge { padding: 2px 8px; font-size: 9.5px; }
+
+    #header { gap: 4px; }
+
+    #header .header-btn { display: none !important; }
+    #header .spacer { display: none; }
+
+  }
+
+  /* Bei mittlerer Fensterbreite kurze Beschriftungen, damit der Tourname
+     in der Kopfzeile nicht schon nach wenigen Zeichen abgeschnitten wird. */
+  @media (min-width: 901px) and (max-width: 1500px) {
+    #header .lbl-full { display: none; }
+    #header .lbl-short { display: inline; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     Ladebildschirm
+     ============================================================ -->
+<div id="loadingOverlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">TourPack wird geladen …</div>
+</div>
+
+<!-- ============================================================
+     Header
+     ============================================================ -->
+<header id="header">
+  <button class="icon-btn menu-btn" id="menuBtn" title="Menü" aria-label="Menü öffnen">☰</button>
+  <a class="home-logo desktop-only" href="index.html" title="Startseite"><img src="logo.svg" alt="Andromeda-Explorer"></a>
+
+  <div class="brand-wrap">
+    <div id="titleRow">
+      <h1 id="routeTitle">TourPack Viewer</h1>
+      <span id="activityBadge" class="badge hidden"></span>
+    </div>
+  </div>
+
+  <div class="spacer"></div>
+
+    <button class="header-btn primary" id="openBtn">
+      <span class="lbl-full">TourPack öffnen</span>
+      <span class="lbl-short">📂 Öffnen</span>
+    </button>
+    <button class="header-btn success" id="navBtn" disabled>
+      <span class="lbl-full">Im Navigator öffnen</span>
+      <span class="lbl-short">🧭 Navigation</span>
+    </button>
+    <button class="header-btn primary" id="gpxBtn" disabled>
+      <span class="lbl-full">GPX exportieren</span>
+      <span class="lbl-short">📥 GPX</span>
+    </button>
+    <button class="header-btn primary" id="downloadBtn" disabled>
+      <span class="lbl-full">TourPack herunterladen</span>
+      <span class="lbl-short">📥 TourPack</span>
+    </button>
+    <button class="header-btn primary" id="directionsBtn" disabled>Anfahrt</button>
+    <button class="header-btn desktop-only" id="printBtn" disabled>Drucken</button>
+    <button class="icon-btn lang-btn desktop-only" type="button"></button>
+    <button class="icon-btn darkmode-btn desktop-only" title="Nachtmodus" aria-label="Nachtmodus">🌙</button>
+</header>
+
+<div id="titlePopup" class="hidden"></div>
+
+<!-- ============================================================
+     Main
+     ============================================================ -->
+<main>
+  <!-- Karte + Höhenprofil + Footer -->
+  <div id="mapCol">
+    <div id="mapWrap">
+      <div id="map"></div>
+
+      <div id="layerPicker">
+        <h4>Kartenstil</h4>
+        <button data-base="osm">OpenStreetMap</button>
+        <button data-base="topo">OpenTopoMap</button>
+        <button data-base="cyclosm">CyclOSM</button>
+        <div class="sep"></div>
+        <h4>Overlays</h4>
+        <button data-overlay="hiking">🟢 Wanderwege</button>
+        <button data-overlay="cycling">🔵 Radwege</button>
+      </div>
+
+      <div class="map-float tr">
+        <button class="float-btn" id="layerBtn" title="Kartenstil">🗺️</button>
+      </div>
+    </div>
+
+    <div id="elevPanel">
+      <div class="elev-head">
+        <span>Höhenprofil <span class="stats" id="elevStats"></span></span>
+        <button id="closeElev" title="Schließen">×</button>
+      </div>
+      <div id="elevCanvasWrap">
+        <canvas id="elevChart"></canvas>
+        <div id="elevTooltip"></div>
+      </div>
+      <div id="slopeLegend"></div>
+    </div>
+
+    <footer id="mapFooter">
+      <span class="status" id="status">Bereit. Bitte eine .tourpack-Datei öffnen.</span>
+      <span class="footer-stats" id="footerStats"></span>
+      <button id="elevBtn" disabled>Höhenprofil anzeigen</button>
+      <button id="geoBtn" title="Eigene Position anzeigen">Eigene Position</button>
+      <div class="display-settings" id="displaySettings" title="Darstellung der Route">
+        <label title="Linienfarbe">
+          <input type="color" class="route-color-input" value="#2a6fbf" disabled>
+        </label>
+        <label title="Transparenz">
+          <input type="range" class="route-opacity-input" min="0.15" max="1" step="0.05" value="0.9" disabled>
+          <span class="val route-opacity-value">90 %</span>
+        </label>
+        <label title="Richtungspfeile anzeigen">
+          <input type="checkbox" class="show-arrows-input" checked disabled>
+          Pfeile
+        </label>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Panel (Desktop rechts, Mobile Modal) -->
+  <aside id="sidebar">
+    <div class="panel-inner">
+      <div class="panel-head">
+        <h2 id="panelTitle">Menü</h2>
+        <button class="close-btn" id="panelClose">✕</button>
+      </div>
+
+      <nav class="tab-bar">
+        <button data-tab="overview" class="active">Übersicht</button>
+        <button data-tab="waypoints">Wegpunkte <span id="wpTabCount" class="count hidden">0</span></button>
+        <button data-tab="images">Bilder <span id="imgTabCount" class="count hidden">0</span></button>
+        <button data-tab="options">Optionen</button>
+      </nav>
+
+      <div class="tab-panes">
+        <!-- Übersicht -->
+        <section class="tab-pane active" data-pane="overview">
+          <div id="overviewActions" class="mobile-only hidden" style="margin-bottom: 16px;">
+            <button id="toggleActionsBtn" class="btn-full" style="display: flex; justify-content: space-between; align-items: center; background: var(--bg); border: 1px solid var(--border); margin-bottom: 10px; color: var(--text);">
+              <span>Aktionen</span>
+              <span id="toggleActionsIcon" style="font-size: 10px; color: var(--text-muted);">▼</span>
+            </button>
+            <div id="overviewActionsInner" style="display: none; margin-bottom: 8px;">
+              <button class="btn-full success" id="navBtnM">Im Navigator öffnen</button>
+              <button class="btn-full primary" id="gpxBtnM">GPX herunterladen</button>
+              <button class="btn-full primary" id="downloadBtnM">TourPack herunterladen</button>
+              <button class="btn-full primary" id="directionsBtnM">Anfahrt</button>
+              <button class="btn-full" id="printBtnM">Drucken</button>
+            </div>
+          </div>
+          <div id="overviewContent">
+            <div class="placeholder">
+              <div class="icon">🥾</div>
+              <p><b>Keine Tour geladen</b></p>
+              <p>Eine <b>.tourpack</b>-Datei ins Fenster ziehen oder oben auf „TourPack öffnen" klicken.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Wegpunkte -->
+        <section class="tab-pane" data-pane="waypoints">
+          <div id="waypointList"></div>
+        </section>
+
+        <!-- Bilder -->
+        <section class="tab-pane" data-pane="images">
+          <div id="gallery" class="gallery"></div>
+          <div id="galleryEmpty" class="empty hidden">Diese Tour hat keine allgemeinen Bilder.</div>
+        </section>
+
+        <!-- Optionen (nur mobil sichtbar) -->
+        <section class="tab-pane" data-pane="options">
+          <div class="section" style="margin-bottom:20px;">
+            <h3 class="settings-heading">Darstellung</h3>
+
+            <div class="settings-row">
+              <div class="label-col">
+                <strong>Nachtmodus</strong>
+                <span>Dunkles Design für alle Seiten</span>
+              </div>
+              <label class="switch">
+                <input type="checkbox" class="darkmode-switch">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div class="settings-row">
+              <div class="label-col">
+                <strong>Sprache</strong>
+                <span>Sprache der Oberfläche. Touren bleiben in ihrer Originalsprache.</span>
+              </div>
+              <div class="lang-seg"></div>
+            </div>
+
+            <div class="settings-row">
+              <div class="label-col">
+                <strong>Linienfarbe</strong>
+              </div>
+              <input type="color" class="route-color-input" value="#2a6fbf">
+            </div>
+
+            <div class="settings-row">
+              <div class="label-col">
+                <strong>Transparenz</strong>
+              </div>
+              <input type="range" class="route-opacity-input" min="0.15" max="1" step="0.05" value="0.9">
+              <span class="range-value route-opacity-value">90 %</span>
+            </div>
+
+            <div class="settings-row">
+              <div class="label-col">
+                <strong>Richtungspfeile</strong>
+                <span>Pfeile entlang der Route anzeigen</span>
+              </div>
+              <label class="switch">
+                <input type="checkbox" class="show-arrows-input" checked>
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="section" style="margin-bottom:20px;">
+            <h3 class="settings-heading">Standort</h3>
+          <div class="settings-row">
+            <div class="label-col">
+              <strong>Eigene Position</strong>
+              <span>Aktuellen Standort auf der Karte anzeigen</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="geoSwitch">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div id="firefoxGeoHint"
+               style="display:none;margin-top:10px;padding:10px 12px;
+                      background:#fff4e5;border:1px solid #f0c987;
+                      color:#8a5a00;border-radius:6px;
+                      font-size:12px;line-height:1.5;">
+            <strong>⚠️ Firefox auf Android:</strong> Die Ortung nutzt hier nur
+            das Netzwerk (WLAN/Mobilfunk), nicht das GPS. Die Position kann um
+            100–500 Meter abweichen. Für eine genaue Position bitte Chrome
+            verwenden.
+          </div>
+        </div>
+
+          <div class="section" style="margin-bottom:20px;">
+            <h3 class="settings-heading">Datei</h3>
+            <button class="btn-full" id="openBtnM">TourPack öffnen</button>
+          </div>
+
+          <div class="section">
+            <h3 class="settings-heading">Aktuelle Tour</h3>
+            <button class="btn-full danger" id="closeTourBtnM">Tour schließen</button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<!-- ============================================================
+     Bottom-Bar (Mobile)
+     ============================================================ -->
+<div id="bottomBar">
+  <div class="info-col">
+    <div class="primary-line" id="primaryLine">Keine Tour geladen</div>
+    <div class="secondary-line" id="secondaryLine">Zum Starten auf Öffnen tippen</div>
+    <div class="bar-stats" id="barStats"></div>
+  </div>
+  <button class="bar-btn" id="elevBtnM" title="Höhenprofil" disabled>📈</button>
+  <button class="bar-btn" id="geoBtnM" title="Eigene Position">📍</button>
+</div>
+
+
+<!-- ============================================================
+     Print-Dialog
+     ============================================================ -->
+<div class="modal-backdrop" id="printDialog">
+  <div class="modal wide">
+    <h3>Tour drucken</h3>
+    <p>Bitte auswählen, welche Bestandteile der Tour im Ausdruck erscheinen sollen und welches Papierformat verwendet werden soll.</p>
+
+    <div class="group">
+      <strong>Inhalt</strong>
+      <div class="option-list">
+        <label><input type="checkbox" id="printTitle" checked> Titel &amp; Aktivität</label>
+        <label><input type="checkbox" id="printStats" checked> Statistik</label>
+        <label><input type="checkbox" id="printDifficulty" checked> Schwierigkeit</label>
+        <label><input type="checkbox" id="printDuration" checked> Geschätzte Dauer</label>
+        <label><input type="checkbox" id="printTags" checked> Tags</label>
+        <label><input type="checkbox" id="printMap" checked> Karte</label>
+        <label><input type="checkbox" id="printElevationChart" checked> Höhenprofil</label>
+        <label><input type="checkbox" id="printDescription" checked> Beschreibung</label>
+        <label><input type="checkbox" id="printWaypoints" checked> Wegpunkte</label>
+        <label><input type="checkbox" id="printWaypointImages" checked> Bilder bei Wegpunkten</label>
+        <label><input type="checkbox" id="printGeneralImages" checked> Allgemeine Bilder</label>
+      </div>
+    </div>
+
+    <div class="group">
+      <strong>Format</strong>
+      <div class="format-row">
+        <label><input type="radio" name="printFormat" value="portrait" checked> A4 Hochformat</label>
+        <label><input type="radio" name="printFormat" value="landscape"> A4 Querformat</label>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="cancel" id="printCancel">Abbrechen</button>
+      <button class="ok" id="printOk">Drucken</button>
+    </div>
+
+    <div class="progress" id="printProgress"></div>
+
+    <p class="hint">
+      Der Druckdialog des Browsers öffnet sich nach dem Klick auf „Drucken".
+      Dort lässt sich ein Drucker oder „Als PDF speichern" auswählen.
+    </p>
+  </div>
+</div>
+
+<!-- ============================================================
+     Wegpunkt-Detail-Sheet
+     ============================================================ -->
+<div id="wpDetail" class="wp-backdrop">
+  <div id="wpDetailInner" class="wpd-inner">
+    <div class="wpd-head">
+      <div class="wpd-head-col">
+        <h2 id="wpdTitle">Wegpunkt</h2>
+        <div class="wpd-sub" id="wpdSub"></div>
+      </div>
+      <button id="wpdClose" title="Schließen">✕</button>
+    </div>
+    <div class="wpd-body" id="wpdBody"></div>
+    <div class="wpd-footer">
+      <button id="wpdShowOnMap">🗺 Auf Karte zeigen</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     Drop-Overlay + File-Input
+     ============================================================ -->
+<div id="dropOverlay">TourPack hier loslassen</div>
+
+<input type="file" id="fileInput" accept=".tourpack,.gpx,application/zip,application/gpx+xml" hidden>
+
+<!-- ============================================================
+     Scripts
+     ============================================================ -->
+<script src="scripts/andromap.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<!-- Shared Scripts (Reihenfolge beachten) -->
+<script src="scripts/config.js"></script>
+<script src="scripts/i18n.js"></script>
+<script src="scripts/lang/de.js"></script>
+<script src="scripts/lang/en.js"></script>
+<script src="scripts/lang/en-phrases.js"></script>
+<script src="scripts/utils.js"></script>
+<script src="scripts/toast.js"></script>
+<script src="scripts/darkmode.js"></script>
+<script src="scripts/modal.js"></script>
+<script src="scripts/mapkit.js"></script>
+<script src="scripts/elevation.js"></script>
+<script src="scripts/lightbox.js"></script>
+<script src="scripts/waystats.js"></script>
+<script src="scripts/tourdata.js"></script>
+<script src="scripts/turninstr.js"></script>
+<script src="scripts/gpx.js"></script>
+<script src="scripts/directions.js"></script>
+
+<script>
+"use strict";
+
+/* ============================================================
+ * Aliase auf Shared-Module
+ * ============================================================ */
+const { $, $$, escapeHtml, escapeXml, fmtDistance } = AndromedaUtils;
+const {
+  extractLineCoords, isRoundtripGeometry, computeStats, fmtDurationHM,
+  migrateRoute, fmtPlaceSequence, fmtRegionList, fmtCountryList, renderMarkdown,
+} = AndromedaTour;
+const ACTIVITY_LABELS = {
+  hiking: "Wanderung", cycling: "Radtour", running: "Lauf", skiing: "Skitour",
+};
+
+const ARROW_SIZE = 24;
+const HANDLER_URL = (window.Andromeda && Andromeda.TOURPACK_HANDLER_URL)
+  || "http://localhost:8081";
+const TOURPACK_MIMETYPE = "application/vnd.andromedaexplorer+zip";
+
+/* ============================================================
+ * State
+ * ============================================================ */
+const app = {
+  map: null,
+  openedViaUrl: false,
+  baseLayers: {},
+  overlayLayers: {},
+  activeBaseLayer: null,
+  activeBaseKey: "osm",
+  activeOverlays: { hiking: false, cycling: false },
+
+  routeLayer: null,
+  arrowLayer: null,
+  markerLayer: null,
+  highlightLayer: null,
+  activeHighlightCat: null,
+  elevationHoverMarker: null,
+
+  userMarker: null,
+  userAccuracyCircle: null,
+  userWatchId: null,
+  geoActive: false,
+  firstFix: true,
+
+  currentData: null,
+  imageURLs: [],          // nur Blob-URLs (ZIP-Modus); im Server-Modus leer
+  sourceMode: null,       // "zip" | "server" | "gpx"
+  serverRouteId: null,    // nur im Server-Modus gesetzt
+
+  routeColor: "#2a6fbf",
+  routeOpacity: 0.9,
+  showArrows: true,
+
+  elevationData: null,
+  elevationOpen: false,
+
+  activeWaypoint: null,
+
+  isMobile: false,
+};
+
+/* Höhenprofil-Panel und Wege-Hervorhebung (gemeinsame Module) */
+const elevPanel = AndromedaElevation.createPanel({
+  state: app,
+  getMap: () => app.map,
+});
+const wayHighlight = AndromedaWayStats.createHighlighter({
+  getMap: () => app.map,
+  getLayer: () => app.highlightLayer,
+  getSegments: () => app.currentData && app.currentData.tagSegments,
+  getColor: () => app.routeColor,
+});
+
+/* Anfahrt-Dialog zum ersten Punkt der Tour */
+function openDirections() {
+  if (!app.currentData) { toast("Keine Tour geladen.", "error"); return; }
+  const coords = extractLineCoords(app.currentData.geometry);
+  let start = coords.length && coords[0].length >= 2 ? coords[0] : null;
+  const cc = app.currentData.route.center_coord;
+  if (!start && Array.isArray(cc) && cc.length >= 2) start = cc;
+  if (!start) { toast(t("dir.noStart"), "error"); return; }
+  AndromedaDirections.open(start[1], start[0]);
+}
+
+/* ============================================================
+ * Ladebildschirm
+ * ============================================================ */
+function showLoading(text) {
+  const el = $("loadingOverlay");
+  if (!el) return;
+  if (text) {
+    const t = el.querySelector(".loading-text");
+    if (t) t.textContent = text;
+  }
+  el.classList.remove("hidden");
+}
+function hideLoading() {
+  const el = $("loadingOverlay");
+  if (el) el.classList.add("hidden");
+}
+
+/* ============================================================
+ * Mobile-Detection
+ * ============================================================ */
+function detectMobile() {
+  const was = app.isMobile;
+  app.isMobile = window.matchMedia("(max-width: 900px)").matches;
+  if (was !== app.isMobile) {
+    $("sidebar").classList.remove("show");
+  }
+}
+
+/* ============================================================
+ * Karte initialisieren (via AndromedaMap)
+ * ============================================================ */
+function initMap() {
+  if (app.map) return;
+
+  app.map = AndromedaMap.createMap("map", [47.5, 11.0], 8);
+
+  const { baseLayers, overlayLayers } = AndromedaMap.createLayers();
+  app.baseLayers = baseLayers;
+  app.overlayLayers = overlayLayers;
+
+  // Basislayer OSM aktiv schalten
+  app.activeBaseLayer = app.baseLayers.osm;
+  app.activeBaseLayer.addTo(app.map);
+  app.activeBaseKey = "osm";
+
+  // Layer-Picker binden
+  AndromedaMap.bindLayerPicker(
+    app.map, app.baseLayers, app.overlayLayers, app
+  );
+
+  // Fokus- und Fullscreen-Control
+  AndromedaMap.addFocusControl(app.map, () => {
+    if (!app.currentData) return [];
+    const coords = extractLineCoords(app.currentData.geometry);
+    return coords.map(c => [c[1], c[0]]);
+  });
+  AndromedaMap.addFullscreenControl(app.map, $("mapWrap"));
+
+  AndromedaMap.bindSaveView(app.map);
+
+  // Ebenen für Route/Arrows/Wegpunkte/Highlight
+  app.arrowLayer = L.layerGroup().addTo(app.map);
+  app.markerLayer = L.layerGroup().addTo(app.map);
+  app.highlightLayer = L.layerGroup().addTo(app.map);
+  AndromedaMap.onZoomDebounced(app.map, renderMapArrowsOnly);
+
+  // Fullscreen-Resize
+  document.addEventListener("fullscreenchange", () => {
+    if (app.map) setTimeout(() => app.map.invalidateSize(), 250);
+  });
+
+  requestAnimationFrame(() => { if (app.map) app.map.invalidateSize(); });
+  setTimeout(() => { if (app.map) app.map.invalidateSize(); }, 250);
+}
+
+/* ============================================================
+ * Geometrie-Helfer
+ * ============================================================ */
+/* Prüft, ob die Geometrie eine Rundtour beschreibt. Verwendet dieselben
+   Randbedingungen wie der TourPack-Handler (_detect_roundtrip). */
+/* ============================================================
+ * Status / Controls ein-/ausschalten
+ * ============================================================ */
+function setStatus(msg, loading) {
+  $("status").innerHTML = loading
+    ? `<span class="spinner"></span>${escapeHtml(msg)}`
+    : escapeHtml(msg);
+}
+
+function setControlsEnabled(enabled) {
+  $("elevBtn").disabled = !enabled;
+  $("elevBtnM").disabled = !enabled;
+  $("printBtn").disabled = !enabled;
+  $("printBtnM").disabled = !enabled;
+  $("navBtn").disabled = !enabled;
+  const navBtnM = $("navBtnM");
+  if (navBtnM) navBtnM.disabled = !enabled;
+  const gpx = $("gpxBtn");
+  if (gpx) gpx.disabled = !enabled;
+  const gpxM = $("gpxBtnM");
+  if (gpxM) gpxM.disabled = !enabled;
+
+  const dl = $("downloadBtn");
+  if (dl) {
+    dl.disabled = !enabled || app.sourceMode === "gpx";
+    const span = dl.querySelector(".lbl-full");
+    if (span) span.textContent = app.sourceMode === "gpx" ? "GPX herunterladen" : "TourPack herunterladen";
+  }
+  const dlM = $("downloadBtnM");
+  if (dlM) {
+    dlM.disabled = !enabled || app.sourceMode === "gpx";
+    dlM.textContent = app.sourceMode === "gpx" ? "GPX herunterladen" : "TourPack herunterladen";
+  }
+
+  $("directionsBtn").disabled = !enabled;
+  $("directionsBtnM").disabled = !enabled;
+
+  const actionsBlock = $("overviewActions");
+  if (actionsBlock) actionsBlock.classList.toggle("hidden", !enabled);
+  $$(".route-color-input").forEach(el => el.disabled = !enabled);
+  $$(".route-opacity-input").forEach(el => el.disabled = !enabled);
+  $$(".show-arrows-input").forEach(el => el.disabled = !enabled);
+  $("displaySettings").classList.toggle("disabled", !enabled);
+}
+
+/* ============================================================
+ * Route-Darstellung
+ * ============================================================ */
+function setRouteColor(v) {
+  app.routeColor = v;
+  $$(".route-color-input").forEach(el => el.value = v);
+  updateRouteStyle();
+}
+function setRouteOpacity(v) {
+  app.routeOpacity = v;
+  $$(".route-opacity-input").forEach(el => el.value = v);
+  $$(".route-opacity-value").forEach(el => {
+    el.textContent = Math.round(v * 100) + " %";
+  });
+  updateRouteStyle();
+}
+function setShowArrows(v) {
+  app.showArrows = v;
+  $$(".show-arrows-input").forEach(el => el.checked = v);
+  renderMapArrowsOnly();
+}
+function updateRouteStyle() {
+  if (app.routeLayer) {
+    app.routeLayer.setStyle({ color: app.routeColor, opacity: app.routeOpacity });
+  }
+}
+
+/* ============================================================
+ * TourPack laden (ZIP)
+ * ============================================================ */
+async function loadFromZipFile(file) {
+  cleanup();
+  setStatus(`Lese ${file.name} …`, true);
+  showLoadingPlaceholder();
+
+  let zip;
+  try {
+    zip = await JSZip.loadAsync(file);
+  } catch (e) {
+    alert("Keine gültige ZIP/TourPack-Datei:\n" + e.message);
+    setStatus("Fehler beim Lesen der Datei.");
+    return;
+  }
+
+  let manifest = {}, route = {}, geometry = { type: "FeatureCollection", features: [] };
+  try {
+    const mf = zip.file("manifest.json");
+    if (mf) manifest = JSON.parse(await mf.async("string"));
+
+    if (manifest.format && manifest.format !== "andromedaexplorer") {
+      if (!confirm(`Format „${manifest.format}" statt „andromedaexplorer". Trotzdem versuchen?`)) {
+        setStatus("Abgebrochen.");
+        return;
+      }
+    }
+
+    const rf = zip.file("route.json");
+    if (rf) route = JSON.parse(await rf.async("string"));
+
+    const geomName = route.geometry_file || "geometry.geojson";
+    const gf = zip.file(geomName);
+    if (gf) geometry = JSON.parse(await gf.async("string"));
+  } catch (e) {
+    alert("Fehler beim Parsen der JSON-Dateien:\n" + e.message);
+    setStatus("Fehler beim Parsen.");
+    return;
+  }
+
+  let description = "";
+  if (route.description) {
+    if (typeof route.description === "string") {
+      description = route.description;
+    } else if (route.description.file) {
+      const df = zip.file(route.description.file);
+      if (df) description = await df.async("string");
+    }
+  }
+
+  const imageCache = new Map();
+  async function getImageURL(path) {
+    if (imageCache.has(path)) return imageCache.get(path);
+    const f = zip.file(path);
+    if (!f) { imageCache.set(path, null); return null; }
+    const blob = await f.async("blob");
+    const url = URL.createObjectURL(blob);
+    imageCache.set(path, url);
+    app.imageURLs.push(url);
+    return url;
+  }
+
+  migrateRoute(route);
+
+  app.sourceMode = "zip";
+  app.serverRouteId = null;
+  app.currentData = {
+    manifest, route, geometry, description, getImageURL,
+    sourceFile: file,
+    sourceMode: "zip",
+    serverRouteId: null,
+    tagSegments: route.tag_segments || null
+  };
+
+  try {
+    await renderAll();
+    setStatus(`Geladen: ${file.name}`);
+    setControlsEnabled(true);
+    toast(`Geladen: ${file.name}`, "success");
+  } catch (e) {
+    console.error(e);
+    alert("Fehler beim Anzeigen:\n" + e.message);
+    setStatus("Fehler beim Anzeigen.");
+  }
+}
+
+/* ============================================================
+ * TourPack vom Server laden (Einzeldateien)
+ * ============================================================ */
+async function loadFromServer(routeId) {
+  if (!routeId || !/^[a-zA-Z0-9_-]{1,64}$/.test(routeId)) {
+    toast("Ungültige Tour-ID.", "error");
+    return;
+  }
+  cleanup();
+  setStatus(`Lade Tour ${routeId} …`, true);
+  showLoadingPlaceholder();
+
+  const base = `${HANDLER_URL}/tourpack/${encodeURIComponent(routeId)}`;
+
+  async function fetchJson(name) {
+    const res = await fetch(`${base}/${name}`, { credentials: "omit" });
+    if (!res.ok) throw new Error(`${name}: HTTP ${res.status}`);
+    return await res.json();
+  }
+  async function fetchText(name) {
+    const res = await fetch(`${base}/${name}`, { credentials: "omit" });
+    if (!res.ok) throw new Error(`${name}: HTTP ${res.status}`);
+    return await res.text();
+  }
+
+  try {
+    const manifest = await fetchJson("manifest.json");
+    const route = await fetchJson("route.json");
+    const geometry = await fetchJson("geometry.geojson");
+
+    let description = "";
+    try { description = await fetchText("description.md"); } catch (e) {}
+
+    migrateRoute(route);
+
+    function getImageURL(path) {
+      if (!path) return null;
+      return `${base}/${path}`;
+    }
+
+    app.sourceMode = "server";
+    app.serverRouteId = routeId;
+    app.currentData = {
+      manifest, route, geometry, description,
+      getImageURL,
+      sourceFile: null,
+      sourceMode: "server",
+      serverRouteId: routeId,
+      tagSegments: route.tag_segments || null
+    };
+
+    await renderAll();
+    setStatus("");
+    setControlsEnabled(true);
+  } catch (e) {
+    console.error(e);
+    toast("Fehler beim Laden: " + e.message, "error");
+    setStatus("Fehler beim Laden der Tour.");
+  }
+}
+
+/* ============================================================
+ * GPX-Datei laden
+ * ============================================================ */
+async function loadGpxFile(file) {
+  cleanup();
+  setStatus(`Lese ${file.name} …`, true);
+  showLoadingPlaceholder();
+  try {
+    const gpx = AndromedaGpx.parse(await file.text());
+    const { coords, tagSegments } = gpx;
+    const trackName = gpx.trackName || file.name.replace(/\.gpx$/i, "");
+
+    const features = [];
+    if (coords.length) {
+      features.push({ type: "Feature", properties: { role: "main" }, geometry: { type: "LineString", coordinates: coords } });
+    }
+    const geometry = { type: "FeatureCollection", features };
+
+    const stats = computeStats(coords);
+    const route = {
+      id: "gpx_" + file.name,
+      type: gpx.activity,
+      title: trackName,
+      stats,
+      waypoints: [],
+      images: [],
+      tags: [],
+      turn_instructions: AndromedaTurns.toTourpack(gpx.turnInstructions)
+    };
+
+    app.sourceMode = "gpx";
+    app.serverRouteId = null;
+    app.currentData = {
+      manifest: {},
+      route,
+      geometry,
+      description: "",
+      getImageURL: async () => null,
+      sourceFile: file,
+      sourceMode: "gpx",
+      serverRouteId: null,
+      tagSegments: tagSegments.length > 0 ? tagSegments : null
+    };
+
+    await renderAll();
+    setStatus(`Geladen: ${file.name}`);
+    setControlsEnabled(true);
+    toast(`GPX geladen: ${file.name}`, "success");
+  } catch (e) {
+    console.error(e);
+    toast("Fehler beim GPX-Laden: " + e.message, "error");
+    setStatus("Fehler beim Laden.");
+  }
+}
+
+function showLoadingPlaceholder() {
+  $("overviewContent").innerHTML = `
+    <div class="placeholder">
+      <div class="icon"><span class="spinner" style="width:36px;height:36px;border-width:3px;"></span></div>
+      <p>Lade Tour …</p>
+    </div>`;
+  $("waypointList").innerHTML = "";
+  $("gallery").innerHTML = "";
+  $("galleryEmpty").classList.add("hidden");
+}
+
+/* ============================================================
+ * Rendern
+ * ============================================================ */
+async function renderAll() {
+  const { route, geometry, description, getImageURL } = app.currentData;
+  const isRoundtrip = isRoundtripGeometry(geometry);
+  renderHeader(route);
+  renderOverview(route, description, isRoundtrip);
+  renderBottomBar(route, isRoundtrip);
+  initMap();
+  renderMap(route, geometry);
+  elevPanel.setCoords(extractLineCoords(geometry), route.type || "hiking");
+  renderWaypointList(route);
+  await renderGallery(route, getImageURL);
+  updateTabCounts(route);
+}
+
+function renderHeader(route) {
+  const displayTitle = route.title || "Unbenannte Tour";
+  const titleEl = $("routeTitle");
+  titleEl.textContent = displayTitle;
+  titleEl.title = displayTitle;
+  titleEl.dataset.fullTitle = displayTitle;
+  document.title = displayTitle;
+  const actKey = route.type || "hiking";
+  const badge = $("activityBadge");
+  badge.textContent = ACTIVITY_LABELS[actKey] || actKey;
+  badge.classList.remove("hidden");
+}
+
+function renderOverview(route, description, isRoundtrip) {
+  const container = $("overviewContent");
+  container.innerHTML = '<div id="mobileStats"></div>';
+  renderMobileStats(route);
+
+  // Erstellungsdatum aus der manifest.json (nur bei TourPacks)
+  const manifest = (app.currentData && app.currentData.manifest) || {};
+  if (manifest.created) {
+    const d = new Date(manifest.created);
+    if (!isNaN(d)) {
+      const dateStr = d.toLocaleDateString(AndromedaI18n.locale(), {
+        year: 'numeric', month: 'long', day: 'numeric'
+      });
+      const dateEl = document.createElement("div");
+      dateEl.style.cssText = "font-size: 13px; color: var(--text-muted); margin-bottom: 20px;";
+      dateEl.innerHTML = `Erstellt am <span style="color: var(--text); font-weight: 500;">${escapeHtml(dateStr)}</span>`;
+      container.appendChild(dateEl);
+    }
+  }
+
+  const diff = route.difficulty || {};
+  const ratings = diff.ratings || {};
+  const hasAnyRating = Object.values(ratings).some(v => v > 0);
+  const hasDiffText = (diff.text || "").trim().length > 0;
+  const durText = fmtDurationHM(
+    (route.stats || {}).duration_h,
+    (route.stats || {}).duration_min
+  );
+  const hasDescription = (description || "").trim().length > 0;
+
+  if (hasAnyRating || hasDiffText) {
+    const s = document.createElement("div");
+    s.className = "section";
+    s.style.marginBottom = "20px";
+    s.innerHTML = `
+      <h3 class="settings-heading">Schwierigkeit</h3>
+      ${starRow("Schwierigkeit", ratings.overall)}
+      ${starRow("Technik", ratings.technique)}
+      ${starRow("Kondition", ratings.condition)}
+      ${hasDiffText ? `<div class="rating-note">${escapeHtml(diff.text)}</div>` : ""}
+    `;
+    container.appendChild(s);
+  }
+
+  // Wegearten- und Oberflächen-Statistik (einklappbar)
+  if (app.currentData && app.currentData.tagSegments && app.currentData.tagSegments.length > 0) {
+    const statsSection = document.createElement("div");
+    statsSection.className = "section";
+    statsSection.style.marginBottom = "20px";
+    AndromedaWayStats.mount(statsSection, app.currentData.tagSegments, wayHighlight, { collapsible: true });
+    container.appendChild(statsSection);
+  }
+
+  const loc = route.location || {};
+  const seqPlace = fmtPlaceSequence(loc, isRoundtrip);
+  const regionList = fmtRegionList(loc);
+  const locCountry = fmtCountryList(loc);
+  const isRoadbike = route.roadbike === true;
+  if (seqPlace || regionList || locCountry || isRoundtrip || isRoadbike) {
+    const s = document.createElement("div");
+    s.className = "section";
+    s.style.marginBottom = "20px";
+    let rows = "";
+    if (isRoundtrip) rows += `<div class="loc-row"><span class="loc-lbl">Tourtyp</span><span class="loc-val">↻ Rundtour</span></div>`;
+    if (isRoadbike)  rows += `<div class="loc-row"><span class="loc-lbl">Eignung</span><span class="loc-val">🚴 Rennradtauglich</span></div>`;
+    if (seqPlace)   rows += `<div class="loc-row"><span class="loc-lbl">Ort</span><span class="loc-val">${escapeHtml(seqPlace)}</span></div>`;
+    if (regionList) rows += `<div class="loc-row"><span class="loc-lbl">Region</span><span class="loc-val">${escapeHtml(regionList)}</span></div>`;
+    if (locCountry) rows += `<div class="loc-row"><span class="loc-lbl">Land</span><span class="loc-val">${escapeHtml(locCountry)}</span></div>`;
+    s.innerHTML = `<h3 class="settings-heading">Routenverlauf</h3>${rows}`;
+    container.appendChild(s);
+  }
+
+  if (hasDescription) {
+    const s = document.createElement("div");
+    s.className = "section";
+    s.innerHTML = `<h3 class="settings-heading">Beschreibung</h3>
+      <div class="description">${renderMarkdown(description)}</div>`;
+    container.appendChild(s);
+  }
+
+  const hasWayStats = !!(app.currentData && app.currentData.tagSegments &&
+    app.currentData.tagSegments.length);
+  if (!hasAnyRating && !hasDiffText && !durText && !hasDescription && !hasWayStats &&
+      !loc.country && !loc.region && !loc.place) {
+    container.innerHTML = `<div class="placeholder">
+        <div class="icon">🥾</div>
+        <p><b>${escapeHtml(route.title || "Tour")}</b></p>
+        <p>Keine weiteren Details in diesem TourPack.</p>
+      </div>`;
+  }
+}
+
+function renderMobileStats(route) {
+  const el = $("mobileStats");
+  if (!el) return;
+  const stats = route.stats || {};
+  const cells = [];
+  cells.push(`<div class="mobile-stat-card"><div class="lbl">Strecke</div><div class="val">${fmtDistance(stats.distance_m)}</div></div>`);
+  const durStr = fmtDurationHM(stats.duration_h, stats.duration_min);
+  if (durStr) cells.push(`<div class="mobile-stat-card"><div class="lbl">Dauer</div><div class="val">${escapeHtml(durStr)}</div></div>`);
+  if (stats.ascent_m) cells.push(`<div class="mobile-stat-card"><div class="lbl">Anstieg</div><div class="val">${Math.round(stats.ascent_m)} m</div></div>`);
+  if (stats.descent_m) cells.push(`<div class="mobile-stat-card"><div class="lbl">Abstieg</div><div class="val">${Math.round(stats.descent_m)} m</div></div>`);
+
+  el.innerHTML = `<div class="mobile-stats-grid">${cells.join("")}</div>`;
+}
+
+function renderBottomBar(route, isRoundtrip) {
+  const stats = route.stats || {};
+  const primaryParts = [];
+  if (stats.distance_m != null) primaryParts.push(fmtDistance(stats.distance_m));
+  if (stats.ascent_m) primaryParts.push(`↑ ${Math.round(stats.ascent_m)} m`);
+  if (stats.descent_m) primaryParts.push(`↓ ${Math.round(stats.descent_m)} m`);
+  $("primaryLine").textContent = primaryParts.join("  ·  ") || "Tour geladen";
+  const durStr = fmtDurationHM(stats.duration_h, stats.duration_min);
+  $("secondaryLine").textContent = durStr || "";
+  // Kennzahlen-Leiste (wie im Navigator)
+  const html = AndromedaUtils.barStatsHtml(stats, durStr);
+  $("barStats").innerHTML = html;
+  $("bottomBar").classList.toggle("has-stats", !!html);
+}
+
+function starRow(label, value) {
+  const v = Math.max(0, Math.min(5, parseInt(value) || 0));
+  let stars = "";
+  for (let i = 1; i <= 5; i++) stars += (i <= v) ? "★" : "☆";
+  const valText = v > 0 ? `${v} / 5` : "—";
+  return `<div class="rating-row">
+    <span>${escapeHtml(label)}</span>
+    <span class="stars">${stars}</span>
+    <span class="value">${valText}</span>
+  </div>`;
+}
+
+function renderMap(route, geometry) {
+  if (!app.map) return;
+  app.arrowLayer.clearLayers();
+  app.markerLayer.clearLayers();
+  app.highlightLayer.clearLayers();
+  if (app.routeLayer) { app.map.removeLayer(app.routeLayer); app.routeLayer = null; }
+
+  const coords = extractLineCoords(geometry);
+  if (!coords.length) return;
+
+  const latlngs = coords.map(c => [c[1], c[0]]);
+
+  app.routeLayer = L.polyline(latlngs, {
+    color: app.routeColor, weight: 6, opacity: app.routeOpacity,
+    lineJoin: "round", lineCap: "round",
+  }).addTo(app.map);
+
+  if (latlngs.length) {
+    app.markerLayer.addLayer(makeCircleMarker(latlngs[0], "#2e8b57", "S", "Start"));
+    app.markerLayer.addLayer(makeCircleMarker(latlngs[latlngs.length - 1], "#c0392b", "Z", "Ziel"));
+  }
+
+  renderMapArrowsOnly();
+
+  // Wegpunkte nummeriert wie im Navigator (Nummer = Position in der Liste)
+  (route.waypoints || []).forEach((wp, i) => {
+    if (wp.lat == null || wp.lon == null) return;
+    const m = AndromedaMap.waypointMarker([wp.lat, wp.lon], i + 1, wp.name);
+    m.on("click", () => openWaypointDetail(wp));
+    app.markerLayer.addLayer(m);
+  });
+
+  const bounds = L.latLngBounds(latlngs);
+  for (const wp of route.waypoints || []) {
+    if (wp.lat != null && wp.lon != null) bounds.extend([wp.lat, wp.lon]);
+  }
+  app.map.fitBounds(bounds, { padding: [30, 30] });
+  setTimeout(() => { if (app.map) app.map.invalidateSize(); }, 100);
+}
+
+function renderMapArrowsOnly() {
+  if (!app.arrowLayer) return;
+  if (!app.showArrows || !app.currentData) { app.arrowLayer.clearLayers(); return; }
+  const latlngs = extractLineCoords(app.currentData.geometry).map(c => [c[1], c[0]]);
+  AndromedaMap.drawArrows(app.arrowLayer, latlngs, { map: app.map, size: ARROW_SIZE });
+}
+
+function makeCircleMarker(latlng, color, letter, title) {
+  const html = `<svg width="28" height="28" viewBox="0 0 28 28">
+    <circle cx="14" cy="14" r="11" fill="${color}" stroke="white" stroke-width="3"/>
+    <text x="14" y="19" text-anchor="middle" fill="white"
+          font-family="sans-serif" font-size="14" font-weight="bold">${letter}</text>
+  </svg>`;
+  const icon = L.divIcon({ html, className: "",
+    iconSize: [28, 28], iconAnchor: [14, 14] });
+  return L.marker(latlng, { icon, title, interactive: false });
+}
+
+/* ============================================================
+ * Wegpunkt-Detail-Sheet
+ * ============================================================ */
+async function openWaypointDetail(wp) {
+  if (!wp) return;
+  app.activeWaypoint = wp;
+  if (app.isMobile) { showWaypointDetailInline(wp); return; }
+  const panel = $("wpDetail");
+  if (!panel) return;
+
+  $("wpdTitle").textContent = wp.name || "Wegpunkt";
+
+  const subParts = [];
+  if (wp.lat != null && wp.lon != null) {
+    subParts.push(`${wp.lat.toFixed(5)}, ${wp.lon.toFixed(5)}`);
+  }
+  if (wp.ele != null) subParts.push(`${Math.round(wp.ele)} m`);
+  $("wpdSub").textContent = subParts.join("  ·  ");
+
+  const body = $("wpdBody");
+  body.innerHTML = "";
+
+  const hasNote = wp.note && wp.note.trim();
+  const rels = (wp.images || []).filter(Boolean);
+
+  if (hasNote) {
+    const noteEl = document.createElement("div");
+    noteEl.className = "wpd-note";
+    noteEl.textContent = wp.note;
+    body.appendChild(noteEl);
+  }
+
+  if (rels.length) {
+    const gallery = document.createElement("div");
+    gallery.className = "wpd-gallery";
+    body.appendChild(gallery);
+
+    const items = [];
+    for (const rel of rels) {
+      let url = null;
+      try {
+        url = await app.currentData.getImageURL(rel);
+      } catch (e) {}
+      items.push({ url: url || null, caption: wp.name || "Wegpunkt" });
+    }
+    const validItems = items.filter(x => x.url);
+
+    items.forEach((item) => {
+      const card = document.createElement("div");
+      card.className = "wpd-img-card";
+      if (item.url) {
+        const img = document.createElement("img");
+        img.src = item.url;
+        img.alt = item.caption || "";
+        const li = validItems.indexOf(item);
+        img.onclick = () => AndromedaLightbox.open(validItems, li >= 0 ? li : 0);
+        card.appendChild(img);
+      } else {
+        const miss = document.createElement("div");
+        miss.className = "missing";
+        miss.textContent = "Bild fehlt";
+        card.appendChild(miss);
+      }
+      gallery.appendChild(card);
+    });
+  }
+
+  if (!hasNote && !rels.length) {
+    const empty = document.createElement("div");
+    empty.style.cssText =
+      "text-align:center;padding:24px 10px;color:var(--text-muted);font-size:13px;";
+    empty.textContent = "Keine Notiz und keine Bilder zu diesem Wegpunkt.";
+    body.appendChild(empty);
+  }
+
+  panel.classList.add("show");
+}
+
+/* Mobil: Wegpunkt-Detail im Menü (Tab „Wegpunkte“), wie im Navigator */
+async function showWaypointDetailInline(wp) {
+  openPanel();
+  switchTab("waypoints");
+  const el = $("waypointList");
+  const sub = [];
+  if (wp.lat != null && wp.lon != null) sub.push(`${wp.lat.toFixed(5)}, ${wp.lon.toFixed(5)}`);
+  if (wp.ele != null) sub.push(`${Math.round(wp.ele)} m`);
+  const rels = (wp.images || []).filter(Boolean);
+  el.innerHTML = `
+    <div class="wp-inline">
+      <h2>${escapeHtml(wp.name || "Wegpunkt")}</h2>
+      <div class="wp-inline-sub">${escapeHtml(sub.join("  ·  "))}</div>
+      ${wp.note && wp.note.trim() ? `<div class="wp-inline-note">${escapeHtml(wp.note)}</div>` : ""}
+      ${rels.length ? `<div class="gallery">${rels.map(() => `<div class="img-card"><div class="thumb-missing">lädt …</div></div>`).join("")}</div>` : ""}
+      <button class="btn-full primary" type="button" data-act="map">🗺 Auf Karte zeigen</button>
+      <button class="btn-full" type="button" data-act="back">← Zurück zur Liste</button>
+    </div>`;
+  el.querySelector('[data-act="map"]').onclick = () => showActiveWaypointOnMap();
+  el.querySelector('[data-act="back"]').onclick = () => renderWaypointList(app.currentData.route);
+  const panes = el.closest(".tab-panes, .panel-body, .tab-pane");
+  if (panes) panes.scrollTop = 0;
+  if (!rels.length) return;
+  const items = [];
+  for (const rel of rels) {
+    let url = null;
+    try { url = await app.currentData.getImageURL(rel); } catch (e) {}
+    items.push({ url: url || null, caption: wp.name || "Wegpunkt" });
+  }
+  if (app.activeWaypoint !== wp) return;
+  const validItems = items.filter(x => x.url);
+  const cards = el.querySelectorAll(".img-card");
+  items.forEach((item, i) => {
+    const card = cards[i];
+    if (!card) return;
+    if (item.url) {
+      card.innerHTML = `<img class="thumb" src="${item.url}" alt="">`;
+      const li = validItems.indexOf(item);
+      card.onclick = () => AndromedaLightbox.open(validItems, li >= 0 ? li : 0);
+    } else card.innerHTML = `<div class="thumb-missing">Bild fehlt</div>`;
+  });
+}
+
+function closeWaypointDetail() {
+  const panel = $("wpDetail");
+  if (panel) panel.classList.remove("show");
+  app.activeWaypoint = null;
+}
+
+function showActiveWaypointOnMap() {
+  const wp = app.activeWaypoint;
+  if (!wp || wp.lat == null || wp.lon == null) return;
+  closeWaypointDetail();
+  if (app.isMobile) closePanel();
+  if (app.map) {
+    app.map.setView([wp.lat, wp.lon], Math.max(app.map.getZoom(), 15), { animate: true });
+  }
+}
+
+/* ============================================================
+ * Wegpunkt-Liste
+ * ============================================================ */
+function renderWaypointList(route) {
+  const container = $("waypointList");
+  container.innerHTML = "";
+  const wps = route.waypoints || [];
+  if (!wps.length) {
+    container.innerHTML = `<div class="placeholder">
+        <div class="icon">📍</div>
+        <p>Diese Tour hat keine Wegpunkte.</p></div>`;
+    return;
+  }
+  wps.forEach((wp, i) => {
+    const div = document.createElement("div");
+    div.className = "wp-item";
+    const nImg = (wp.images || []).length;
+    div.innerHTML = `
+      <span class="num">${String(i + 1).padStart(2, "0")}</span>
+      <span class="dot"></span>
+      <span class="name">${escapeHtml(wp.name || "Wegpunkt")}</span>
+      ${nImg ? `<span class="chip">${nImg} 📷</span>` : ""}
+      <button class="nav-btn" type="button" title="Auf Karte zeigen">🗺</button>`;
+    div.onclick = (e) => {
+      if (e.target.closest(".nav-btn")) {
+        e.stopPropagation();
+        app.activeWaypoint = wp;
+        showActiveWaypointOnMap();
+        return;
+      }
+      openWaypointDetail(wp);
+    };
+    container.appendChild(div);
+  });
+}
+
+/* ============================================================
+ * Galerie
+ * ============================================================ */
+async function renderGallery(route, getImageURL) {
+  const container = $("gallery");
+  const empty = $("galleryEmpty");
+  container.innerHTML = "";
+  const rawImgs = route.images || [];
+
+  const seen = new Set();
+  const imgs = [];
+  for (const item of rawImgs) {
+    if (!item || !item.path) continue;
+    if (seen.has(item.path)) continue;
+    seen.add(item.path);
+    imgs.push(item);
+  }
+
+  if (!imgs.length) {
+    empty.classList.remove("hidden");
+    return;
+  }
+  empty.classList.add("hidden");
+
+  const items = [];
+  for (const item of imgs) {
+    const url = await getImageURL(item.path);
+    items.push({ url: url || null, caption: item.caption || "" });
+  }
+  const validItems = items.filter(x => x.url);
+
+  items.forEach((item) => {
+    const card = document.createElement("div");
+    card.className = "img-card";
+    if (item.url) {
+      const imgEl = document.createElement("img");
+      imgEl.className = "thumb";
+      imgEl.src = item.url;
+      imgEl.alt = item.caption;
+      const li = validItems.indexOf(item);
+      imgEl.onclick = () => AndromedaLightbox.open(validItems, li >= 0 ? li : 0);
+      card.appendChild(imgEl);
+    } else {
+      const m = document.createElement("div");
+      m.className = "thumb-missing"; m.textContent = "Bild fehlt";
+      card.appendChild(m);
+    }
+    if (item.caption && item.caption.trim()) {
+      const c = document.createElement("div");
+      c.className = "caption"; c.textContent = item.caption;
+      card.appendChild(c);
+    }
+    container.appendChild(card);
+  });
+}
+
+function updateTabCounts(route) {
+  const wpCount = (route.waypoints || []).length;
+  const imgCount = (route.images || []).length;
+  const wpTab = $("wpTabCount");
+  if (wpCount > 0) { wpTab.textContent = wpCount; wpTab.classList.remove("hidden"); }
+  else { wpTab.textContent = "0"; wpTab.classList.add("hidden"); }
+  const imgTab = $("imgTabCount");
+  if (imgCount > 0) { imgTab.textContent = imgCount; imgTab.classList.remove("hidden"); }
+  else { imgTab.textContent = "0"; imgTab.classList.add("hidden"); }
+}
+
+/* ============================================================
+ * Panel / Tabs
+ * ============================================================ */
+function openPanel(tab) {
+  if (tab) switchTab(tab);
+  if (app.isMobile) $("sidebar").classList.add("show");
+}
+function closePanel() {
+  if (app.isMobile) $("sidebar").classList.remove("show");
+}
+function switchTab(name) {
+  $$(".tab-bar button").forEach(b => {
+    b.classList.toggle("active", b.dataset.tab === name);
+  });
+  $$(".tab-pane").forEach(p => {
+    p.classList.toggle("active", p.dataset.pane === name);
+  });
+}
+
+/* ============================================================
+ * GPX-Export
+ * ============================================================ */
+function exportGpx() {
+  if (!app.currentData) {
+    toast("Keine Tour geladen.", "error");
+    return;
+  }
+  const { route, geometry } = app.currentData;
+  const coords = extractLineCoords(geometry);
+  if (!coords.length) {
+    toast("Keine Streckendaten vorhanden.", "error");
+    return;
+  }
+
+  const title = route.title || "Tour";
+  // Trackpunkte genau so, wie sie exportiert werden (für die Offsets
+  // der Abbiegeanweisungen, siehe turninstr.js).
+  const points = [];
+  let trk = `  <trk>\n    <name>${escapeXml(title)}</name>\n`;
+  if (route.type) trk += `    <type>${escapeXml(route.type)}</type>\n`;
+  const trkpt = c => {
+    points.push(c);
+    let x = `      <trkpt lat="${c[1].toFixed(7)}" lon="${c[0].toFixed(7)}">`;
+    if (c.length >= 3 && isFinite(c[2])) x += `<ele>${c[2].toFixed(1)}</ele>`;
+    return x + `</trkpt>\n`;
+  };
+
+  // Check ob tagSegments existieren und ob wir sie exportieren können
+  const segments = app.currentData.tagSegments;
+  if (segments && segments.length > 0) {
+    for (const seg of segments) {
+      trk += `    <trkseg>\n`;
+      if (seg.properties && seg.properties.wayTags) {
+        trk += `      <extensions>\n`;
+        trk += `        <andromeda:way-tags xmlns:andromeda="https://andromeda-explorer.com/gpx">${escapeXml(seg.properties.wayTags)}</andromeda:way-tags>\n`;
+        trk += `      </extensions>\n`;
+      }
+      for (const c of seg.coords) trk += trkpt(c);
+      trk += `    </trkseg>\n`;
+    }
+  } else {
+    // Fallback wenn keine Segmente
+    trk += `    <trkseg>\n`;
+    for (const c of coords) trk += trkpt(c);
+    trk += `    </trkseg>\n`;
+  }
+  trk += `  </trk>\n`;
+
+  const hints = AndromedaTurns.alignToCoords(AndromedaTurns.fromTourpack(route.turn_instructions), coords);
+  const rte = AndromedaTurns.gpxRte(points, AndromedaTurns.remap(hints, coords, points));
+
+  let gpx = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+  gpx += `<gpx version="1.1" creator="${rte ? AndromedaTurns.OSMAND_CREATOR : "TourPack Viewer"}" xmlns="http://www.topografix.com/GPX/1/1">\n`;
+  gpx += `  <metadata>\n    <name>${escapeXml(title)}</name>\n`;
+  gpx += `    <time>${new Date().toISOString()}</time>\n  </metadata>\n`;
+
+  for (const wp of route.waypoints || []) {
+    if (wp.lat == null || wp.lon == null) continue;
+    gpx += `  <wpt lat="${wp.lat.toFixed(7)}" lon="${wp.lon.toFixed(7)}">\n`;
+    if (wp.ele != null && isFinite(wp.ele)) {
+      gpx += `    <ele>${wp.ele.toFixed(1)}</ele>\n`;
+    }
+    gpx += `    <name>${escapeXml(wp.name || "Wegpunkt")}</name>\n`;
+    if (wp.note && wp.note.trim()) {
+      gpx += `    <desc>${escapeXml(wp.note)}</desc>\n`;
+    }
+    gpx += `  </wpt>\n`;
+  }
+  gpx += rte;
+  gpx += trk;
+
+  gpx += `</gpx>\n`;
+
+  const filename =
+    (title.replace(/[^a-zA-Z0-9_\-äöüÄÖÜß ]+/g, "_").trim() || "tour") + ".gpx";
+  const blob = new Blob([gpx], { type: "application/gpx+xml" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  toast("GPX exportiert.", "success");
+}
+
+/* ============================================================
+ * Print
+ * ============================================================ */
+function setPrintProgress(msg) {
+  const el = $("printProgress");
+  if (msg) { el.textContent = msg; el.classList.add("show"); }
+  else el.classList.remove("show");
+}
+
+async function doPrint() {
+  const data = app.currentData;
+  if (!data) return;
+  const route = data.route;
+  const description = data.description || "";
+
+  const opt = {
+    title: $("printTitle").checked,
+    stats: $("printStats").checked,
+    difficulty: $("printDifficulty").checked,
+    duration: $("printDuration").checked,
+    tags: $("printTags").checked,
+    map: $("printMap").checked,
+    elevation: $("printElevationChart").checked,
+    description: $("printDescription").checked,
+    waypoints: $("printWaypoints").checked,
+    waypointImages: $("printWaypointImages").checked,
+    generalImages: $("printGeneralImages").checked,
+  };
+
+  const formatEl = document.querySelector('input[name="printFormat"]:checked');
+  const landscape = formatEl && formatEl.value === "landscape";
+
+  setPrintProgress("Bilder werden vorbereitet …");
+  const imageDataURLs = new Map();
+  const pathsToLoad = new Set();
+  for (const wp of route.waypoints || []) {
+    for (const rel of wp.images || []) pathsToLoad.add(rel);
+  }
+  for (const item of route.images || []) pathsToLoad.add(item.path);
+
+  let loaded = 0;
+  for (const path of pathsToLoad) {
+    setPrintProgress(`Bilder werden vorbereitet … (${loaded}/${pathsToLoad.size})`);
+    try {
+      const durl = await imageToDataURL(path);
+      if (durl) imageDataURLs.set(path, durl);
+    } catch (e) {
+      console.warn("Bild konnte nicht geladen werden:", path, e);
+    }
+    loaded++;
+  }
+  setPrintProgress("Bilder fertig.");
+
+  let mapImageDataURL = null;
+  if (opt.map) {
+    try {
+      setPrintProgress("Karte wird gerendert …");
+      const w = landscape ? 1400 : 1200;
+      const h = landscape ? 800 : 900;
+      const canvas = await renderMapImage(w, h);
+      if (canvas) mapImageDataURL = canvas.toDataURL("image/png");
+    } catch (e) {
+      console.warn("Karte konnte nicht gerendert werden:", e);
+    }
+  }
+
+  let elevationImageDataURL = null;
+  if (opt.elevation && app.elevationData) {
+    try {
+      setPrintProgress("Höhenprofil wird gerendert …");
+      elevationImageDataURL = renderElevationProfileToDataURL(landscape);
+    } catch (e) {
+      console.warn("Höhenprofil konnte nicht gerendert werden:", e);
+    }
+  }
+
+  setPrintProgress("HTML wird zusammengestellt …");
+
+  const pageRule = landscape
+    ? "@page { size: A4 landscape; margin: 15mm; }"
+    : "@page { size: A4 portrait; margin: 15mm; }";
+
+  let html = "";
+  if (opt.title) {
+    html += `<h1 class="title" data-no-i18n>${escapeHtml(route.title || "Unbenannte Tour")}</h1>`;
+    const actKey = route.type || "hiking";
+    const act = ACTIVITY_LABELS[actKey] || actKey;
+    html += `<div class="subtitle">${escapeHtml(act)}</div>`;
+  }
+  const stats = route.stats || {};
+  if (opt.stats) {
+    const parts = [];
+    if (stats.distance_m != null) parts.push(`<b>Strecke:</b> ${fmtDistance(stats.distance_m)}`);
+    if (stats.ascent_m) parts.push(`<b>Aufstieg:</b> ${Math.round(stats.ascent_m)} m`);
+    if (stats.descent_m) parts.push(`<b>Abstieg:</b> ${Math.round(stats.descent_m)} m`);
+    if (parts.length) html += `<div class="stats">${parts.join("  ·  ")}</div>`;
+  }
+  const dur = (stats.duration_text || "").trim();
+  if (opt.duration && dur) {
+    html += `<div class="duration"><b>Geschätzte Dauer:</b> ${escapeHtml(dur)}</div>`;
+  }
+
+  const diff = route.difficulty || {};
+  const ratings = diff.ratings || {};
+  if (opt.difficulty) {
+    const hasAny = Object.values(ratings).some(v => v > 0);
+    const hasText = (diff.text || "").trim().length > 0;
+    if (hasAny || hasText) {
+      html += `<h2>Schwierigkeit</h2>`;
+      html += `<table class="ratings">`;
+      html += ratingTr("Schwierigkeit", ratings.overall);
+      html += ratingTr("Technik", ratings.technique);
+      html += ratingTr("Kondition", ratings.condition);
+      html += `</table>`;
+      if (hasText) html += `<div class="diff-text" data-no-i18n>${escapeHtml(diff.text)}</div>`;
+    }
+  }
+
+  if (opt.tags && route.tags && route.tags.length) {
+    html += `<div class="tags" data-no-i18n>`;
+    for (const t of route.tags) html += `<span class="tag">${escapeHtml(t)}</span>`;
+    html += `</div>`;
+  }
+
+  if (opt.map && mapImageDataURL) {
+    html += `<h2>Karte</h2>`;
+    html += `<img class="map-img" src="${mapImageDataURL}" alt="Karte">`;
+  }
+
+  if (opt.elevation && elevationImageDataURL) {
+    html += `<h2>Höhenprofil</h2>`;
+    html += `<img class="elev-img" src="${elevationImageDataURL}" alt="Höhenprofil">`;
+  }
+
+  if (opt.description && description.trim()) {
+    html += `<h2>Beschreibung</h2>`;
+    html += `<div class="description">${renderMarkdown(description)}</div>`;
+  }
+
+  const waypoints = route.waypoints || [];
+  if (opt.waypoints && waypoints.length) {
+    html += `<h2>Wegpunkte</h2>`;
+    waypoints.forEach((wp, i) => {
+      html += `<div class="wp">`;
+      html += `<div class="wp-title">${i + 1}. ${escapeHtml(wp.name || "Wegpunkt")}</div>`;
+      const coords = [];
+      if (wp.lat != null) coords.push(`Lat ${wp.lat.toFixed(5)}`);
+      if (wp.lon != null) coords.push(`Lon ${wp.lon.toFixed(5)}`);
+      if (wp.ele != null) coords.push(`${Math.round(wp.ele)} m`);
+      if (coords.length) html += `<div class="wp-coords">${coords.join(" · ")}</div>`;
+      if (wp.note && wp.note.trim()) {
+        html += `<div class="wp-note">${escapeHtml(wp.note)}</div>`;
+      }
+      if (opt.waypointImages && (wp.images || []).length) {
+        html += `<div class="wp-imgs">`;
+        for (const rel of wp.images) {
+          const durl = imageDataURLs.get(rel);
+          if (durl) html += `<img src="${durl}" alt="">`;
+        }
+        html += `</div>`;
+      }
+      html += `</div>`;
+    });
+  }
+
+  const generalImgs = route.images || [];
+  if (opt.generalImages && generalImgs.length) {
+    const withImages = generalImgs.filter(it => imageDataURLs.has(it.path));
+    if (withImages.length) {
+      html += `<h2>Weitere Bilder</h2>`;
+      html += `<div class="general-imgs">`;
+      for (const item of withImages) {
+        const durl = imageDataURLs.get(item.path);
+        html += `<div class="general-img-cell">`;
+        html += `<img src="${durl}" alt="">`;
+        if (item.caption && item.caption.trim()) {
+          html += `<div class="cap" data-no-i18n>${escapeHtml(item.caption)}</div>`;
+        }
+        html += `</div>`;
+      }
+      html += `</div>`;
+    }
+  }
+
+  const printDoc = `<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>${escapeHtml(route.title || "Tour")} — Druck</title>
+<style>
+  ${pageRule}
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 11pt; line-height: 1.5; color: #1a1a1a; margin: 0; padding: 0; }
+  h1.title { font-size: 22pt; margin: 0 0 4pt 0; font-weight: 700;
+    letter-spacing: -0.01em; page-break-after: avoid; }
+  .subtitle { font-size: 12pt; color: #555; margin-bottom: 12pt;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    font-weight: 600; page-break-after: avoid; }
+  h2 { font-size: 14pt; margin: 18pt 0 8pt 0; font-weight: 700;
+    border-bottom: 1px solid #ddd; padding-bottom: 4pt;
+    page-break-after: avoid; }
+  .stats { font-size: 11pt; margin-bottom: 6pt; padding: 8pt 10pt;
+    background: #f5f7f9; border-radius: 4pt; }
+  .duration { font-size: 11pt; margin-bottom: 12pt; padding: 8pt 10pt;
+    background: #e8f0fa; border-radius: 4pt; color: #1e5a99; }
+  .ratings { width: 100%; margin-bottom: 8pt; border-collapse: collapse; }
+  .ratings td { padding: 3pt 8pt 3pt 0; vertical-align: middle; font-size: 11pt; }
+  .ratings .stars { color: #c9a227; font-size: 14pt; letter-spacing: 2pt; }
+  .diff-text { font-style: italic; color: #333; padding: 6pt 8pt;
+    background: #f7f9fb; border-left: 3pt solid #2a6fbf;
+    border-radius: 3pt; margin-bottom: 12pt; page-break-inside: avoid; }
+  .tags { margin-bottom: 12pt; }
+  .tag { display: inline-block; background: #e8f0fa; color: #1e5a99;
+    padding: 2pt 8pt; border-radius: 10pt; font-size: 10pt;
+    margin: 0 4pt 4pt 0; }
+  .description { font-size: 11pt; line-height: 1.55; }
+  .description h4 { font-size: 12pt; margin: 12pt 0 4pt 0; }
+  .description h5 { font-size: 11pt; margin: 10pt 0 4pt 0; }
+  .description p { margin: 6pt 0; }
+  .description ul { padding-left: 20pt; margin: 6pt 0; }
+  .description li { margin: 2pt 0; }
+  .description code { background: #eef1f4; padding: 1pt 4pt; border-radius: 3pt;
+    font-family: monospace; font-size: 10pt; }
+  .map-img, .elev-img {
+    width: 100%; max-width: 100%;
+    margin: 6pt 0 12pt 0;
+    border: 1pt solid #e2e6ea;
+    border-radius: 4pt;
+    display: block;
+  }
+  .wp { margin-bottom: 12pt; padding: 8pt 10pt;
+    border: 1pt solid #e2e6ea; border-radius: 4pt; page-break-inside: avoid; }
+  .wp-title { font-size: 12pt; font-weight: 700; margin-bottom: 3pt; }
+  .wp-coords { font-family: monospace; font-size: 10pt; color: #666; margin-bottom: 5pt; }
+  .wp-note { font-size: 10.5pt; line-height: 1.5; margin: 5pt 0; white-space: pre-wrap; }
+  .wp-imgs { display: grid; grid-template-columns: 1fr 1fr; gap: 6pt; margin-top: 6pt; }
+  .wp-imgs img { width: 100%; height: 130pt; object-fit: cover;
+    border-radius: 3pt; border: 1pt solid #e2e6ea; display: block; }
+  .general-imgs { display: grid; grid-template-columns: 1fr 1fr; gap: 8pt; }
+  .general-img-cell { page-break-inside: avoid; text-align: center; }
+  .general-img-cell img { width: 100%; height: 140pt; object-fit: cover;
+    border-radius: 3pt; border: 1pt solid #e2e6ea; display: block; }
+  .general-img-cell .cap { font-size: 10pt; font-style: italic;
+    color: #444; margin-top: 3pt; line-height: 1.3; }
+  @media print { a { color: inherit; text-decoration: none; } }
+</style>
+</head>
+<body>
+${html}
+</body>
+</html>`;
+
+  const iframe = document.createElement("iframe");
+  iframe.style.position = "fixed";
+  iframe.style.right = "0";
+  iframe.style.bottom = "0";
+  iframe.style.width = "0";
+  iframe.style.height = "0";
+  iframe.style.border = "0";
+  iframe.style.visibility = "hidden";
+  document.body.appendChild(iframe);
+
+  const doc = iframe.contentDocument || iframe.contentWindow.document;
+  doc.open();
+  doc.write(printDoc);
+  doc.close();
+  // Ausdruck in der Sprache der Oberfläche (Tour-Inhalte bleiben)
+  if (window.AndromedaI18n) { doc.documentElement.lang = AndromedaI18n.lang(); AndromedaI18n.translate(doc.body); }
+
+  setPrintProgress("Druckdialog wird geöffnet …");
+
+  await new Promise(resolve => {
+    const check = () => {
+      const imgs = Array.from(doc.images);
+      if (imgs.every(img => img.complete)) resolve();
+      else setTimeout(check, 100);
+    };
+    check();
+    setTimeout(resolve, 3000);
+  });
+
+  await new Promise(resolve => setTimeout(resolve, 200));
+  try {
+    iframe.contentWindow.focus();
+    iframe.contentWindow.print();
+  } catch (e) {
+    console.error("Print fehlgeschlagen:", e);
+    throw e;
+  }
+  setTimeout(() => document.body.removeChild(iframe), 3000);
+}
+
+function ratingTr(label, value) {
+  const v = Math.max(0, Math.min(5, parseInt(value) || 0));
+  let stars = "";
+  for (let i = 1; i <= 5; i++) stars += (i <= v) ? "★" : "☆";
+  const valText = v > 0 ? `${v} / 5` : "—";
+  return `<tr>
+    <td style="width:110pt;">${escapeHtml(label)}:</td>
+    <td class="stars">${stars}</td>
+    <td style="color:#666;font-size:10pt;">${valText}</td>
+  </tr>`;
+}
+
+async function imageToDataURL(relPath) {
+  if (!app.currentData || !app.currentData.getImageURL) return null;
+  const url = await app.currentData.getImageURL(relPath);
+  if (!url) return null;
+  const res = await fetch(url);
+  const blob = await res.blob();
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+function renderElevationProfileToDataURL(landscape) {
+  if (!app.elevationData) return null;
+  const W = landscape ? 2200 : 1600;
+  const H = 460;
+  const c = document.createElement("canvas");
+  c.width = W; c.height = H;
+  AndromedaElevation.drawChart(
+    c, app.elevationData, app.elevationData.activity,
+    { forceWidth: W, forceHeight: H, forceLight: true, fontSize: 16, lineWidth: 4, markerRadius: 6,
+      pad: { top: 30, right: 30, bottom: 50, left: 90 } }
+  );
+  return c.toDataURL("image/png");
+}
+
+/* ============================================================
+ * Print-Karte (statisches Canvas mit Kacheln)
+ * ============================================================ */
+function _mercatorProject(lat, lon, zoom) {
+  const n = 256 * Math.pow(2, zoom);
+  const x = n * ((lon + 180) / 360);
+  const latRad = lat * Math.PI / 180;
+  const y = n * (1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2;
+  return { x, y };
+}
+function _loadTile(url) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
+}
+function _getActiveTileURLTemplate() {
+  const key = app.activeBaseKey || "osm";
+  const cfg = AndromedaMap.BASE_LAYERS[key] || AndromedaMap.BASE_LAYERS.osm;
+  return cfg.url.replace("{s}", "a");
+}
+function _niceScale(meters) {
+  const choices = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000,
+                   20000, 50000, 100000, 200000, 500000];
+  for (const c of choices) if (c >= meters) return c;
+  return choices[choices.length - 1];
+}
+
+async function renderMapImage(width, height) {
+  if (!app.currentData || !app.map) return null;
+  const tileSize = 256;
+  const template = _getActiveTileURLTemplate();
+
+  const coords = extractLineCoords(app.currentData.geometry);
+  let bounds;
+  if (coords.length) {
+    const latlngs = coords.map(c => [c[1], c[0]]);
+    bounds = L.latLngBounds(latlngs);
+    for (const wp of app.currentData.route.waypoints || []) {
+      if (wp.lat != null && wp.lon != null) bounds.extend([wp.lat, wp.lon]);
+    }
+    bounds = bounds.pad(0.08);
+  } else {
+    bounds = app.map.getBounds();
+  }
+
+  const latN = bounds.getNorth();
+  const latS = bounds.getSouth();
+  const lonW = bounds.getWest();
+  const lonE = bounds.getEast();
+
+  let zoom = 17;
+  for (let z = 17; z >= 1; z--) {
+    const tl = _mercatorProject(latN, lonW, z);
+    const br = _mercatorProject(latS, lonE, z);
+    if ((br.x - tl.x) <= width && (br.y - tl.y) <= height) { zoom = z; break; }
+  }
+
+  const centerLat = (latN + latS) / 2;
+  const centerLon = (lonW + lonE) / 2;
+  const center = _mercatorProject(centerLat, centerLon, zoom);
+  const x0 = center.x - width / 2;
+  const y0 = center.y - height / 2;
+  const x1 = center.x + width / 2;
+  const y1 = center.y + height / 2;
+
+  const txMin = Math.floor(x0 / tileSize);
+  const tyMin = Math.floor(y0 / tileSize);
+  const txMax = Math.floor(x1 / tileSize);
+  const tyMax = Math.floor(y1 / tileSize);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#e8eef5";
+  ctx.fillRect(0, 0, width, height);
+
+  const tasks = [];
+  for (let ty = tyMin; ty <= tyMax; ty++) {
+    for (let tx = txMin; tx <= txMax; tx++) {
+      const url = template
+        .replace("{z}", zoom)
+        .replace("{x}", tx)
+        .replace("{y}", ty);
+      const px = tx * tileSize - x0;
+      const py = ty * tileSize - y0;
+      tasks.push(_loadTile(url).then(img => { if (img) ctx.drawImage(img, px, py); }));
+    }
+  }
+  await Promise.all(tasks);
+
+  if (coords.length >= 2) {
+    ctx.beginPath();
+    for (let i = 0; i < coords.length; i++) {
+      const p = _mercatorProject(coords[i][1], coords[i][0], zoom);
+      const px = p.x - x0, py = p.y - y0;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.strokeStyle = "rgba(255,255,255,0.5)";
+    ctx.lineWidth = 8;
+    ctx.lineJoin = "round"; ctx.lineCap = "round";
+    ctx.stroke();
+    ctx.strokeStyle = app.routeColor;
+    ctx.lineWidth = 5;
+    ctx.stroke();
+  }
+
+  if (coords.length) {
+    _drawCircleMarker(ctx, coords[0][1], coords[0][0], zoom, x0, y0, "#2e8b57", "S");
+    _drawCircleMarker(ctx, coords[coords.length - 1][1],
+                      coords[coords.length - 1][0], zoom, x0, y0, "#c0392b", "Z");
+  }
+
+  const waypoints = app.currentData.route.waypoints || [];
+  waypoints.forEach((wp, i) => {
+    if (wp.lat == null || wp.lon == null) return;
+    const p = _mercatorProject(wp.lat, wp.lon, zoom);
+    const px = p.x - x0, py = p.y - y0;
+    if (px < -20 || py < -20 || px > width + 20 || py > height + 20) return;
+    ctx.beginPath();
+    ctx.arc(px, py, 12, 0, Math.PI * 2);
+    ctx.fillStyle = "#d9534f"; ctx.fill();
+    ctx.strokeStyle = "white"; ctx.lineWidth = 2.5; ctx.stroke();
+    ctx.font = "bold 14px -apple-system, sans-serif";
+    ctx.fillStyle = "white"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(String(i + 1), px, py);
+  });
+
+  _drawScaleBar(ctx, width, height, centerLat, zoom);
+
+  ctx.font = "11px -apple-system, sans-serif";
+  ctx.fillStyle = "rgba(255,255,255,0.85)";
+  ctx.strokeStyle = "rgba(0,0,0,0.4)"; ctx.lineWidth = 2;
+  const attr = AndromedaI18n.tr("© OpenStreetMap-Mitwirkende");
+  ctx.textAlign = "right"; ctx.textBaseline = "bottom";
+  const attX = width - 8, attY = height - 6;
+  ctx.strokeText(attr, attX, attY); ctx.fillText(attr, attX, attY);
+
+  return canvas;
+}
+function _drawCircleMarker(ctx, lat, lon, zoom, x0, y0, color, letter) {
+  const p = _mercatorProject(lat, lon, zoom);
+  const px = p.x - x0, py = p.y - y0;
+  ctx.beginPath();
+  ctx.arc(px, py, 13, 0, Math.PI * 2);
+  ctx.fillStyle = color; ctx.fill();
+  ctx.strokeStyle = "white"; ctx.lineWidth = 3; ctx.stroke();
+  ctx.font = "bold 15px -apple-system, sans-serif";
+  ctx.fillStyle = "white"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText(letter, px, py);
+}
+function _drawScaleBar(ctx, W, H, centerLat, zoom) {
+  const centerLatRad = centerLat * Math.PI / 180;
+  const metersPerPixel = 156543.03392 * Math.cos(centerLatRad) / Math.pow(2, zoom);
+  const targetPx = 120;
+  const niceM = _niceScale(metersPerPixel * targetPx);
+  const barPx = niceM / metersPerPixel;
+  if (barPx < 30 || barPx > W * 0.5) return;
+  const label = niceM < 1000 ? `${niceM} m` : `${niceM / 1000} km`;
+  const x0 = 20; const y0 = H - 30; const x1 = x0 + barPx;
+  ctx.fillStyle = "rgba(255,255,255,0.9)";
+  ctx.strokeStyle = "rgba(0,0,0,0.4)"; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.rect(x0 - 8, y0 - 28, barPx + 60, 42); ctx.fill(); ctx.stroke();
+  ctx.strokeStyle = "#000"; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y0); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x0, y0 - 6); ctx.lineTo(x0, y0 + 6);
+  ctx.moveTo(x1, y0 - 6); ctx.lineTo(x1, y0 + 6);
+  const mid = (x0 + x1) / 2;
+  ctx.moveTo(mid, y0 - 3); ctx.lineTo(mid, y0 + 3);
+  ctx.stroke();
+  ctx.font = "bold 13px -apple-system, sans-serif";
+  ctx.fillStyle = "#000"; ctx.textAlign = "left"; ctx.textBaseline = "bottom";
+  ctx.fillText(label, x0, y0 - 10);
+}
+
+/* ============================================================
+ * Geolocation (eigene Position)
+ * ============================================================ */
+function toggleGeolocation() {
+  if (app.geoActive) stopGeolocation();
+  else startGeolocation();
+}
+async function startGeolocation() {
+  if (!("geolocation" in navigator)) {
+    toast("Geolocation nicht unterstützt.", "error"); return;
+  }
+  initMap();
+  if (AndromedaUtils.IS_FIREFOX) {
+    toast("Firefox auf Android: Position wird ungenau (Netzwerk-basiert). Für GPS bitte Chrome verwenden.", "warn");
+  } else {
+    toast("Standort wird ermittelt …", "warn");
+  }
+  $("geoBtn").classList.add("active");
+  $("geoBtnM").classList.add("active");
+  $("geoSwitch").checked = true;
+
+  try {
+    const pos = await AndromedaUtils.getGpsPosition({ maxWaitMs: 15000 });
+    app.geoActive = true;
+    onGeoSuccess(pos);
+  } catch (e) {
+    if (e && e.code === "no-gps") {
+      if (AndromedaUtils.IS_FIREFOX) {
+        toast("Kein Standort empfangen. Ist die Ortung aktiviert?", "warn");
+      } else {
+        toast("Kein GPS-Signal. Bitte GPS einschalten.", "warn");
+      }
+    } else if (e && e.code === "permission-denied") {
+      toast("Standort-Zugriff verweigert.", "error");
+    } else if (e && e.code === "not-supported") {
+      toast("Geolocation nicht unterstützt.", "error");
+    } else {
+      toast("Standort konnte nicht ermittelt werden.", "error");
+    }
+    onGeoError(e);
+  }
+}
+function stopGeolocation() {
+  app.geoActive = false;
+  if (app.userWatchId != null) {
+    try { navigator.geolocation.clearWatch(app.userWatchId); } catch (e) {}
+    app.userWatchId = null;
+  }
+  if (app.userMarker && app.map) {
+    app.map.removeLayer(app.userMarker); app.userMarker = null;
+  }
+  if (app.userAccuracyCircle && app.map) {
+    app.map.removeLayer(app.userAccuracyCircle); app.userAccuracyCircle = null;
+  }
+  app.firstFix = true;
+  $("geoBtn").classList.remove("active");
+  $("geoBtnM").classList.remove("active");
+  $("geoSwitch").checked = false;
+}
+function onGeoSuccess(pos) {
+  if (!app.map) return;
+  const lat = pos.coords.latitude, lon = pos.coords.longitude;
+  const acc = pos.coords.accuracy || 0;
+  const ll = [lat, lon];
+  if (!app.userMarker) {
+    const icon = L.divIcon({
+      html: '<div class="user-marker"></div>',
+      className: "", iconSize: [24, 24], iconAnchor: [12, 12] });
+    app.userMarker = L.marker(ll, {
+      icon, interactive: false, zIndexOffset: 1000 }).addTo(app.map);
+  } else app.userMarker.setLatLng(ll);
+  if (!app.userAccuracyCircle) {
+    app.userAccuracyCircle = L.circle(ll, {
+      radius: acc, color: "#1a73e8", weight: 1, opacity: 0.5,
+      fillColor: "#1a73e8", fillOpacity: 0.10, interactive: false }).addTo(app.map);
+  } else {
+    app.userAccuracyCircle.setLatLng(ll);
+    app.userAccuracyCircle.setRadius(acc);
+  }
+  if (app.firstFix) {
+    app.map.setView(ll, Math.max(app.map.getZoom(), 15), { animate: true });
+    app.firstFix = false;
+  }
+}
+function onGeoError(err) {
+  let msg = "Position nicht verfügbar.";
+  if (err && err.code === 1) msg = "Standort-Zugriff verweigert.";
+  else if (err && err.code === 2) msg = "Standort nicht ermittelbar.";
+  else if (err && err.code === 3) msg = "Zeitüberschreitung.";
+  toast(msg, "error");
+  if (!app.userMarker) {
+    $("geoBtn").classList.remove("active");
+    $("geoBtnM").classList.remove("active");
+    $("geoSwitch").checked = false;
+    app.geoActive = false;
+    if (app.userWatchId != null) {
+      try { navigator.geolocation.clearWatch(app.userWatchId); } catch (e) {}
+      app.userWatchId = null;
+    }
+  }
+}
+
+/* ============================================================
+ * Reset / Cleanup
+ * ============================================================ */
+function cleanup() {
+  wayHighlight.clear();
+
+  // Aktions-Menü im Übersichts-Tab wieder einklappen
+  const actionsInner = $("overviewActionsInner");
+  if (actionsInner) actionsInner.style.display = "none";
+  const actionsIcon = $("toggleActionsIcon");
+  if (actionsIcon) actionsIcon.textContent = "▼";
+  for (const url of app.imageURLs) {
+    try { URL.revokeObjectURL(url); } catch (e) {}
+  }
+  app.imageURLs = [];
+  if (app.arrowLayer) app.arrowLayer.clearLayers();
+  if (app.markerLayer) app.markerLayer.clearLayers();
+  if (app.highlightLayer) app.highlightLayer.clearLayers();
+  if (app.routeLayer && app.map) {
+    app.map.removeLayer(app.routeLayer); app.routeLayer = null;
+  }
+  elevPanel.setData(null);
+  app.currentData = null;
+  app.sourceMode = null;
+  app.serverRouteId = null;
+}
+
+function resetUI() {
+  $("routeTitle").textContent = "TourPack Viewer";
+  $("routeTitle").removeAttribute("data-full-title");
+  document.title = "TourPack Viewer";
+  const popup = $("titlePopup");
+  if (popup) popup.classList.add("hidden");
+  $("activityBadge").classList.add("hidden");
+
+  $("overviewContent").innerHTML = `
+    <div class="placeholder">
+      <div class="icon">🥾</div>
+      <p><b>Keine Tour geladen</b></p>
+      <p>Eine <b>.tourpack</b>-Datei ins Fenster ziehen oder oben auf „TourPack öffnen" klicken.</p>
+    </div>`;
+  $("waypointList").innerHTML = "";
+  $("gallery").innerHTML = "";
+  $("galleryEmpty").classList.add("hidden");
+
+  $("wpTabCount").textContent = "0";
+  $("wpTabCount").classList.add("hidden");
+  $("imgTabCount").textContent = "0";
+  $("imgTabCount").classList.add("hidden");
+
+  switchTab("overview");
+  AndromedaDirections.close();
+
+  if (app.arrowLayer) app.arrowLayer.clearLayers();
+  if (app.markerLayer) app.markerLayer.clearLayers();
+  if (app.routeLayer && app.map) {
+    app.map.removeLayer(app.routeLayer); app.routeLayer = null;
+  }
+  elevPanel.setData(null);
+  setControlsEnabled(false);
+
+  $("primaryLine").textContent = "Keine Tour geladen";
+  $("secondaryLine").textContent = "Zum Starten auf Öffnen tippen";
+  $("bottomBar").classList.remove("has-stats");
+
+  setStatus("Bereit. Bitte eine .tourpack-Datei öffnen.");
+}
+
+/* ============================================================
+ * Übergabe an den Navigator
+ * ============================================================ */
+async function saveTourpackToNavState(blob, fileName) {
+  return new Promise((resolve) => {
+    let finished = false;
+    const finish = (v) => { if (!finished) { finished = true; resolve(v); } };
+    try {
+      const req = indexedDB.open(Andromeda.NAV_HANDOFF_DB, 1);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains(Andromeda.NAV_HANDOFF_STORE)) {
+          db.createObjectStore(Andromeda.NAV_HANDOFF_STORE);
+        }
+      };
+      req.onsuccess = () => {
+        const db = req.result;
+        const tx = db.transaction(Andromeda.NAV_HANDOFF_STORE, "readwrite");
+        tx.objectStore(Andromeda.NAV_HANDOFF_STORE).put({
+          type: "tourpack",
+          fileName,
+          blob,
+          savedAt: new Date().toISOString(),
+        }, Andromeda.NAV_HANDOFF_KEY);
+        tx.oncomplete = () => {
+          try {
+            const vtx = db.transaction(Andromeda.NAV_HANDOFF_STORE, "readonly");
+            const vreq = vtx.objectStore(Andromeda.NAV_HANDOFF_STORE).get(Andromeda.NAV_HANDOFF_KEY);
+            vreq.onsuccess = () => {
+              const v = vreq.result;
+              finish(!!(v && v.blob && v.fileName));
+            };
+            vreq.onerror = () => finish(false);
+          } catch (e) {
+            finish(false);
+          }
+        };
+        tx.onerror = () => finish(false);
+        tx.onabort = () => finish(false);
+      };
+      req.onerror = () => finish(false);
+      setTimeout(() => finish(false), 3000);
+    } catch (e) {
+      finish(false);
+    }
+  });
+}
+
+async function ensureZipBlob() {
+  if (!app.currentData) return null;
+  if ((app.currentData.sourceMode === "zip" || app.currentData.sourceMode === "gpx") && app.currentData.sourceFile) {
+    return app.currentData.sourceFile;
+  }
+  return await buildZipFromServerData();
+}
+
+function safeStringify(obj, indent) {
+  const seen = new WeakSet();
+  return JSON.stringify(obj, function (key, value) {
+    if (typeof key === "string" && key.startsWith("_")) return undefined;
+    if (typeof value === "object" && value !== null) {
+      if (seen.has(value)) return undefined;
+      seen.add(value);
+    }
+    return value;
+  }, indent);
+}
+
+async function buildZipFromServerData() {
+  if (!app.currentData || !app.currentData.serverRouteId) return null;
+  const routeId = app.currentData.serverRouteId;
+  const base = `${HANDLER_URL}/tourpack/${encodeURIComponent(routeId)}`;
+  const zip = new JSZip();
+
+  zip.file("mimetype", TOURPACK_MIMETYPE, { compression: "STORE" });
+  zip.file("manifest.json", safeStringify(app.currentData.manifest, 2));
+  zip.file("route.json", safeStringify(app.currentData.route, 2));
+  zip.file("geometry.geojson", safeStringify(app.currentData.geometry, 2));
+  zip.file("description.md", app.currentData.description || "");
+
+  const paths = new Set();
+  for (const img of app.currentData.route.images || []) {
+    if (img && img.path) paths.add(img.path);
+  }
+  for (const wp of app.currentData.route.waypoints || []) {
+    for (const p of wp.images || []) paths.add(p);
+  }
+
+  showLoading("TourPack wird gepackt …");
+  try {
+    for (const p of paths) {
+      try {
+        const res = await fetch(`${base}/${p}`, { credentials: "omit" });
+        if (!res.ok) continue;
+        const blob = await res.blob();
+        zip.file(p, blob, { compression: "STORE" });
+      } catch (e) {
+        console.warn("Bild konnte nicht geladen werden:", p, e);
+      }
+    }
+    return await zip.generateAsync({
+      type: "blob",
+      compression: "DEFLATE",
+      compressionOptions: { level: 6 },
+    });
+  } finally {
+    hideLoading();
+  }
+}
+
+function buildFileName() {
+  if ((app.currentData.sourceMode === "zip" || app.currentData.sourceMode === "gpx") && app.currentData.sourceFile) {
+    return app.currentData.sourceFile.name || (app.currentData.sourceMode === "gpx" ? "tour.gpx" : "tourpack.tourpack");
+  }
+  const title = (app.currentData.route && app.currentData.route.title)
+             || "tourpack";
+  const safe = title
+    .replace(/[^a-zA-Z0-9_\-äöüÄÖÜß ]+/g, "_")
+    .trim() || "tourpack";
+  return safe + ".tourpack";
+}
+
+async function openInNavigator() {
+  if (!app.currentData) {
+    toast("Keine Tour geladen.", "error");
+    return;
+  }
+  const blob = await ensureZipBlob();
+  if (!blob) {
+    toast("Übergabe an den Navigator fehlgeschlagen.", "error");
+    return;
+  }
+  const fileName = buildFileName();
+  const ok = await saveTourpackToNavState(blob, fileName);
+  if (!ok) {
+    toast("Übergabe an den Navigator fehlgeschlagen.", "error");
+    return;
+  }
+  toast("Navigator wird geöffnet …", "success");
+  const ts = Date.now();
+  setTimeout(() => {
+    window.location.href = `${Andromeda.NAV_URL}?handoff=1&t=${ts}`;
+  }, 500);
+}
+
+/* ============================================================
+ * UI-Bindings
+ * ============================================================ */
+function bindTitlePopup() {
+  const el = $("routeTitle");
+  const popup = $("titlePopup");
+  if (!el || !popup) return;
+  let hideTimer = null;
+  el.addEventListener("click", e => {
+    e.stopPropagation();
+    const full = el.dataset.fullTitle || el.textContent;
+    if (!full) return;
+    popup.textContent = full;
+    popup.classList.remove("hidden");
+    if (hideTimer) clearTimeout(hideTimer);
+    hideTimer = setTimeout(() => popup.classList.add("hidden"), 3500);
+  });
+  document.addEventListener("click", e => {
+    if (!e.target.closest("#titlePopup") && !e.target.closest("#routeTitle")) {
+      popup.classList.add("hidden");
+    }
+  });
+}
+
+function bindUI() {
+  bindTitlePopup();
+
+  // Firefox-Hinweis im Optionen-Tab sichtbar schalten
+  const ffHint = $("firefoxGeoHint");
+  if (ffHint && AndromedaUtils.IS_FIREFOX) {
+    ffHint.style.display = "";
+  }
+
+  // Header
+  $("openBtn").onclick = () => $("fileInput").click();
+  $("downloadBtn").onclick = downloadCurrentTourpack;
+  $("navBtn").onclick = openInNavigator;
+  const gpxBtn = $("gpxBtn");
+  if (gpxBtn) gpxBtn.onclick = exportGpx;
+  $("printBtn").onclick = () => {
+    if (!app.currentData) return;
+    $("printDialog").classList.add("show");
+  };
+
+  $("directionsBtn").onclick = openDirections;
+  $("directionsBtnM").onclick = openDirections;
+
+  // Aktions-Menü im Übersichts-Tab (Mobile)
+  const toggleActionsBtn = $("toggleActionsBtn");
+  if (toggleActionsBtn) {
+    toggleActionsBtn.addEventListener("click", () => {
+      const content = $("overviewActionsInner");
+      const icon = $("toggleActionsIcon");
+      const isHidden = content.style.display === "none";
+      content.style.display = isHidden ? "block" : "none";
+      icon.textContent = isHidden ? "▲" : "▼";
+    });
+  }
+
+  // Mobile Panel
+  $("menuBtn").onclick = () => openPanel("overview");
+  $("panelClose").onclick = () => closePanel();
+  $("sidebar").onclick = (e) => {
+    if (app.isMobile && e.target === $("sidebar")) closePanel();
+  };
+  $$(".tab-bar button").forEach(btn => {
+    btn.onclick = () => switchTab(btn.dataset.tab);
+  });
+
+  // File-Input
+  $("fileInput").onchange = async e => {
+    const f = e.target.files[0];
+    if (f) {
+      if (f.name.toLowerCase().endsWith(".gpx")) await loadGpxFile(f);
+      else await loadFromZipFile(f);
+    }
+    e.target.value = "";
+  };
+
+  // Höhenprofil
+  $("elevBtn").onclick = elevPanel.toggle;
+  $("elevBtnM").onclick = elevPanel.toggle;
+  $("closeElev").onclick = elevPanel.hide;
+
+  // Wegpunkt-Detail-Sheet
+  $("wpdClose").onclick = closeWaypointDetail;
+  $("wpdShowOnMap").onclick = showActiveWaypointOnMap;
+  $("wpDetail").addEventListener("click", (e) => {
+    if (e.target === $("wpDetail")) closeWaypointDetail();
+  });
+
+  // Geolocation
+  $("geoBtn").onclick = toggleGeolocation;
+  $("geoBtnM").onclick = toggleGeolocation;
+  $("geoSwitch").onchange = (e) => {
+    if (e.target.checked) startGeolocation();
+    else stopGeolocation();
+  };
+
+  // Darstellung
+  $$(".route-color-input").forEach(el => {
+    el.addEventListener("input", e => setRouteColor(e.target.value));
+  });
+  $$(".route-opacity-input").forEach(el => {
+    el.addEventListener("input", e => setRouteOpacity(parseFloat(e.target.value)));
+  });
+  $$(".show-arrows-input").forEach(el => {
+    el.addEventListener("change", e => setShowArrows(e.target.checked));
+  });
+
+  // Print-Dialog
+  $("printCancel").onclick = () => $("printDialog").classList.remove("show");
+  $("printOk").onclick = async () => {
+    const btn = $("printOk");
+    btn.disabled = true;
+    try {
+      await doPrint();
+    } catch (e) {
+      console.error(e);
+      alert("Drucken fehlgeschlagen: " + e.message);
+    } finally {
+      btn.disabled = false;
+      $("printDialog").classList.remove("show");
+      setPrintProgress(false);
+    }
+  };
+  $("printBtnM").onclick = () => {
+    if (!app.currentData) return;
+    $("printDialog").classList.add("show");
+  };
+
+  // Datei-Öffnen (Options-Tab)
+  $("openBtnM").onclick = () => $("fileInput").click();
+  // Aktionen in der Übersicht
+  const gpxBtnM = $("gpxBtnM");
+  if (gpxBtnM) gpxBtnM.onclick = exportGpx;
+  const downloadBtnM = $("downloadBtnM");
+  if (downloadBtnM) downloadBtnM.onclick = downloadCurrentTourpack;
+  const navBtnM = $("navBtnM");
+  if (navBtnM) navBtnM.onclick = openInNavigator;
+  $("closeTourBtnM").onclick = () => {
+    if (!app.currentData) {
+      toast("Keine Tour geladen.", "error"); return;
+    }
+    if (!confirm("Tour wirklich schließen?")) return;
+    cleanup();
+    resetUI();
+    closePanel();
+    toast("Tour geschlossen.", "success");
+  };
+
+  // Drag & Drop
+  const dropOverlay = $("dropOverlay");
+  let dragCounter = 0;
+  window.addEventListener("dragenter", e => {
+    if (e.dataTransfer && Array.from(e.dataTransfer.types).includes("Files")) {
+      dragCounter++; dropOverlay.classList.add("show");
+    }
+  });
+  window.addEventListener("dragleave", () => {
+    dragCounter--;
+    if (dragCounter <= 0) {
+      dragCounter = 0;
+      dropOverlay.classList.remove("show");
+    }
+  });
+  window.addEventListener("dragover", e => e.preventDefault());
+  window.addEventListener("drop", async e => {
+    e.preventDefault();
+    dragCounter = 0;
+    dropOverlay.classList.remove("show");
+    const f = e.dataTransfer.files[0];
+    if (f) {
+      if (f.name.toLowerCase().endsWith(".gpx")) await loadGpxFile(f);
+      else await loadFromZipFile(f);
+    }
+  });
+
+  // Keyboard
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape") {
+      if ($("wpDetail") && $("wpDetail").classList.contains("show")) {
+        closeWaypointDetail();
+        return;
+      }
+      $("printDialog").classList.remove("show");
+      closePanel();
+    }
+  });
+
+  // Resize
+  window.addEventListener("resize", () => {
+    detectMobile();
+    if (app.map) app.map.invalidateSize();
+    if (app.elevationOpen) elevPanel.redraw();
+  });
+  window.addEventListener("orientationchange", () => {
+    setTimeout(() => {
+      if (app.map) app.map.invalidateSize();
+      if (app.elevationOpen) elevPanel.redraw();
+    }, 300);
+  });
+
+  window.addEventListener("beforeunload", () => {
+    cleanup();
+    stopGeolocation();
+  });
+}
+
+/* ============================================================
+ * Autoload über ?open=<id> oder ?src=<url>
+ * ============================================================ */
+const SAFE_ID_RE = /^[a-zA-Z0-9_-]{1,64}$/;
+
+async function tryLoadFromSrc() {
+  const params = new URLSearchParams(window.location.search);
+  const src = params.get("src");
+  if (!src) return false;
+
+  showLoading("TourPack wird geladen …");
+  try {
+    const res = await fetch(src, { credentials: "same-origin" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+
+    let fileName = "tourpack.tourpack";
+    const cd = res.headers.get("Content-Disposition") || "";
+    const m = /filename="([^"]+)"/.exec(cd);
+    if (m && m[1]) fileName = m[1];
+
+    const blob = await res.blob();
+    const file = new File([blob], fileName, { type: "application/zip" });
+    app.openedViaUrl = true;
+    if (fileName.toLowerCase().endsWith(".gpx")) {
+       await loadGpxFile(file);
+    } else {
+       await loadFromZipFile(file);
+    }
+    updateHeaderForUrlMode();
+    return true;
+  } catch (e) {
+    console.error("Konnte TourPack nicht laden:", e);
+    toast("TourPack konnte nicht geladen werden.", "error");
+    setStatus("TourPack konnte nicht geladen werden.");
+    return false;
+  } finally {
+    hideLoading();
+  }
+}
+
+async function tryLoadFromUrl() {
+  if (await tryLoadFromSrc()) return true;
+
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get("open");
+  if (!id || !SAFE_ID_RE.test(id)) return false;
+
+  showLoading("TourPack wird geladen …");
+  app.openedViaUrl = true;
+  try {
+    await loadFromServer(id);
+    updateHeaderForUrlMode();
+    return true;
+  } finally {
+    hideLoading();
+  }
+}
+
+function updateHeaderForUrlMode() {
+  const openBtn = $("openBtn");
+  if (!openBtn) return;
+  openBtn.hidden = !!app.openedViaUrl;
+}
+
+async function downloadCurrentTourpack() {
+  if (!app.currentData) {
+    toast("Keine Tour geladen.", "error");
+    return;
+  }
+  const blob = await ensureZipBlob();
+  if (!blob) {
+    toast("Download fehlgeschlagen.", "error");
+    return;
+  }
+  const fileName = buildFileName();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  toast("Datei heruntergeladen.", "success");
+}
+
+/* ============================================================
+ * Init
+ * ============================================================ */
+document.addEventListener("DOMContentLoaded", async () => {
+  // Service Worker (derselbe wie im Navigator): Viewer offline nutzbar
+  if ("serviceWorker" in navigator && window.isSecureContext) {
+    navigator.serviceWorker.register("./tourpack-nav-sw.js", { scope: "./" }).catch(() => {});
+  }
+  detectMobile();
+  AndromedaDarkmode.init();
+  initMap();
+  bindUI();
+  setControlsEnabled(false);
+  switchTab("overview");
+
+  const params = new URLSearchParams(window.location.search);
+  const hasUrlLoad = !!params.get("open") || !!params.get("src");
+  if (!hasUrlLoad) {
+    hideLoading();
+    return;
+  }
+  await tryLoadFromUrl();
+});
+
+</script>
+</body>
+</html>

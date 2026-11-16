@@ -1,0 +1,3169 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#2a6fbf">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="favicon.png">
+<title>TourPack Editor</title>
+
+<!-- Shared CSS -->
+<link rel="stylesheet" href="stylesheets/base.css">
+<link rel="stylesheet" href="stylesheets/layout.css">
+<link rel="stylesheet" href="stylesheets/components.css">
+<link rel="stylesheet" href="stylesheets/map.css">
+<link rel="stylesheet" href="stylesheets/elevation.css">
+<link rel="stylesheet" href="stylesheets/tourdetail.css">
+<!-- Leaflet -->
+<link rel="stylesheet" href="stylesheets/andromap.css">
+
+<style>
+  /* ============================================================
+   * tourpack-editor.html — Seitenspezifisch
+   * ============================================================ */
+
+
+  /* ---------- Header ---------- */
+  #header .title-input {
+    flex: 1 1 130px; min-width: 100px;
+    padding: 7px 11px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 13px; font-weight: 600;
+    background: var(--panel); color: var(--text);
+    transition: border-color .12s, box-shadow .12s;
+  }
+  #header .title-input:focus {
+    outline: none; border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(42,111,191,.15);
+  }
+  #header .menu-btn { display: none; }
+
+  #header .header-actions {
+    display: flex; align-items: center; gap: 6px;
+    flex-shrink: 0;
+    margin-left: auto;
+  }
+
+  /* ---------- Stats-Card ---------- */
+  .stats-card {
+    background: var(--primary-soft); border-radius: var(--radius-sm);
+    padding: 10px 12px; margin-bottom: 14px;
+  }
+  .stats-card .label {
+    font-size: 10.5px; color: var(--primary-dark);
+    text-transform: uppercase; letter-spacing: .06em;
+    font-weight: 700; margin-bottom: 3px;
+  }
+  body.dark .stats-card .label { color: var(--primary); }
+  .stats-card .value {
+    font-size: 14px; font-weight: 600;
+    font-variant-numeric: tabular-nums; line-height: 1.4;
+  }
+  .stats-card .value em {
+    color: var(--text-muted); font-style: normal;
+    font-weight: 400; margin-right: 3px;
+  }
+
+  /* ---------- Sterne ---------- */
+  .stars-row {
+    display: grid; grid-template-columns: 100px 1fr 32px;
+    gap: 8px; align-items: center; padding: 4px 0;
+  }
+  .stars-row .lbl { font-size: 13px; }
+  .stars-row .star-set {
+    font-size: 20px; line-height: 1; color: var(--gold);
+    user-select: none; letter-spacing: 2px;
+  }
+  .stars-row .star-set span {
+    cursor: pointer; transition: transform .1s; display: inline-block;
+  }
+  .stars-row .star-set span:hover { transform: scale(1.15); }
+  .stars-row .clear-btn {
+    background: none; border: 1px solid var(--border);
+    border-radius: 4px; padding: 2px 7px; cursor: pointer;
+    font-size: 11.5px; color: var(--text-muted);
+  }
+  .stars-row .clear-btn:hover { color: var(--danger); border-color: var(--danger); }
+
+  /* ---------- Wegpunkt-Liste ---------- */
+  .wp-item {
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 10px; border-radius: var(--radius-sm);
+    cursor: pointer; border: 1px solid transparent;
+    margin-bottom: 4px; background: var(--bg);
+    transition: all .12s;
+  }
+  .wp-item:hover, .wp-item.selected {
+    background: var(--primary-soft); border-color: var(--primary);
+  }
+  .wp-item.dragging { opacity: .5; }
+  .wp-item.drag-over { border-style: dashed; }
+  .wp-item .drag-handle {
+    color: #bbb; font-size: 12px; cursor: grab;
+    letter-spacing: -2px; user-select: none; padding: 0 1px;
+  }
+  .wp-item .num {
+    font-size: 10.5px; color: var(--text-muted);
+    font-family: ui-monospace, monospace; min-width: 22px;
+  }
+  .wp-item .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--wp); border: 2px solid white;
+    box-shadow: 0 0 0 1px #999; flex-shrink: 0;
+  }
+  .wp-item .name {
+    flex: 1; font-size: 13px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .wp-item .chip {
+    font-size: 10px; padding: 1px 6px; border-radius: 8px;
+    background: var(--panel); color: var(--text-muted); font-weight: 600;
+  }
+  .wp-item .arrow, .wp-item .del {
+    background: none; border: none;
+    color: var(--text-muted); cursor: pointer;
+    padding: 2px 5px; border-radius: 3px; line-height: 1;
+  }
+  .wp-item .arrow { font-size: 10px; }
+  .wp-item .arrow:hover:not(:disabled) { background: var(--panel); color: var(--text); }
+  .wp-item .arrow:disabled { opacity: .25; cursor: default; }
+  .wp-item .del { font-size: 16px; }
+  .wp-item .del:hover { color: var(--danger); background: #fce8e6; }
+  body.dark .wp-item .del:hover { background: rgba(229,115,115,.15); }
+
+  .wp-edit-form {
+    padding: 12px; background: var(--bg);
+    border-radius: var(--radius-sm); margin-top: 10px;
+    border: 1px solid var(--border);
+  }
+  .wp-edit-form .header {
+    display: flex; justify-content: space-between;
+    align-items: center; margin-bottom: 10px;
+  }
+  .wp-edit-form .header h4 {
+    margin: 0; font-size: 12px;
+    text-transform: uppercase; letter-spacing: .05em;
+    color: var(--text-muted);
+  }
+
+  /* ---------- Bild-Grid ---------- */
+  .img-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 10px; margin-top: 10px;
+  }
+  .img-cell {
+    background: var(--panel); border: 1px solid var(--border);
+    padding: 6px; border-radius: var(--radius-sm);
+    position: relative; cursor: grab;
+    transition: transform .12s, box-shadow .12s, outline-color .12s;
+    outline: 0 solid transparent;
+  }
+  .img-cell.dragging { opacity: .4; cursor: grabbing; }
+  .img-cell.drag-over {
+    outline: 2px dashed var(--primary);
+    outline-offset: -2px; background: var(--primary-soft);
+  }
+  .img-cell img {
+    width: 100%; height: 90px; object-fit: cover;
+    border-radius: 4px; display: block; background: var(--bg);
+    cursor: zoom-in;
+  }
+  .img-cell textarea {
+    width: 100%; margin-top: 6px; padding: 5px 7px;
+    font-size: 11.5px; border: 1px solid var(--border);
+    border-radius: 4px; font-family: inherit;
+    resize: vertical; min-height: 30px; line-height: 1.35;
+    background: var(--panel); color: var(--text);
+    cursor: text;
+  }
+  .img-cell textarea:focus { outline: none; border-color: var(--primary); }
+  .img-cell .del {
+    margin-top: 5px; width: 100%;
+    padding: 4px 8px; border: none; border-radius: 4px;
+    background: #fce8e6; color: var(--danger);
+    font-size: 11px; font-weight: 600; cursor: pointer;
+    font-family: inherit;
+  }
+  body.dark .img-cell .del { background: rgba(229,115,115,.15); }
+  .img-cell.is-thumbnail {
+    outline: 2px solid var(--gold); outline-offset: -2px;
+  }
+  .img-cell .thumb-badge {
+    position: absolute; top: 10px; left: 10px;
+    background: var(--gold); color: white;
+    font-size: 10px; font-weight: 700;
+    padding: 2px 7px; border-radius: 8px;
+    letter-spacing: .05em; text-transform: uppercase;
+    pointer-events: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,.3);
+  }
+  .img-cell .thumb-btn {
+    margin-top: 5px; width: 100%;
+    padding: 4px 8px; border: none; border-radius: 4px;
+    background: var(--bg); color: var(--text);
+    font-size: 11px; font-weight: 600; cursor: pointer;
+    font-family: inherit;
+  }
+  .img-cell .thumb-btn:hover {
+    background: var(--primary-soft); color: var(--primary-dark);
+  }
+  body.dark .img-cell .thumb-btn:hover { color: var(--primary); }
+
+  /* ---------- Ort-Anzeige im Info-Tab ---------- */
+  .location-display {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+  .location-display .loc-line {
+    display: flex;
+    gap: 8px;
+    padding: 1px 0;
+    line-height: 1.35;
+  }
+  .location-display .loc-lbl {
+    color: var(--text-muted);
+    min-width: 68px;
+    flex-shrink: 0;
+    font-size: 11.5px;
+  }
+  .location-display .loc-val {
+    color: var(--text);
+    font-weight: 500;
+    word-break: break-word;
+    font-size: 12px;
+  }
+  .location-display .loc-heading {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    padding: 8px 0 2px 0;
+    border-top: 1px solid var(--border);
+    margin-top: 4px;
+  }
+  .location-display .loc-heading:first-of-type {
+    padding-top: 0;
+    border-top: none;
+    margin-top: 0;
+  }
+
+  /* Markdown-Hilfe unter der Beschreibung */
+  .markdown-help {
+    margin-top: 8px;
+    padding: 8px 10px;
+    background: var(--bg);
+    border-radius: 6px;
+    font-size: 11.5px;
+    line-height: 1.5;
+    color: var(--text-muted);
+  }
+  .markdown-help .md-row {
+    display: flex;
+    gap: 10px;
+    padding: 2px 0;
+    align-items: baseline;
+  }
+  .markdown-help code {
+    font-family: ui-monospace, Menlo, monospace;
+    background: var(--panel);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 11px;
+    color: var(--text);
+    flex-shrink: 0;
+    min-width: 140px;
+  }
+  .markdown-help span {
+    flex: 1;
+    color: var(--text-muted);
+  }
+  body.dark .markdown-help code { background: #23282d; }
+
+  .drop-zone {
+    border: 2px dashed var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: 14px; text-align: center;
+    color: var(--text-muted); font-size: 12px;
+    transition: all .15s; background: var(--bg);
+    margin-top: 8px;
+  }
+  .drop-zone.drop-active {
+    border-color: var(--primary); background: var(--primary-soft);
+    color: var(--primary-dark);
+  }
+  body.dark .drop-zone.drop-active { color: var(--primary); }
+
+  .thumb-preview {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px; background: var(--bg);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+  }
+  .thumb-preview img {
+    width: 100px; height: 68px;
+    object-fit: cover; border-radius: 4px;
+    display: block; background: var(--panel);
+    cursor: zoom-in; flex-shrink: 0;
+  }
+  .thumb-preview .thumb-info {
+    flex: 1; min-width: 0;
+    font-size: 12px; line-height: 1.4;
+    color: var(--text-muted);
+  }
+  .thumb-preview .thumb-info strong {
+    display: block; color: var(--text);
+    font-size: 13px; font-weight: 600;
+    margin-bottom: 2px;
+  }
+  .thumb-preview .thumb-actions {
+    display: flex; flex-direction: column; gap: 4px;
+    flex-shrink: 0;
+  }
+  .thumb-preview .thumb-actions button {
+    padding: 5px 10px; border: none;
+    border-radius: 4px; font-size: 11.5px;
+    font-weight: 600; cursor: pointer;
+    font-family: inherit; white-space: nowrap;
+  }
+  .thumb-preview .thumb-actions .btn-remove {
+    background: #fce8e6; color: var(--danger);
+  }
+  body.dark .thumb-preview .thumb-actions .btn-remove {
+    background: rgba(229,115,115,.15);
+  }
+  .thumb-empty {
+    padding: 16px; background: var(--bg);
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-sm);
+    text-align: center;
+    color: var(--text-muted); font-size: 12.5px;
+    line-height: 1.5;
+  }
+
+  /* ---------- Lightbox ---------- */
+  .lightbox-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(15,20,30,.93);
+    z-index: 9900; display: none;
+    align-items: center; justify-content: center;
+    padding: 30px; cursor: zoom-out;
+  }
+  .lightbox-backdrop.show { display: flex; }
+  .lightbox-backdrop img {
+    max-width: 100%; max-height: 82vh;
+    object-fit: contain;
+    box-shadow: 0 10px 40px rgba(0,0,0,.6);
+    border-radius: 6px; background: #111;
+    cursor: default;
+  }
+  .lightbox-caption {
+    position: absolute;
+    bottom: calc(24px + var(--safe-bottom));
+    left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,.78); color: white;
+    padding: 8px 18px; border-radius: 20px;
+    font-size: 12.5px; font-style: italic;
+    max-width: 85%; text-align: center;
+  }
+  .lightbox-caption:empty { display: none; }
+  .lightbox-close {
+    position: absolute;
+    top: calc(16px + var(--safe-top)); right: calc(16px + var(--safe-right));
+    background: rgba(255,255,255,.9); border: none;
+    width: 40px; height: 40px; border-radius: 50%;
+    font-size: 22px; font-weight: 700; line-height: 1;
+    cursor: pointer; color: #333;
+    box-shadow: 0 2px 8px rgba(0,0,0,.3);
+    padding: 0;
+  }
+
+  /* ---------- Dark-Mode-Overrides ---------- */
+  body.dark #header .title-input { background: #23282d; }
+  body.dark #mapWrap { background: #1a1d21; }
+
+  /* ---------- Mobile ---------- */
+  @media (max-width: 900px) {
+    #header {
+      gap: 6px; min-height: 52px;
+    }
+    #header .brand { display: none; }
+    #header .menu-btn { display: flex; }
+    #header .desktop-only { display: none !important; }
+    #header .title-input {
+      flex: 1 1 auto; min-width: 0;
+      font-size: 14px; padding: 6px 10px;
+    }
+    #header .header-btn { padding: 6px 10px; font-size: 11.5px; }
+
+    main {
+      display: flex; flex-direction: column;
+      padding: 0; gap: 0;
+    }
+    #mapCol {
+      display: flex; flex-direction: column;
+      flex: 1 1 0; min-height: 0;
+    }
+    #mapWrap {
+      border-radius: 0; box-shadow: none;
+      flex: 1 1 0; min-height: 0;
+    }
+    #mapFooter { display: none; }
+
+  }
+
+  /* Erfolgs-Button (Upload) für die mobile Options-Ansicht */
+  .btn-full.success {
+    background: var(--success);
+    color: white;
+    margin-top: 8px;
+  }
+  .btn-full.success:hover { filter: brightness(0.92); }
+
+  @media (max-width: 480px) {
+    .img-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+    .row-3 { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     Header
+     ============================================================ -->
+<header id="header">
+  <button class="icon-btn menu-btn" id="menuBtn" title="Menü" aria-label="Menü öffnen">☰</button>
+  <a class="home-logo desktop-only" href="index.html" title="Startseite"><img src="logo.svg" alt="Andromeda-Explorer"></a>
+  <span class="brand">TourPack Editor</span>
+
+  <input type="text" id="titleInput" class="title-input" placeholder="Titel der Tour">
+
+  <div class="header-actions">
+    <button class="header-btn" id="gpxBtn">
+      <span class="lbl-full">GPX importieren</span>
+      <span class="lbl-short">📂 GPX</span>
+    </button>
+    <button class="header-btn" id="loadBtn">
+      <span class="lbl-full">TourPack öffnen</span>
+      <span class="lbl-short">📁 TourPack</span>
+    </button>
+    <button class="header-btn primary desktop-only" id="saveBtn">Speichern</button>
+    <button class="header-btn success desktop-only" id="uploadBtn">Hochladen</button>
+    <button class="icon-btn lang-btn desktop-only" type="button"></button>
+    <button class="icon-btn darkmode-btn desktop-only" title="Nachtmodus" aria-label="Nachtmodus">🌙</button>
+  </div>
+</header>
+
+<!-- ============================================================
+     Main
+     ============================================================ -->
+<main>
+  <aside id="sidebar">
+    <div class="panel-inner">
+      <div class="panel-head">
+        <h2 id="panelTitle">Menü</h2>
+        <button class="close-btn" id="panelClose">✕</button>
+      </div>
+
+      <nav class="tab-bar">
+        <button data-tab="info" class="active">Info</button>
+        <button data-tab="waypoints">Wegpunkte <span id="wpTabCount" class="count hidden">0</span></button>
+        <button data-tab="images">Bilder <span id="imgTabCount" class="count hidden">0</span></button>
+        <button data-tab="options">Optionen</button>
+      </nav>
+
+      <div class="tab-panes">
+        <!-- ============================================================ -->
+        <!-- Info                                                          -->
+        <!-- ============================================================ -->
+        <section class="tab-pane active" data-pane="info">
+          <div class="field">
+            <label>Fortbewegung</label>
+            <div class="segmented" id="activitySegmented">
+              <button data-value="hiking" class="active">🥾 Wandern</button>
+              <button data-value="cycling">🚴 Rad</button>
+              <button data-value="running">🏃 Laufen</button>
+            </div>
+          </div>
+
+          <div class="field" id="roadbikeField" style="display:none;">
+            <label>Eignung</label>
+            <label class="check-row">
+              <input type="checkbox" id="roadbikeInput">
+              <span>Rennradtauglich</span>
+            </label>
+            <div class="hint">Aktivieren, wenn die Route für Rennräder geeignet ist — durchgehend asphaltiert, keine Schotterpassagen, keine groben Waldwege.</div>
+          </div>
+
+          <div class="stats-card">
+            <div class="label">Statistik</div>
+            <div class="value" id="routeStats">—</div>
+          </div>
+
+          <div class="field" id="wayStatsField" style="display:none;">
+            <label>Wege & Oberflächen</label>
+            <div id="wayStatsContainer"></div>
+          </div>
+
+          <div class="field">
+            <label>Geschätzte Dauer</label>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <div style="position:relative;">
+                <input type="number" id="durationHInput"
+                       min="0" max="99" step="1" placeholder="0"
+                       style="padding-right:44px;">
+                <span style="position:absolute;right:12px;top:50%;
+                             transform:translateY(-50%);
+                             color:var(--text-muted);font-size:12px;
+                             pointer-events:none;">Std</span>
+              </div>
+              <div style="position:relative;">
+                <input type="number" id="durationMInput"
+                       min="0" max="59" step="5" placeholder="0"
+                       style="padding-right:52px;">
+                <span style="position:absolute;right:12px;top:50%;
+                             transform:translateY(-50%);
+                             color:var(--text-muted);font-size:12px;
+                             pointer-events:none;">Min</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Schwierigkeit</label>
+            <div class="stars-row">
+              <span class="lbl">Schwierigkeit:</span>
+              <span class="star-set" data-cat="overall"></span>
+              <button class="clear-btn" data-cat="overall">×</button>
+            </div>
+            <div class="stars-row">
+              <span class="lbl">Technik:</span>
+              <span class="star-set" data-cat="technique"></span>
+              <button class="clear-btn" data-cat="technique">×</button>
+            </div>
+            <div class="stars-row">
+              <span class="lbl">Kondition:</span>
+              <span class="star-set" data-cat="condition"></span>
+              <button class="clear-btn" data-cat="condition">×</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Einschätzung (Freitext)</label>
+            <input type="text" id="diffTextInput" placeholder="z. B. Technisch einfach, aber ausdauernd">
+          </div>
+
+          <div class="field">
+            <label>Tags (Komma-getrennt)</label>
+            <input type="text" id="tagsInput" placeholder="alpen, hütte, aussicht">
+          </div>
+
+          <div class="field">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;">
+              <span style="font-size:11.5px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Region / Ort</span>
+              <button type="button" class="mini-btn" id="detectLocationBtn" disabled
+                      title="Region und Ort für Start-, Mittel- und Endpunkt ermitteln">
+                Region automatisch ermitteln
+              </button>
+            </div>
+            <div class="location-display" id="locationDisplay">
+              <div class="loc-heading">Start</div>
+              <div class="loc-line"><span class="loc-lbl">Ort</span><span class="loc-val" id="locStartPlaceDisplay">—</span></div>
+              <div class="loc-line"><span class="loc-lbl">Gemeinde</span><span class="loc-val" id="locStartMunicipalityDisplay">—</span></div>
+              <div class="loc-line"><span class="loc-lbl">Bezirk</span><span class="loc-val" id="locStartCountyDisplay">—</span></div>
+              <div class="loc-line"><span class="loc-lbl">Bundesland</span><span class="loc-val" id="locStartRegionDisplay">—</span></div>
+              <div class="loc-line"><span class="loc-lbl">Land</span><span class="loc-val" id="locStartCountryDisplay">—</span></div>
+
+              <div class="loc-heading">Mittelpunkt</div>
+              <div class="loc-line"><span class="loc-lbl">Ort</span><span class="loc-val" id="locCenterPlaceDisplay">—</span></div>
+              <div class="loc-line"><span class="loc-lbl">Gemeinde</span><span class="loc-val" id="locCenterMunicipalityDisplay">—</span></div>
+              <div class="loc-line"><span class="loc-lbl">Bezirk</span><span class="loc-val" id="locCenterCountyDisplay">—</span></div>
+              <div class="loc-line"><span class="loc-lbl">Bundesland</span><span class="loc-val" id="locCenterRegionDisplay">—</span></div>
+              <div class="loc-line"><span class="loc-lbl">Land</span><span class="loc-val" id="locCenterCountryDisplay">—</span></div>
+
+              <div class="loc-heading">Ende</div>
+              <div class="loc-line"><span class="loc-lbl">Ort</span><span class="loc-val" id="locEndPlaceDisplay">—</span></div>
+              <div class="loc-line"><span class="loc-lbl">Gemeinde</span><span class="loc-val" id="locEndMunicipalityDisplay">—</span></div>
+              <div class="loc-line"><span class="loc-lbl">Bezirk</span><span class="loc-val" id="locEndCountyDisplay">—</span></div>
+              <div class="loc-line"><span class="loc-lbl">Bundesland</span><span class="loc-val" id="locEndRegionDisplay">—</span></div>
+              <div class="loc-line"><span class="loc-lbl">Land</span><span class="loc-val" id="locEndCountryDisplay">—</span></div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Beschreibung (Markdown)</label>
+            <textarea id="descriptionInput" rows="20" placeholder="Beschreibung der Route …"></textarea>
+            <div class="markdown-help">
+              <div class="md-row"><code># Überschrift</code><span>große Überschrift</span></div>
+              <div class="md-row"><code>## Überschrift</code><span>kleinere Überschrift</span></div>
+              <div class="md-row"><code>**fett**</code><span><strong>fett</strong> geschrieben</span></div>
+              <div class="md-row"><code>*kursiv*</code><span><em>kursiv</em> geschrieben</span></div>
+              <div class="md-row"><code>- Punkt</code><span>Aufzählung</span></div>
+              <div class="md-row"><code>[Text](https://…)</code><span>Link einfügen</span></div>
+              <div class="md-row"><code>Leerzeile</code><span>neuer Absatz</span></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- Wegpunkte                                                     -->
+        <!-- ============================================================ -->
+        <section class="tab-pane" data-pane="waypoints">
+          <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+            <button class="btn primary small" id="addWpBtn">+ Wegpunkt</button>
+            <button class="btn small" id="pickOnMapBtn" disabled>Auf Karte setzen</button>
+          </div>
+          <div id="wpList"></div>
+
+          <div id="wpForm" class="wp-edit-form hidden">
+            <div class="header">
+              <h4 id="wpFormTitle">Wegpunkt bearbeiten</h4>
+              <button class="btn small" id="closeWpForm">Fertig</button>
+            </div>
+
+            <div class="field">
+              <label>Name</label>
+              <input type="text" id="wpName" placeholder="Name des Wegpunkts">
+            </div>
+
+            <div class="row-3">
+              <div class="field">
+                <label>Lat</label>
+                <input type="number" id="wpLat" step="0.000001">
+              </div>
+              <div class="field">
+                <label>Lon</label>
+                <input type="number" id="wpLon" step="0.000001">
+              </div>
+              <div class="field">
+                <label>Höhe (m)</label>
+                <input type="number" id="wpEle" step="1">
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Notiz</label>
+              <textarea id="wpNote" rows="4" placeholder="Notiz zum Wegpunkt …"></textarea>
+            </div>
+
+            <div class="field">
+              <label>Bilder</label>
+              <input type="file" id="wpImgInput" accept="image/*" multiple hidden>
+              <button class="btn small" id="wpImgBtn">+ Bilder hinzufügen</button>
+              <div id="wpImgList" class="img-grid"></div>
+              <div class="drop-zone" id="wpImgDrop">
+                Bilder hierher ziehen, um sie diesem Wegpunkt hinzuzufügen
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- Bilder                                                        -->
+        <!-- ============================================================ -->
+        <section class="tab-pane" data-pane="images">
+          <div class="section" style="margin-bottom:20px;">
+            <h3 class="settings-heading">Thumbnail</h3>
+            <div id="thumbnailArea"></div>
+          </div>
+
+          <div class="section">
+            <h3 class="settings-heading">Allgemeine Bilder</h3>
+            <input type="file" id="genImgInput" accept="image/*" multiple hidden>
+            <button class="btn-full primary" id="addGenImgBtn">+ Bilder hinzufügen</button>
+
+            <div class="drop-zone" id="genImgDrop">
+              Bilder hierher ziehen, um sie als allgemeine Bilder hinzuzufügen
+            </div>
+
+            <div id="genImgList" class="img-grid"></div>
+            <div id="genImgEmpty" class="empty">Noch keine allgemeinen Bilder.</div>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- Optionen (nur mobil sichtbar)                                 -->
+        <!-- ============================================================ -->
+        <section class="tab-pane" data-pane="options">
+          <div class="section" style="margin-bottom:20px;">
+            <h3 class="settings-heading">Darstellung</h3>
+
+            <div class="settings-row">
+              <div class="label-col">
+                <strong>Nachtmodus</strong>
+                <span>Dunkles Design für alle Seiten</span>
+              </div>
+              <label class="switch">
+                <input type="checkbox" class="darkmode-switch">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div class="settings-row">
+              <div class="label-col">
+                <strong>Sprache</strong>
+                <span>Sprache der Oberfläche. Touren bleiben in ihrer Originalsprache.</span>
+              </div>
+              <div class="lang-seg"></div>
+            </div>
+
+            <div class="settings-row">
+              <div class="label-col">
+                <strong>Linienfarbe</strong>
+              </div>
+              <input type="color" class="line-color-input" value="#2a6fbf">
+            </div>
+
+            <div class="settings-row">
+              <div class="label-col">
+                <strong>Transparenz</strong>
+              </div>
+              <input type="range" class="line-opacity-input" min="0.15" max="1" step="0.05" value="0.9">
+              <span class="range-value line-opacity-value">90 %</span>
+            </div>
+
+            <div class="settings-row">
+              <div class="label-col">
+                <strong>Richtungspfeile</strong>
+                <span>Pfeile entlang der Route anzeigen</span>
+              </div>
+              <label class="switch">
+                <input type="checkbox" class="show-arrows-input" checked>
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="section" style="margin-bottom:20px;">
+            <h3 class="settings-heading">Datei</h3>
+            <button class="btn-full" id="newBtnM">Leer starten</button>
+          </div>
+
+          <div class="section">
+            <h3 class="settings-heading">Aktuelle Tour</h3>
+            <button class="btn-full primary" id="saveBtnM">Speichern</button>
+            <button class="btn-full success" id="uploadBtnM">Hochladen</button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </aside>
+
+  <div id="mapCol">
+    <div id="mapWrap">
+      <div id="map"></div>
+      <div id="mapHint"></div>
+
+      <div id="layerPicker">
+        <h4>Kartenstil</h4>
+        <button data-base="osm">OpenStreetMap</button>
+        <button data-base="topo">OpenTopoMap</button>
+        <button data-base="cyclosm">CyclOSM</button>
+        <div class="sep"></div>
+        <h4>Overlays</h4>
+        <button data-overlay="hiking">🟢 Wanderwege</button>
+        <button data-overlay="cycling">🔵 Radwege</button>
+      </div>
+
+      <div class="map-float tr">
+        <button class="float-btn" id="layerBtn" title="Kartenstil">🗺️</button>
+      </div>
+    </div>
+
+    <div id="elevPanel">
+      <div class="elev-head">
+        <span>Höhenprofil <span class="stats" id="elevStats"></span></span>
+        <button id="closeElev" title="Schließen">×</button>
+      </div>
+      <div id="elevCanvasWrap">
+        <canvas id="elevChart"></canvas>
+        <div id="elevTooltip"></div>
+      </div>
+      <div id="slopeLegend"></div>
+    </div>
+
+    <footer id="mapFooter">
+      <span class="status" id="status">Bereit. Eine GPX-Datei laden oder eine neue Tour erstellen.</span>
+      <span class="footer-stats" id="footerStats"></span>
+      <button id="elevBtn" title="Höhenprofil ein/aus" disabled>Höhenprofil anzeigen</button>
+      <div class="display-settings" title="Darstellung der Route">
+        <label title="Linienfarbe">
+          <input type="color" class="line-color-input" value="#2a6fbf">
+        </label>
+        <label title="Transparenz">
+          <input type="range" class="line-opacity-input" min="0.15" max="1" step="0.05" value="0.9">
+          <span class="val line-opacity-value">90 %</span>
+        </label>
+        <label title="Pfeile anzeigen">
+          <input type="checkbox" class="show-arrows-input" checked>
+          Pfeile
+        </label>
+      </div>
+    </footer>
+  </div>
+</main>
+
+<!-- ============================================================
+     Bottom-Bar (Mobile)
+     ============================================================ -->
+<div id="bottomBar">
+  <div class="info-col">
+    <div class="primary-line" id="primaryLine">Keine Tour geladen</div>
+    <div class="secondary-line" id="secondaryLine">Route laden oder Wegpunkte setzen</div>
+  </div>
+  <button class="bar-btn" id="elevBtnM" title="Höhenprofil" disabled>📈</button>
+  <button class="bar-btn primary" id="saveBtnBottom" title="Speichern">💾</button>
+</div>
+
+<!-- ============================================================
+     Unsichtbare File-Inputs
+     ============================================================ -->
+<input type="file" id="gpxFileInput" accept=".gpx,application/gpx+xml" hidden>
+<input type="file" id="tourpackFileInput" accept=".tourpack" hidden>
+
+<!-- ============================================================
+     Lightbox
+     ============================================================ -->
+<div class="lightbox-backdrop" id="imgLightbox">
+  <img id="imgLightboxImg" src="" alt="">
+  <div class="lightbox-caption" id="imgLightboxCaption"></div>
+  <button class="lightbox-close" id="imgLightboxClose" title="Schließen">×</button>
+</div>
+
+<!-- ============================================================
+     Upload-Modal (Hochladen auf Andromeda-Explorer)
+     ============================================================ -->
+<div class="modal-backdrop" id="uploadModal">
+  <div class="modal" style="max-width:560px;">
+    <h3>TourPack hochladen</h3>
+
+    <div style="max-height:220px;overflow-y:auto;background:var(--bg);padding:12px 16px;border-radius:var(--radius-sm);margin-bottom:14px;">
+      <ul style="padding-left:20px;margin:0;font-size:12.5px;line-height:1.6;">
+        <li>Alle Inhalte eines TourPacks müssen <strong>vollständig
+            selbst erstellt</strong> sein — Bilder, Texte und GPX-Daten.</li>
+        <li>Es dürfen <strong>keine Inhalte Dritter</strong> hochgeladen
+            werden, auch nicht mit Quellenangabe.</li>
+        <li>Mit dem Hochladen wird zugestimmt, dass das TourPack unter der
+            <strong>CC BY-SA 4.0</strong> veröffentlicht wird.</li>
+        <li>Der Betreiber kann Uploads jederzeit ohne Angabe von Gründen
+            ablehnen oder löschen.</li>
+        <li>Keine personenbezogenen Daten Dritter ohne deren Einwilligung.
+            Keine rechtswidrigen Inhalte.</li>
+      </ul>
+    </div>
+
+    <label style="display:flex;gap:12px;align-items:flex-start;padding:12px 14px;background:var(--bg);border-radius:var(--radius-sm);margin-bottom:16px;cursor:pointer;font-size:13px;line-height:1.5;">
+      <input type="checkbox" id="uploadAgree" style="margin-top:3px;accent-color:var(--primary);flex-shrink:0;width:16px;height:16px;">
+      <span>Ich habe die Hinweise gelesen. Ich bestätige, dass <strong>alle
+        Inhalte dieses TourPacks vollständig von mir selbst erstellt</strong>
+        wurden und stimme der Veröffentlichung unter der CC BY-SA 4.0 zu.</span>
+    </label>
+
+    <div id="uploadStatus" style="display:none;font-size:12.5px;line-height:1.5;margin-bottom:12px;padding:10px 12px;border-radius:var(--radius-sm);"></div>
+
+    <div class="actions">
+      <button class="cancel" id="uploadCancel">Abbrechen</button>
+      <button class="ok" id="uploadConfirm" disabled>Hochladen</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     Hinweis nach GPX-Import ohne Wegdaten: zuerst nachplanen
+     ============================================================ -->
+<div class="modal-backdrop" id="replanModal">
+  <div class="modal replan-modal">
+    <h3>Aufgezeichnete Tour? Zuerst nachplanen!</h3>
+    <p>Diese GPX-Datei enthält nur die Linie — keine Abbiegeanweisungen und
+      keine Angaben zu Wegen und Oberflächen. Wurde sie mit einem GPS-Gerät
+      oder einer App aufgezeichnet, lohnt es sich, sie zuerst im
+      Routenplaner nachzuplanen. Dann zeigt die Navigation echte
+      Abbiegehinweise, und die Tour enthält Wegearten, Oberflächen und
+      SAC-Skala.</p>
+
+    <ol class="replan-steps">
+      <li><b>Routenplaner öffnen.</b> Der Knopf unten öffnet ihn in einem
+        neuen Tab und übernimmt die Aufzeichnung gleich mit. Dort die
+        passende Fortbewegungsart wählen. (Ohne Knopf: im Routenplaner
+        „GPX importieren“ → „Route nachplanen“.)</li>
+      <li><b>Abwarten.</b> Der Routenplaner setzt Wegpunkte entlang der
+        Aufzeichnung, berechnet die Route und bessert dort nach, wo sie
+        einen anderen Weg nimmt.</li>
+      <li><b>Abweichung prüfen.</b> Die aufgezeichnete Strecke ist die
+        <span class="replan-gpx-line" aria-hidden="true"></span>
+        <b>violett gestrichelte</b> Linie, die berechnete Route die
+        durchgehende. Fahren Sie einmal die ganze Tour ab und zoomen Sie
+        hinein, wo die beiden auseinandergehen. Nimmt die Route einen
+        anderen Weg, ziehen Sie den nächsten Wegpunkt auf den richtigen Weg
+        oder tippen Sie auf die Route, um einen Zwischenpunkt einzufügen.</li>
+      <li><b>Plausibel?</b> Vergleichen Sie im Tab „Ergebnis“ Länge und
+        Höhenmeter mit der Aufzeichnung<span id="replanRecStats"></span>.
+        Größere Unterschiede deuten auf einen falschen Weg hin. Und: Führt
+        die Route nur über Wege, die es gibt und die man gehen darf? Weglose
+        Abkürzungen in der Aufzeichnung bitte bewusst entscheiden.</li>
+      <li><b>Zurück in den Editor.</b> Im Routenplaner „GPX exportieren“ und
+        die neue Datei hier mit „Nachgeplante GPX importieren“ laden. Texte,
+        Bilder und Wegpunkte, die Sie hier schon eingegeben haben, bleiben
+        erhalten — nur die Linie wird ersetzt.</li>
+    </ol>
+
+    <div class="replan-next" id="replanNext">
+      Der Routenplaner ist in einem neuen Tab geöffnet. Wenn die Route
+      passt, dort „GPX exportieren“ und die Datei hier importieren.
+      <a id="replanReopen" href="routing.html?gpx=editor" target="_blank" rel="noopener">Routenplaner nochmal öffnen ↗</a>
+    </div>
+    <div class="actions replan-actions">
+      <button class="replan-ghost" id="replanCancel">Abbrechen</button>
+      <span class="replan-spacer"></span>
+      <button class="cancel" id="replanSkip">Trotzdem so verwenden</button>
+      <a class="btn-link-ok" id="replanOpen" href="routing.html?gpx=editor" target="_blank" rel="noopener">Im Routenplaner nachplanen ↗</a>
+      <button class="ok" id="replanImport">Nachgeplante GPX importieren</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="scripts/andromap.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<!-- Shared Scripts (Reihenfolge beachten) -->
+<script src="scripts/config.js"></script>
+<script src="scripts/i18n.js"></script>
+<script src="scripts/lang/de.js"></script>
+<script src="scripts/lang/en.js"></script>
+<script src="scripts/lang/en-phrases.js"></script>
+<script src="scripts/utils.js"></script>
+<script src="scripts/toast.js"></script>
+<script src="scripts/darkmode.js"></script>
+<script src="scripts/modal.js"></script>
+<script src="scripts/mapkit.js"></script>
+<script src="scripts/elevation.js"></script>
+<script src="scripts/waystats.js"></script>
+<script src="scripts/tourdata.js"></script>
+<script src="scripts/turninstr.js"></script>
+<script src="scripts/gpx.js"></script>
+
+<script>
+"use strict";
+
+/* ============================================================
+ * Aliase auf Shared-Module
+ * ============================================================ */
+const {
+  $, $$,
+  escapeHtml,
+  fmtDistance,
+  haversineM,
+  uuid,
+} = AndromedaUtils;
+const { computeStats, parseDurationText } = AndromedaTour;
+const MIMETYPE = "application/vnd.andromedaexplorer+zip";
+const FORMAT_NAME = "andromedaexplorer";
+const FORMAT_VERSION = "0.1.0";
+const FILE_EXT = ".tourpack";
+const ARROW_SIZE = 24;
+
+// Bildkompression beim Import
+const IMAGE_MAX_DIMENSION = 1920;         // längere Kante in Pixel
+const IMAGE_JPEG_QUALITY = 0.8;           // 0.0–1.0
+const IMAGE_MIN_SIZE_BYTES = 300 * 1024;  // unter 300 KB nicht anfassen
+
+/* ============================================================
+ * State
+ * ============================================================ */
+const state = {
+  id: uuid(),
+  created: new Date().toISOString(),
+  title: "",
+  activity: "hiking",
+  duration_h: 0,
+  duration_min: 0,
+  diff_text: "",
+  ratings: { overall: 0, technique: 0, condition: 0 },
+  roadbike: false,
+  description: "",
+  tags: [],
+  coords: [],
+  center_coord: null,
+  thumbnailPath: null,
+  location: {
+    start:  { country: "", country_code: "", region: "", county: "", municipality: "", place: "" },
+    center: { country: "", country_code: "", region: "", county: "", municipality: "", place: "" },
+    end:    { country: "", country_code: "", region: "", county: "", municipality: "", place: "" },
+  },
+  waypoints: [],
+  generalImages: [],
+  blobs: new Map(),
+  // Cache: SHA-256 des Blobs → bereits vergebener Pfad.
+  // Damit wird dasselbe Bild nur einmal im ZIP gespeichert, auch
+  // wenn es als allgemeines und als Wegpunktbild referenziert wird.
+  blobIndex: new Map(),
+  selectedWpId: null,
+  pickMode: false,
+  shouldFit: false,
+  userLocationMarker: null,
+  userAccuracyCircle: null,
+  userWatchId: null,
+  geoActive: false,
+
+  // Darstellung
+  lineColor: "#2a6fbf",
+  lineOpacity: 0.9,
+  showArrows: true,
+
+  // Höhenprofil
+  elevationData: null,
+  elevationOpen: false,
+
+  highlightLayer: null,
+  activeHighlightCat: null,
+  tagSegments: [],
+  // Abbiegeanweisungen aus der GPX (Routenplaner/BRouter), siehe turninstr.js
+  turnHints: [],
+
+  // Layer
+  baseLayers: {},
+  overlayLayers: {},
+  activeBaseLayer: null,
+  activeBaseKey: "osm",
+  activeOverlays: { hiking: false, cycling: false },
+};
+
+/* Höhenprofil-Panel und Wege-Hervorhebung (gemeinsame Module) */
+const elevPanel = AndromedaElevation.createPanel({
+  state,
+  getMap: () => map,
+  getActivity: () => (state.elevationData && state.elevationData.activity) || state.activity,
+});
+const wayHighlight = AndromedaWayStats.createHighlighter({
+  getMap: () => map,
+  getLayer: () => state.highlightLayer,
+  getSegments: () => state.tagSegments,
+  getColor: () => state.lineColor,
+});
+
+function isMobile() {
+  return window.matchMedia("(max-width: 900px)").matches;
+}
+
+/* ============================================================
+ * Blob-Verwaltung
+ *
+ * state.blobs     Map<path, Blob>   — tatsächliche Dateien fürs ZIP
+ * state.blobIndex Map<hash, path>   — Dedup-Cache (gleiches Bild → gleicher Pfad)
+ *
+ * Wichtig: Beide Maps müssen synchron gehalten werden. Wird ein Blob
+ * entfernt, ohne den Index-Eintrag mitzulöschen, passiert folgender
+ * Fehler: Wird dasselbe Bild später erneut hinzugefügt, findet der
+ * Dedup-Cache den alten Pfad wieder, aber der Blob fehlt — das Bild
+ * landet dann nicht im ZIP.
+ * ============================================================ */
+
+/* Wird der Pfad noch irgendwo verwendet (allgemeine Bilder,
+ * Wegpunkt-Bilder, Thumbnail)? */
+function isPathStillReferenced(path) {
+  if (!path) return false;
+  if (state.thumbnailPath === path) return true;
+  if (state.generalImages.some(g => g.path === path)) return true;
+  for (const wp of state.waypoints) {
+    if ((wp.images || []).includes(path)) return true;
+  }
+  return false;
+}
+
+/* Entfernt Blob + Index-Eintrag, sofern der Pfad nirgends mehr
+ * referenziert wird. */
+function releaseBlobIfUnused(path) {
+  if (!path) return;
+  if (isPathStillReferenced(path)) return;
+  state.blobs.delete(path);
+  for (const [hash, p] of state.blobIndex) {
+    if (p === path) state.blobIndex.delete(hash);
+  }
+}
+
+/* Findet alle Bildpfade, die in den Referenzen stehen, aber keinen
+ * Blob mehr haben. */
+function findBrokenImageRefs() {
+  const broken = [];
+  for (const g of state.generalImages) {
+    if (!state.blobs.has(g.path)) broken.push({ kind: "general", path: g.path });
+  }
+  for (const wp of state.waypoints) {
+    for (const p of wp.images || []) {
+      if (!state.blobs.has(p)) broken.push({ kind: "waypoint", path: p, wpName: wp.name || "Wegpunkt" });
+    }
+  }
+  return broken;
+}
+
+/* ============================================================
+ * Statuszeile
+ * ============================================================ */
+function setStatus(msg, loading) {
+  const el = $("status");
+  if (!el) return;
+  el.innerHTML = loading ? `⋯ ${escapeHtml(msg)}` : escapeHtml(msg);
+}
+
+/* ============================================================
+ * Karte
+ * ============================================================ */
+let map = null;
+let routeLayer = null;
+let arrowLayer = null;
+let markerLayer = null;
+
+function initMap() {
+  if (map) return;
+
+  map = AndromedaMap.createMap("map", [47.5, 11.0], 8);
+
+  const layers = AndromedaMap.createLayers();
+  state.baseLayers = layers.baseLayers;
+  state.overlayLayers = layers.overlayLayers;
+
+  state.activeBaseLayer = state.baseLayers.osm;
+  state.activeBaseLayer.addTo(map);
+  state.activeBaseKey = "osm";
+
+  AndromedaMap.bindLayerPicker(map, state.baseLayers, state.overlayLayers, state);
+
+  AndromedaMap.addFocusControl(map, () => {
+    const pts = [];
+    for (const c of state.coords) pts.push([c[1], c[0]]);
+    for (const wp of state.waypoints) {
+      if (wp.lat != null && wp.lon != null) pts.push([wp.lat, wp.lon]);
+    }
+    return pts;
+  });
+  AndromedaMap.addFullscreenControl(map, $("mapWrap"));
+  AndromedaMap.bindSaveView(map);
+
+  // Eigene Geo-Control (📍)
+  addGeoControl(map);
+
+  arrowLayer = L.layerGroup().addTo(map);
+  markerLayer = L.layerGroup().addTo(map);
+  state.highlightLayer = L.layerGroup().addTo(map);
+  map.on("click", onMapClick);
+  AndromedaMap.onZoomDebounced(map, () => {
+    if (state.coords && state.coords.length >= 3) updateMap();
+  });
+
+  document.addEventListener("fullscreenchange", () => {
+    if (map) setTimeout(() => map.invalidateSize(), 250);
+  });
+
+  requestAnimationFrame(() => { if (map) map.invalidateSize(); });
+  setTimeout(() => { if (map) map.invalidateSize(); }, 250);
+}
+
+function addGeoControl(map) {
+  const GeoControl = L.Control.extend({
+    options: { position: "topleft" },
+    onAdd() {
+      const c = L.DomUtil.create("div", "leaflet-bar leaflet-control");
+      const a = L.DomUtil.create("a", "", c);
+      a.href = "#"; a.title = "Eigene Position"; a.innerHTML = "📍";
+      a.style.cssText = "font-size:17px;line-height:26px;text-align:center;font-weight:bold;";
+      a.onclick = (e) => { e.preventDefault(); toggleGeolocation(); };
+      L.DomEvent.disableClickPropagation(c);
+      L.DomEvent.disableScrollPropagation(c);
+      return c;
+    },
+  });
+  new GeoControl().addTo(map);
+}
+
+function onMapClick(e) {
+  if (!state.pickMode || !state.selectedWpId) return;
+  const wp = state.waypoints.find(w => w.id === state.selectedWpId);
+  if (!wp) return;
+  wp.lat = e.latlng.lat;
+  wp.lon = e.latlng.lng;
+  exitPickMode();
+  refreshWpForm();
+  renderWpList();
+  updateMap();
+  toast("Wegpunkt verschoben.", "success");
+}
+
+function showMapHint(msg) {
+  const el = $("mapHint");
+  el.textContent = msg;
+  el.classList.add("show");
+}
+function hideMapHint() { $("mapHint").classList.remove("show"); }
+
+function startPickMode() {
+  if (!state.selectedWpId) return;
+  state.pickMode = true;
+  showMapHint("Auf die Karte tippen, um die Position zu setzen");
+  if (map) map.getContainer().style.cursor = "crosshair";
+  if (isMobile()) closePanel();
+}
+function exitPickMode() {
+  state.pickMode = false;
+  hideMapHint();
+  if (map) map.getContainer().style.cursor = "";
+}
+
+/* ============================================================
+ * Geolocation (eigene Position)
+ * ============================================================ */
+function toggleGeolocation() {
+  if (state.geoActive) stopGeolocation();
+  else startGeolocation();
+}
+function startGeolocation() {
+  if (!("geolocation" in navigator)) {
+    toast("Geolocation nicht unterstützt.", "error"); return;
+  }
+  initMap();
+  if (!map) return;
+  setStatus("Standort wird ermittelt …", true);
+  navigator.geolocation.getCurrentPosition(onGeoSuccess, onGeoError,
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 });
+  try {
+    state.userWatchId = navigator.geolocation.watchPosition(onGeoSuccess, onGeoError,
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 2000 });
+    state.geoActive = true;
+  } catch (e) { onGeoError(e); }
+}
+function stopGeolocation() {
+  state.geoActive = false;
+  if (state.userWatchId != null) {
+    try { navigator.geolocation.clearWatch(state.userWatchId); } catch (e) {}
+    state.userWatchId = null;
+  }
+  if (state.userLocationMarker && map) {
+    map.removeLayer(state.userLocationMarker); state.userLocationMarker = null;
+  }
+  if (state.userAccuracyCircle && map) {
+    map.removeLayer(state.userAccuracyCircle); state.userAccuracyCircle = null;
+  }
+  setStatus("Standort-Anzeige aus.");
+}
+function onGeoSuccess(pos) {
+  if (!map) return;
+  const lat = pos.coords.latitude, lon = pos.coords.longitude;
+  const acc = pos.coords.accuracy || 0;
+  const ll = [lat, lon];
+  if (!state.userLocationMarker) {
+    const icon = L.divIcon({
+      html: '<div class="user-marker"></div>',
+      className: "", iconSize: [24, 24], iconAnchor: [12, 12],
+    });
+    state.userLocationMarker = L.marker(ll, { icon, interactive: false, zIndexOffset: 1000 }).addTo(map);
+  } else state.userLocationMarker.setLatLng(ll);
+  if (!state.userAccuracyCircle) {
+    state.userAccuracyCircle = L.circle(ll, {
+      radius: acc, color: "#1a73e8", weight: 1, opacity: 0.5,
+      fillColor: "#1a73e8", fillOpacity: 0.10, interactive: false,
+    }).addTo(map);
+  } else {
+    state.userAccuracyCircle.setLatLng(ll);
+    state.userAccuracyCircle.setRadius(acc);
+  }
+  map.setView(ll, Math.max(map.getZoom(), 15), { animate: true });
+  setStatus(`Position: ${lat.toFixed(5)}, ${lon.toFixed(5)}  ± ${Math.round(acc)} m`);
+}
+function onGeoError(err) {
+  let msg = "Position konnte nicht ermittelt werden.";
+  if (err && err.code === 1) msg = "Standort-Zugriff verweigert.";
+  else if (err && err.code === 2) msg = "Standort nicht verfügbar.";
+  else if (err && err.code === 3) msg = "Zeitüberschreitung.";
+  setStatus(msg);
+  toast(msg, "error");
+  if (!state.userLocationMarker) {
+    state.geoActive = false;
+    if (state.userWatchId != null) {
+      try { navigator.geolocation.clearWatch(state.userWatchId); } catch (e) {}
+      state.userWatchId = null;
+    }
+  }
+}
+
+/* ============================================================
+ * Karte aktualisieren
+ * ============================================================ */
+function updateMap() {
+  if (!map) return;
+  if (routeLayer) { map.removeLayer(routeLayer); routeLayer = null; }
+  arrowLayer.clearLayers();
+  markerLayer.clearLayers();
+
+  const latlngs = state.coords.map(c => [c[1], c[0]]);
+
+  if (latlngs.length >= 2) {
+    routeLayer = L.polyline(latlngs, {
+      color: state.lineColor,
+      weight: 4,
+      opacity: state.lineOpacity,
+      lineJoin: "round",
+    }).addTo(map);
+  }
+
+  if (latlngs.length) {
+    markerLayer.addLayer(makeCircleMarker(latlngs[0], "#2e8b57", "S"));
+    markerLayer.addLayer(makeCircleMarker(latlngs[latlngs.length - 1], "#c0392b", "Z"));
+  }
+
+  if (state.showArrows) {
+    AndromedaMap.drawArrows(arrowLayer, latlngs, { map, size: ARROW_SIZE });
+  }
+
+  state.waypoints.forEach((wp, i) => {
+    if (wp.lat == null || wp.lon == null) return;
+    const selected = wp.id === state.selectedWpId;
+    const size = selected ? 20 : 16;
+    const borderColor = selected ? "#1a73e8" : "white";
+    const html = `<div style="width:${size}px;height:${size}px;border-radius:50%;
+                  background:#d9534f;border:2.5px solid ${borderColor};
+                  box-shadow:0 0 0 1.5px #999;color:white;font-size:10px;
+                  font-weight:bold;line-height:${size}px;text-align:center;
+                  font-family:sans-serif;">${i + 1}</div>`;
+    const icon = L.divIcon({
+      html, className: "",
+      iconSize: [size, size], iconAnchor: [size/2, size/2],
+    });
+    const m = L.marker([wp.lat, wp.lon], { icon, title: wp.name || "" });
+    m.bindTooltip(escapeHtml(wp.name || "Wegpunkt"), { direction: "right", offset: [10, 0] });
+    m.on("click", () => selectWaypoint(wp.id));
+    markerLayer.addLayer(m);
+  });
+
+  if (state.shouldFit) {
+    state.shouldFit = false;
+    const allLL = [...latlngs];
+    for (const wp of state.waypoints) {
+      if (wp.lat != null && wp.lon != null) allLL.push([wp.lat, wp.lon]);
+    }
+    if (allLL.length >= 2) map.fitBounds(L.latLngBounds(allLL), { padding: [30, 30] });
+    else if (allLL.length === 1) map.setView(allLL[0], 14);
+  }
+}
+
+function makeCircleMarker(latlng, color, letter) {
+  const html = `<svg width="28" height="28" viewBox="0 0 28 28">
+    <circle cx="14" cy="14" r="11" fill="${color}" stroke="white" stroke-width="3"/>
+    <text x="14" y="19" text-anchor="middle" fill="white"
+          font-family="sans-serif" font-size="14" font-weight="bold">${letter}</text>
+  </svg>`;
+  const icon = L.divIcon({ html, className: "", iconSize: [28, 28], iconAnchor: [14, 14] });
+  return L.marker(latlng, { icon, interactive: false });
+}
+
+/* ============================================================
+ * Automatische Ortserkennung
+ * Ermittelt aus dem Mittelpunkt der Route (oder aus den Wegpunkten,
+ * falls keine Geometrie vorhanden ist) Land, Region und Ort über
+ * Nominatim Reverse-Geocoding.
+ * ============================================================ */
+/* Fragt Nominatim Reverse für einen einzelnen Punkt ab und liefert
+ * ein Location-Objekt mit den sechs Feldern. */
+async function reverseGeocodePoint(lat, lon) {
+  // Anfrage über den eigenen Nominatim-Proxy (Rate-Limiting + 30-Tage-
+  // Cache). accept-language=zxx als URL-Parameter sorgt dafür, dass
+  // lokale Namen zurückkommen (nicht deutsche Übersetzungen wie
+  // "Steinamanger" für "Szombathely"). Nominatim bevorzugt den
+  // URL-Parameter gegenüber dem Accept-Language-Header, den der Proxy
+  // ohnehin fest auf "de" setzt.
+  const url = Andromeda.NOMINATIM_URL + "/reverse" +
+    `?lat=${lat.toFixed(6)}&lon=${lon.toFixed(6)}` +
+    "&format=json&addressdetails=1&accept-language=zxx";
+  const res = await fetch(url, {
+    headers: { "Accept": "application/json" },
+  });
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  const data = await res.json();
+  const addr = (data && data.address) ? data.address : {};
+
+  return {
+    country: addr.country || "",
+    country_code: (addr.country_code || "").toLowerCase(),
+    region: addr.state || addr.state_district || addr.region || "",
+    county: addr.county || addr.state_district || "",
+    municipality: addr.municipality || addr.city || addr.town
+               || addr.village || addr.hamlet || "",
+    place: addr.village || addr.hamlet || addr.town || addr.city
+        || addr.municipality || addr.suburb || "",
+  };
+}
+
+/* Liefert die drei Punkte (lat, lon) für Start, Mitte und Ende. */
+function getThreeLocationPoints() {
+  const coords = state.coords;
+  let startLL = null, centerLL = null, endLL = null;
+
+  if (coords && coords.length >= 2) {
+    startLL = { lat: coords[0][1], lon: coords[0][0] };
+    const last = coords[coords.length - 1];
+    endLL = { lat: last[1], lon: last[0] };
+    const c = computeCenterCoord(coords); // [lon, lat]
+    centerLL = { lat: c[1], lon: c[0] };
+  } else if (state.waypoints.length) {
+    const wps = state.waypoints.filter(wp => wp.lat != null && wp.lon != null);
+    if (wps.length) {
+      startLL = { lat: wps[0].lat, lon: wps[0].lon };
+      endLL = { lat: wps[wps.length - 1].lat, lon: wps[wps.length - 1].lon };
+      const mid = wps[Math.floor(wps.length / 2)];
+      centerLL = { lat: mid.lat, lon: mid.lon };
+    }
+  } else if (Array.isArray(state.center_coord) && state.center_coord.length === 2) {
+    startLL = { lat: state.center_coord[1], lon: state.center_coord[0] };
+    centerLL = startLL;
+    endLL = startLL;
+  }
+
+  return { startLL, centerLL, endLL };
+}
+
+async function detectLocation() {
+  const { startLL, centerLL, endLL } = getThreeLocationPoints();
+  if (!startLL || !centerLL || !endLL) {
+    toast("Keine Koordinaten vorhanden, um Regionen zu bestimmen.", "error");
+    return;
+  }
+
+  const btn = $("detectLocationBtn");
+  const oldText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Ermittle …";
+
+  try {
+    // Sequenziell, um Nominatim nicht mit parallelen Anfragen zu
+    // belasten. Nominatim erlaubt max. 1 Request pro Sekunde, der
+    // eigene Proxy erzwingt das ohnehin.
+    const startLoc  = await reverseGeocodePoint(startLL.lat, startLL.lon);
+    const centerLoc = await reverseGeocodePoint(centerLL.lat, centerLL.lon);
+    const endLoc    = await reverseGeocodePoint(endLL.lat, endLL.lon);
+
+    // Prüfen, ob überhaupt etwas gefunden wurde.
+    const hasAny = (l) => l.country || l.region || l.county
+                       || l.municipality || l.place;
+    if (!hasAny(startLoc) && !hasAny(centerLoc) && !hasAny(endLoc)) {
+      toast("Keine Adressdaten gefunden.", "error");
+      return;
+    }
+
+    // Bestätigung, wenn schon Werte gesetzt sind.
+    const cur = state.location;
+    const hasExisting = (cur && (
+      (cur.start  && cur.start.region)  ||
+      (cur.center && cur.center.region) ||
+      (cur.end    && cur.end.region)    ||
+      cur.region
+    ));
+    if (hasExisting) {
+      const fmt = (label, l) =>
+        `  ${label}: ${[l.place, l.county, l.region, l.country].filter(Boolean).join(", ") || "—"}`;
+      const ok = confirm(
+        "Es sind bereits Ortsdaten eingetragen.\n\n" +
+        "Überschreiben mit:\n" +
+        fmt("Start",  startLoc)  + "\n" +
+        fmt("Mitte",  centerLoc) + "\n" +
+        fmt("Ende",   endLoc)    + "\n\n" +
+        "Fortfahren?"
+      );
+      if (!ok) return;
+    }
+
+    state.location = {
+      start: startLoc,
+      center: centerLoc,
+      end: endLoc,
+    };
+    renderLocationDisplay();
+
+    const summarize = (l) =>
+      [l.place, l.region, l.country].filter(Boolean).join(", ");
+    toast(
+      "Start: " + summarize(startLoc) + " · " +
+      "Ende: " + summarize(endLoc),
+      "success"
+    );
+  } catch (e) {
+    console.error(e);
+    toast("Regionen konnten nicht ermittelt werden: " + e.message, "error");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = oldText;
+  }
+}
+
+function computeCenterCoord(coords) {
+  if (!coords || !coords.length) return null;
+  if (coords.length === 1) return [coords[0][0], coords[0][1]];
+  const cum = [0];
+  for (let i = 1; i < coords.length; i++) {
+    cum.push(cum[cum.length - 1] + haversineM(
+      coords[i-1][1], coords[i-1][0], coords[i][1], coords[i][0]));
+  }
+  const total = cum[cum.length - 1];
+  if (total < 1) return [coords[0][0], coords[0][1]];
+  const target = total / 2;
+  for (let i = 1; i < coords.length; i++) {
+    if (cum[i] >= target) {
+      const segLen = cum[i] - cum[i-1];
+      const t = segLen > 0 ? (target - cum[i-1]) / segLen : 0;
+      return [
+        coords[i-1][0] + t * (coords[i][0] - coords[i-1][0]),
+        coords[i-1][1] + t * (coords[i][1] - coords[i-1][1]),
+      ];
+    }
+  }
+  return [coords[coords.length-1][0], coords[coords.length-1][1]];
+}
+
+/* ============================================================
+ * Sterne / Aktivität / Form
+ * ============================================================ */
+/* Baut ein leeres Location-Objekt mit allen sechs Feldern. */
+function emptyLocation() {
+  return {
+    country: "", country_code: "",
+    region: "", county: "",
+    municipality: "", place: "",
+  };
+}
+
+/* Liest die drei Punkte (start/center/end) aus dem State. Rückwärts-
+ * kompatibel: wenn state.location noch das alte flache Format hat,
+ * wird es als start/center/end dupliziert. */
+function getLocationPoints() {
+  const loc = state.location || {};
+  if (loc.start || loc.center || loc.end) {
+    return {
+      start:  Object.assign(emptyLocation(), loc.start || {}),
+      center: Object.assign(emptyLocation(), loc.center || loc),
+      end:    Object.assign(emptyLocation(), loc.end || {}),
+    };
+  }
+  // Altes flaches Format: alles auf denselben Wert setzen.
+  return {
+    start:  Object.assign(emptyLocation(), loc),
+    center: Object.assign(emptyLocation(), loc),
+    end:    Object.assign(emptyLocation(), loc),
+  };
+}
+
+function renderLocationDisplay() {
+  const { start, center, end } = getLocationPoints();
+  const set = (id, val) => {
+    const el = $(id);
+    if (el) el.textContent = val && String(val).trim() ? val : "—";
+  };
+
+  set("locStartPlaceDisplay",        start.place);
+  set("locStartMunicipalityDisplay", start.municipality);
+  set("locStartCountyDisplay",       start.county);
+  set("locStartRegionDisplay",       start.region);
+  set("locStartCountryDisplay",      start.country);
+
+  set("locCenterPlaceDisplay",        center.place);
+  set("locCenterMunicipalityDisplay", center.municipality);
+  set("locCenterCountyDisplay",       center.county);
+  set("locCenterRegionDisplay",       center.region);
+  set("locCenterCountryDisplay",      center.country);
+
+  set("locEndPlaceDisplay",        end.place);
+  set("locEndMunicipalityDisplay", end.municipality);
+  set("locEndCountyDisplay",       end.county);
+  set("locEndRegionDisplay",       end.region);
+  set("locEndCountryDisplay",      end.country);
+}
+
+function renderStars() {
+  for (const el of $$(".star-set")) {
+    const cat = el.dataset.cat;
+    const v = state.ratings[cat] || 0;
+    let html = "";
+    for (let i = 1; i <= 5; i++) {
+      html += `<span data-v="${i}">${i <= v ? "★" : "☆"}</span>`;
+    }
+    el.innerHTML = html;
+  }
+}
+
+function setActivity(activity) {
+  if (!["hiking", "cycling", "running"].includes(activity)) activity = "hiking";
+  state.activity = activity;
+  $$("#activitySegmented button").forEach(b => {
+    b.classList.toggle("active", b.dataset.value === activity);
+  });
+  const rbField = $("roadbikeField");
+  if (rbField) rbField.style.display = activity === "cycling" ? "" : "none";
+  if (state.elevationData) {
+    state.elevationData.activity = activity;
+    if (state.elevationOpen) {
+      AndromedaElevation.updateLegend($("slopeLegend"), activity);
+      elevPanel.redraw();
+    }
+  }
+}
+
+function bindForm() {
+  const titleInput = $("titleInput");
+  titleInput.addEventListener("input", e => {
+    state.title = e.target.value;
+    updateBottomBar();
+  });
+
+  $("durationHInput").addEventListener("input", e => {
+    let v = parseInt(e.target.value, 10);
+    if (isNaN(v)) v = 0;
+    state.duration_h = Math.max(0, Math.min(99, v));
+  });
+  $("durationMInput").addEventListener("input", e => {
+    let v = parseInt(e.target.value, 10);
+    if (isNaN(v)) v = 0;
+    state.duration_min = Math.max(0, Math.min(59, v));
+  });
+  $("diffTextInput").addEventListener("input", e => { state.diff_text = e.target.value; });
+  $("descriptionInput").addEventListener("input", e => { state.description = e.target.value; });
+  $("tagsInput").addEventListener("input", e => {
+    state.tags = e.target.value.split(",").map(s => s.trim()).filter(Boolean);
+  });
+
+  $$("#activitySegmented button").forEach(btn => {
+    btn.addEventListener("click", () => setActivity(btn.dataset.value));
+  });
+
+  const rbInput = $("roadbikeInput");
+  if (rbInput) {
+    rbInput.addEventListener("change", e => {
+      state.roadbike = !!e.target.checked;
+    });
+  }
+}
+
+function bindStars() {
+  document.addEventListener("click", e => {
+    const star = e.target.closest(".star-set span");
+    if (star) {
+      const cat = star.parentElement.dataset.cat;
+      const v = parseInt(star.dataset.v);
+      state.ratings[cat] = (state.ratings[cat] === v) ? 0 : v;
+      renderStars();
+      return;
+    }
+    const clearBtn = e.target.closest(".clear-btn[data-cat]");
+    if (clearBtn) {
+      state.ratings[clearBtn.dataset.cat] = 0;
+      renderStars();
+    }
+  });
+}
+
+/* ============================================================
+ * Wegpunkte
+ * ============================================================ */
+function updateTabCounts() {
+  const wpCount = state.waypoints.length;
+  const wpTab = $("wpTabCount");
+  if (wpCount > 0) { wpTab.textContent = wpCount; wpTab.classList.remove("hidden"); }
+  else { wpTab.textContent = "0"; wpTab.classList.add("hidden"); }
+
+  const imgCount = state.generalImages.length;
+  const imgTab = $("imgTabCount");
+  if (imgCount > 0) { imgTab.textContent = imgCount; imgTab.classList.remove("hidden"); }
+  else { imgTab.textContent = "0"; imgTab.classList.add("hidden"); }
+}
+
+function moveWaypoint(idx, dir) {
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= state.waypoints.length) return;
+  const [wp] = state.waypoints.splice(idx, 1);
+  state.waypoints.splice(newIdx, 0, wp);
+  renderWpList();
+  updateMap();
+}
+function moveWaypointTo(fromIdx, toIdx) {
+  if (fromIdx === toIdx) return;
+  const [wp] = state.waypoints.splice(fromIdx, 1);
+  state.waypoints.splice(toIdx, 0, wp);
+  renderWpList();
+  updateMap();
+}
+
+function renderWpList() {
+  const list = $("wpList");
+  list.innerHTML = "";
+  updateTabCounts();
+
+  if (!state.waypoints.length) {
+    list.innerHTML = '<div class="empty">Noch keine Wegpunkte. Mit „+ Wegpunkt" einen hinzufügen.</div>';
+    return;
+  }
+
+  state.waypoints.forEach((wp, i) => {
+    const div = document.createElement("div");
+    div.className = "wp-item" + (wp.id === state.selectedWpId ? " selected" : "");
+    div.draggable = true;
+    div.dataset.index = i;
+
+    const nImg = (wp.images || []).length;
+    div.innerHTML = `
+      <span class="drag-handle" title="Zum Umsortieren ziehen">⋮⋮</span>
+      <span class="num">${String(i + 1).padStart(2, "0")}</span>
+      <span class="dot"></span>
+      <span class="name">${escapeHtml(wp.name || "Wegpunkt")}</span>
+      ${nImg ? `<span class="chip">${nImg} 📷</span>` : ""}
+      <button class="arrow up" ${i === 0 ? "disabled" : ""}>▲</button>
+      <button class="arrow down" ${i === state.waypoints.length - 1 ? "disabled" : ""}>▼</button>
+      <button class="del">×</button>
+    `;
+    div.onclick = e => {
+      if (e.target.closest(".del, .arrow, .drag-handle")) return;
+      selectWaypoint(wp.id);
+    };
+    div.querySelector(".up").onclick = e => { e.stopPropagation(); moveWaypoint(i, -1); };
+    div.querySelector(".down").onclick = e => { e.stopPropagation(); moveWaypoint(i, +1); };
+    div.querySelector(".del").onclick = e => {
+      e.stopPropagation();
+      if (!confirm(`Wegpunkt „${wp.name}" löschen?`)) return;
+      const imgPaths = (wp.images || []).slice();
+      state.waypoints = state.waypoints.filter(w => w.id !== wp.id);
+      for (const p of imgPaths) releaseBlobIfUnused(p);
+      if (state.selectedWpId === wp.id) {
+        state.selectedWpId = null;
+        $("wpForm").classList.add("hidden");
+      }
+      renderWpList();
+      updateMap();
+    };
+    div.addEventListener("dragstart", e => {
+      e.dataTransfer.setData("application/x-waypoint-index", String(i));
+      e.dataTransfer.effectAllowed = "move";
+      div.classList.add("dragging");
+    });
+    div.addEventListener("dragend", () => {
+      div.classList.remove("dragging");
+      $$(".wp-item").forEach(el => el.classList.remove("drag-over"));
+    });
+    div.addEventListener("dragover", e => {
+      if (e.dataTransfer.types.includes("application/x-waypoint-index")) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        div.classList.add("drag-over");
+      }
+    });
+    div.addEventListener("dragleave", () => div.classList.remove("drag-over"));
+    div.addEventListener("drop", e => {
+      div.classList.remove("drag-over");
+      if (!e.dataTransfer.types.includes("application/x-waypoint-index")) return;
+      e.preventDefault();
+      const srcIdx = parseInt(e.dataTransfer.getData("application/x-waypoint-index"));
+      if (isNaN(srcIdx) || srcIdx === i) return;
+      moveWaypointTo(srcIdx, i);
+    });
+    list.appendChild(div);
+  });
+}
+
+function selectWaypoint(id) {
+  state.selectedWpId = id;
+  renderWpList();
+  refreshWpForm();
+  const wp = state.waypoints.find(w => w.id === id);
+  if (wp && wp.lat != null && wp.lon != null && map) {
+    map.setView([wp.lat, wp.lon], Math.max(map.getZoom(), 14), { animate: true });
+  }
+  updateMap();
+}
+
+function refreshWpForm() {
+  const form = $("wpForm");
+  const wp = state.waypoints.find(w => w.id === state.selectedWpId);
+  if (!wp) { form.classList.add("hidden"); return; }
+  form.classList.remove("hidden");
+  $("wpFormTitle").textContent = wp.name || "Wegpunkt bearbeiten";
+  $("wpName").value = wp.name || "";
+  $("wpLat").value = wp.lat != null ? wp.lat : "";
+  $("wpLon").value = wp.lon != null ? wp.lon : "";
+  $("wpEle").value = wp.ele != null ? wp.ele : "";
+  $("wpNote").value = wp.note || "";
+  $("pickOnMapBtn").disabled = false;
+  renderWpImages();
+}
+
+function renderWpImages() {
+  const wp = state.waypoints.find(w => w.id === state.selectedWpId);
+  const list = $("wpImgList");
+  list.innerHTML = "";
+  if (!wp || !wp.images || !wp.images.length) return;
+
+  wp.images.forEach((path, idx) => {
+    const blob = state.blobs.get(path);
+    const cell = document.createElement("div");
+    cell.className = "img-cell";
+
+    if (blob) {
+      const img = document.createElement("img");
+      img.src = URL.createObjectURL(blob);
+      const caption = `${wp.name || "Wegpunkt"} — Bild ${idx + 1}`;
+      img.onclick = e => { e.stopPropagation(); showLightbox(img.src, caption); };
+      cell.appendChild(img);
+    } else {
+      const ph = document.createElement("div");
+      ph.style.cssText = "height:90px;display:flex;align-items:center;justify-content:center;background:var(--bg);border-radius:4px;color:var(--text-muted);font-size:11px;";
+      ph.textContent = "Bild fehlt";
+      cell.appendChild(ph);
+    }
+    const del = document.createElement("button");
+    del.className = "del";
+    del.textContent = "Entfernen";
+    del.onclick = e => {
+      e.stopPropagation();
+      wp.images = wp.images.filter(p => p !== path);
+      releaseBlobIfUnused(path);
+      renderWpImages();
+      renderWpList();
+    };
+    cell.appendChild(del);
+    list.appendChild(cell);
+  });
+}
+
+function bindWpForm() {
+  $("wpName").addEventListener("input", e => {
+    const wp = state.waypoints.find(w => w.id === state.selectedWpId);
+    if (!wp) return;
+    wp.name = e.target.value;
+    $("wpFormTitle").textContent = wp.name || "Wegpunkt bearbeiten";
+    renderWpList();
+    updateMap();
+  });
+  const updateCoord = (key) => e => {
+    const wp = state.waypoints.find(w => w.id === state.selectedWpId);
+    if (!wp) return;
+    const v = parseFloat(e.target.value);
+    wp[key] = isNaN(v) ? null : v;
+    updateMap();
+  };
+  $("wpLat").addEventListener("input", updateCoord("lat"));
+  $("wpLon").addEventListener("input", updateCoord("lon"));
+  $("wpEle").addEventListener("input", updateCoord("ele"));
+  $("wpNote").addEventListener("input", e => {
+    const wp = state.waypoints.find(w => w.id === state.selectedWpId);
+    if (!wp) return;
+    wp.note = e.target.value;
+  });
+
+  $("addWpBtn").onclick = () => {
+    const center = map.getCenter();
+    const wp = {
+      id: uuid(),
+      name: `Wegpunkt ${state.waypoints.length + 1}`,
+      lat: center.lat, lon: center.lng,
+      ele: null, note: "", images: [],
+    };
+    state.waypoints.push(wp);
+    state.selectedWpId = wp.id;
+    renderWpList();
+    refreshWpForm();
+    updateMap();
+    updateBottomBar();
+  };
+
+  $("closeWpForm").onclick = () => {
+    state.selectedWpId = null;
+    $("wpForm").classList.add("hidden");
+    renderWpList();
+    updateMap();
+  };
+
+  $("pickOnMapBtn").onclick = () => {
+    if (state.pickMode) exitPickMode();
+    else startPickMode();
+  };
+
+  $("wpImgBtn").onclick = () => $("wpImgInput").click();
+  $("wpImgInput").addEventListener("change", e => {
+    const wp = state.waypoints.find(w => w.id === state.selectedWpId);
+    if (!wp) return;
+    addImageFiles(Array.from(e.target.files), wp.id).catch(console.error);
+    e.target.value = "";
+  });
+
+  const dropZone = $("wpImgDrop");
+  dropZone.addEventListener("dragover", e => {
+    if (e.dataTransfer.types.includes("Files")) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "copy";
+      dropZone.classList.add("drop-active");
+    }
+  });
+  dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drop-active"));
+  dropZone.addEventListener("drop", e => {
+    dropZone.classList.remove("drop-active");
+    if (!e.dataTransfer.files.length) return;
+    e.preventDefault();
+    const wp = state.waypoints.find(w => w.id === state.selectedWpId);
+    if (!wp) { toast("Bitte zuerst einen Wegpunkt auswählen.", "error"); return; }
+    addImageFiles(Array.from(e.dataTransfer.files), wp.id).catch(console.error);
+  });
+}
+
+/* ============================================================
+ * Bilder
+ * ============================================================ */
+function loadImage(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(img);
+    };
+    img.onerror = (e) => {
+      URL.revokeObjectURL(url);
+      reject(e);
+    };
+    img.src = url;
+  });
+}
+
+// Nur diese Formate akzeptiert der Server (Upload, Worker, Handler).
+const IMAGE_ALLOWED_EXTS = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
+
+async function compressImage(file) {
+  const origExt = (file.name.match(/\.[a-zA-Z0-9]+$/) || [".jpg"])[0].toLowerCase();
+  // Darf die Originaldatei unverändert ins TourPack? Nur bei erlaubter
+  // Endung. Sonst (HEIC, AVIF, BMP …) muss nach JPEG umgewandelt werden.
+  const keepOriginal = IMAGE_ALLOWED_EXTS.includes(origExt);
+  const fallback = () => {
+    if (keepOriginal) return { blob: file, ext: origExt };
+    throw new Error(`Bildformat ${origExt} wird nicht unterstützt`);
+  };
+
+  if (file.type === "image/svg+xml" || origExt === ".svg") {
+    throw new Error("SVG-Dateien werden nicht unterstützt");
+  }
+  if (file.type === "image/gif") {
+    return { blob: file, ext: ".gif" };
+  }
+  if (keepOriginal && file.size < IMAGE_MIN_SIZE_BYTES) {
+    return { blob: file, ext: origExt };
+  }
+
+  try {
+    const img = await loadImage(file);
+    let width = img.naturalWidth || img.width;
+    let height = img.naturalHeight || img.height;
+    if (!width || !height) return fallback();
+
+    if (width > IMAGE_MAX_DIMENSION || height > IMAGE_MAX_DIMENSION) {
+      const ratio = Math.min(
+        IMAGE_MAX_DIMENSION / width,
+        IMAGE_MAX_DIMENSION / height
+      );
+      width = Math.max(1, Math.round(width * ratio));
+      height = Math.max(1, Math.round(height * ratio));
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, width, height);
+    ctx.drawImage(img, 0, 0, width, height);
+
+    const blob = await new Promise((resolve) =>
+      canvas.toBlob(resolve, "image/jpeg", IMAGE_JPEG_QUALITY)
+    );
+    if (!blob) return fallback();
+
+    if (blob.size < file.size || !keepOriginal) {
+      return { blob, ext: ".jpg" };
+    }
+    return { blob: file, ext: origExt };
+  } catch (e) {
+    console.warn("Komprimierung fehlgeschlagen für", file.name, e);
+    return fallback();
+  }
+}
+
+async function blobHash(blob) {
+  try {
+    const buf = await blob.arrayBuffer();
+    const digest = await crypto.subtle.digest("SHA-256", buf);
+    return Array.from(new Uint8Array(digest))
+      .map(b => b.toString(16).padStart(2, "0"))
+      .join("");
+  } catch (e) {
+    // Fallback, falls Web Crypto nicht verfügbar ist — dann kein Dedup.
+    return null;
+  }
+}
+
+async function addImageFiles(files, waypointId) {
+  let added = 0;
+  let reused = 0;
+  const failed = [];
+
+  for (const f of files) {
+    if (!f.type.startsWith("image/")) continue;
+    try {
+      const { blob, ext } = await compressImage(f);
+      const hash = await blobHash(blob);
+
+      let path = null;
+      if (hash && state.blobIndex.has(hash)) {
+        // Blob schon vorhanden — Pfad wiederverwenden.
+        path = state.blobIndex.get(hash);
+        reused++;
+      } else {
+        path = `media/images/${uuid()}${ext}`;
+        state.blobs.set(path, blob);
+        if (hash) state.blobIndex.set(hash, path);
+      }
+
+      if (waypointId) {
+        const wp = state.waypoints.find(w => w.id === waypointId);
+        if (wp) {
+          wp.images = wp.images || [];
+          if (!wp.images.includes(path)) {
+            wp.images.push(path);
+            added++;
+          }
+        }
+      } else {
+        if (!state.generalImages.some(g => g.path === path)) {
+          state.generalImages.push({ path, caption: "" });
+          added++;
+        }
+      }
+    } catch (e) {
+      console.warn("Bild konnte nicht verarbeitet werden:", f.name, e);
+      failed.push(f.name);
+    }
+  }
+
+  if (failed.length) {
+    toast(`Nicht unterstützt: ${failed.join(", ")}. ` +
+          `Erlaubt sind JPEG, PNG, WebP und GIF.`, "warn");
+  }
+  if (!added) {
+    if (!failed.length) toast("Bild ist bereits vorhanden.", "warn");
+    return;
+  }
+
+  if (waypointId) { renderWpImages(); renderWpList(); }
+  else renderGenImages();
+  updateTabCounts();
+  updateBottomBar();
+
+  let msg = `${added} Bild${added === 1 ? "" : "er"} hinzugefügt.`;
+  if (reused > 0) {
+    msg = `${added} Bild${added === 1 ? "" : "er"} hinzugefügt, ` +
+          `${reused} bereits vorhanden (nicht erneut gespeichert).`;
+  }
+  toast(msg, "success");
+}
+
+function renderThumbnailArea() {
+  const area = $("thumbnailArea");
+  area.innerHTML = "";
+
+  if (!state.thumbnailPath) {
+    const empty = document.createElement("div");
+    empty.className = "thumb-empty";
+    empty.textContent = "Kein Thumbnail gesetzt. Unter den allgemeinen Bildern lässt sich eines als Thumbnail markieren.";
+    area.appendChild(empty);
+    return;
+  }
+
+  const blob = state.blobs.get(state.thumbnailPath);
+  const wrap = document.createElement("div");
+  wrap.className = "thumb-preview";
+
+  if (blob) {
+    const img = document.createElement("img");
+    img.src = URL.createObjectURL(blob);
+    img.alt = "Thumbnail";
+    img.onclick = () => showLightbox(img.src, "Thumbnail");
+    wrap.appendChild(img);
+  } else {
+    const ph = document.createElement("div");
+    ph.style.cssText = "width:100px;height:68px;background:var(--panel);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text-muted);flex-shrink:0;";
+    ph.textContent = "fehlt";
+    wrap.appendChild(ph);
+  }
+
+  const info = document.createElement("div");
+  info.className = "thumb-info";
+  info.innerHTML = "<strong>Thumbnail</strong>Dieses Bild wird im Tour-Browser als Vorschaubild angezeigt.";
+  wrap.appendChild(info);
+
+  const actions = document.createElement("div");
+  actions.className = "thumb-actions";
+  const removeBtn = document.createElement("button");
+  removeBtn.className = "btn-remove";
+  removeBtn.textContent = "Entfernen";
+  removeBtn.onclick = () => {
+    state.thumbnailPath = null;
+    renderThumbnailArea();
+    renderGenImages();
+  };
+  actions.appendChild(removeBtn);
+  wrap.appendChild(actions);
+
+  area.appendChild(wrap);
+}
+
+function renderGenImages() {
+  const list = $("genImgList");
+  list.innerHTML = "";
+  updateTabCounts();
+  $("genImgEmpty").classList.toggle("hidden", state.generalImages.length > 0);
+
+  state.generalImages.forEach((item, idx) => {
+    const blob = state.blobs.get(item.path);
+    const isThumb = item.path === state.thumbnailPath;
+    const cell = document.createElement("div");
+    cell.className = "img-cell" + (isThumb ? " is-thumbnail" : "");
+    cell.dataset.index = idx;
+    cell.draggable = true;
+
+    if (blob) {
+      const img = document.createElement("img");
+      img.src = URL.createObjectURL(blob);
+      const caption = (item.caption && item.caption.trim()) || `Bild ${idx + 1}`;
+      img.onclick = e => { e.stopPropagation(); showLightbox(img.src, caption); };
+      cell.appendChild(img);
+    } else {
+      const ph = document.createElement("div");
+      ph.style.cssText = "height:90px;display:flex;align-items:center;justify-content:center;background:var(--bg);border-radius:4px;color:var(--text-muted);font-size:11px;";
+      ph.textContent = "Bild fehlt";
+      cell.appendChild(ph);
+    }
+
+    if (isThumb) {
+      const badge = document.createElement("span");
+      badge.className = "thumb-badge";
+      badge.textContent = "★ Thumbnail";
+      cell.appendChild(badge);
+    }
+
+    const ta = document.createElement("textarea");
+    ta.placeholder = "Beschreibung (optional)";
+    ta.value = item.caption || "";
+    ta.addEventListener("input", () => { item.caption = ta.value; });
+    ta.addEventListener("mousedown", () => { cell.draggable = false; });
+    ta.addEventListener("mouseup", () => { cell.draggable = true; });
+    ta.addEventListener("blur", () => { cell.draggable = true; });
+    cell.appendChild(ta);
+
+    const thumbBtn = document.createElement("button");
+    thumbBtn.className = "thumb-btn";
+    thumbBtn.textContent = isThumb ? "Thumbnail entfernen" : "Als Thumbnail";
+    thumbBtn.onclick = e => {
+      e.stopPropagation();
+      if (isThumb) {
+        state.thumbnailPath = null;
+      } else {
+        state.thumbnailPath = item.path;
+        const [moved] = state.generalImages.splice(idx, 1);
+        state.generalImages.unshift(moved);
+      }
+      renderGenImages();
+      renderThumbnailArea();
+    };
+    thumbBtn.addEventListener("mousedown", () => { cell.draggable = false; });
+    thumbBtn.addEventListener("mouseup", () => { cell.draggable = true; });
+    cell.appendChild(thumbBtn);
+
+    const del = document.createElement("button");
+    del.className = "del";
+    del.textContent = "Entfernen";
+    del.onclick = e => {
+      e.stopPropagation();
+      if (item.path === state.thumbnailPath) state.thumbnailPath = null;
+      state.generalImages.splice(idx, 1);
+      releaseBlobIfUnused(item.path);
+      renderGenImages();
+      renderThumbnailArea();
+      updateBottomBar();
+    };
+    del.addEventListener("mousedown", () => { cell.draggable = false; });
+    del.addEventListener("mouseup", () => { cell.draggable = true; });
+    cell.appendChild(del);
+
+    cell.addEventListener("dragstart", e => {
+      e.dataTransfer.setData("application/x-genimg-index", String(idx));
+      e.dataTransfer.effectAllowed = "move";
+      cell.classList.add("dragging");
+    });
+    cell.addEventListener("dragend", () => {
+      cell.classList.remove("dragging");
+      $$(".img-cell").forEach(el => el.classList.remove("drag-over"));
+    });
+    cell.addEventListener("dragover", e => {
+      if (e.dataTransfer.types.includes("application/x-genimg-index")) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        cell.classList.add("drag-over");
+      }
+    });
+    cell.addEventListener("dragleave", () => cell.classList.remove("drag-over"));
+    cell.addEventListener("drop", e => {
+      cell.classList.remove("drag-over");
+      if (!e.dataTransfer.types.includes("application/x-genimg-index")) return;
+      e.preventDefault();
+      const srcIdx = parseInt(e.dataTransfer.getData("application/x-genimg-index"), 10);
+      if (isNaN(srcIdx) || srcIdx === idx) return;
+      const [moved] = state.generalImages.splice(srcIdx, 1);
+      state.generalImages.splice(idx, 0, moved);
+      renderGenImages();
+    });
+    list.appendChild(cell);
+  });
+}
+
+function bindGenImages() {
+  $("addGenImgBtn").onclick = () => $("genImgInput").click();
+  $("genImgInput").addEventListener("change", e => {
+    addImageFiles(Array.from(e.target.files), null).catch(console.error);
+    e.target.value = "";
+  });
+  const dropZone = $("genImgDrop");
+  const pane = document.querySelector('[data-pane="images"]');
+  dropZone.style.cursor = "pointer";
+  dropZone.addEventListener("click", () => $("genImgInput").click());
+  for (const t of [dropZone, pane]) {
+    t.addEventListener("dragover", e => {
+      if (e.dataTransfer.types.includes("Files")) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "copy";
+        dropZone.classList.add("drop-active");
+      }
+    });
+    t.addEventListener("dragleave", e => {
+      if (e.target === t || !t.contains(e.relatedTarget)) {
+        dropZone.classList.remove("drop-active");
+      }
+    });
+    t.addEventListener("drop", e => {
+      dropZone.classList.remove("drop-active");
+      if (!e.dataTransfer.files.length) return;
+      e.preventDefault();
+      addImageFiles(Array.from(e.dataTransfer.files), null).catch(console.error);
+    });
+  }
+}
+
+/* Gelesene GPX in den Editor übernehmen. Texte, Bilder und schon
+ * vorhandene Wegpunkte bleiben, wenn die GPX selbst keine hat. */
+function applyParsedGpx(parsed, fileName) {
+  const { coords, waypoints, trackName, tagSegments, turnInstructions } = parsed;
+  state.tagSegments = tagSegments || [];
+  state.turnHints = turnInstructions || [];
+  state.coords = coords;
+  if (waypoints.length) state.waypoints = waypoints;
+  if (!state.title && trackName) state.title = trackName;
+  else if (!state.title) state.title = fileName.replace(/\.gpx$/i, "");
+  state.center_coord = computeCenterCoord(coords);
+  state.shouldFit = true;
+  refreshAll();
+  updateMap();
+  toast(state.turnHints.length
+    ? `GPX geladen: ${coords.length} Punkte, ${waypoints.length} Wegpunkte, ${state.turnHints.length} Abbiegeanweisungen`
+    : `GPX geladen: ${coords.length} Punkte, ${waypoints.length} Wegpunkte`, "success");
+  setStatus(`GPX geladen: ${fileName}`);
+}
+
+/* ============================================================
+ * Hinweis: Aufzeichnung zuerst im Routenplaner nachplanen
+ * Übergabe an den Routenplaner über localStorage (gleiche Herkunft),
+ * der öffnet dann direkt den Import-Dialog („?gpx=editor“).
+ * ============================================================ */
+const GPX_HANDOFF_KEY = "andromeda_gpx_handoff_v1";
+
+/* Das Fenster bleibt offen, solange man nachplant (Tutorial). Die
+ * Aufzeichnung wird erst mit „Trotzdem so verwenden“ übernommen; nach
+ * dem Nachplanen lädt „Nachgeplante GPX importieren“ die neue Datei. */
+function showReplanHint(parsed, fileName) {
+  const m = $("replanModal");
+  const s = computeStats(parsed.coords);
+  const rec = [];
+  if (s.distance_m) rec.push(fmtDistance(s.distance_m));
+  if (s.ascent_m) rec.push(`↑ ${Math.round(s.ascent_m)} m`);
+  // Werte nicht übersetzen lassen, nur das Wort davor
+  $("replanRecStats").innerHTML = rec.length
+    ? ` (<span>Aufzeichnung</span>: <span data-no-i18n>${escapeHtml(rec.join(" · "))}</span>)` : "";
+  m._pending = { parsed, fileName };
+  m.classList.remove("opened");
+  m.classList.add("show");
+}
+
+function closeReplanHint() {
+  const m = $("replanModal");
+  m.classList.remove("show", "opened");
+  m._pending = null;
+}
+
+function bindReplanHint() {
+  const m = $("replanModal");
+  $("replanCancel").addEventListener("click", () => { closeReplanHint(); setStatus("GPX nicht übernommen."); });
+  $("replanSkip").addEventListener("click", () => {
+    const p = m._pending;
+    closeReplanHint();
+    if (p) applyParsedGpx(p.parsed, p.fileName);
+  });
+  $("replanImport").addEventListener("click", () => $("gpxFileInput").click());
+  // Beide Links (Knopf und „nochmal öffnen“) übergeben die Aufzeichnung
+  const onOpen = (link) => {
+    const p = m._pending;
+    let ok = false;
+    if (p) {
+      try {
+        localStorage.setItem(GPX_HANDOFF_KEY, JSON.stringify({
+          t: Date.now(),
+          name: p.parsed.trackName || p.fileName.replace(/\.gpx$/i, ""),
+          coords: p.parsed.coords.map(c => [+c[0].toFixed(6), +c[1].toFixed(6)]),
+        }));
+        ok = true;
+      } catch (e) { /* zu groß o. Ä.: Routenplaner öffnet dann ohne Übergabe */ }
+    }
+    link.href = ok ? "routing.html?gpx=editor" : "routing.html";
+    // Fenster bleibt offen; jetzt den Import der neuen Datei anbieten
+    m.classList.add("opened");
+  };
+  $("replanOpen").addEventListener("click", () => onOpen($("replanOpen")));
+  $("replanReopen").addEventListener("click", () => onOpen($("replanReopen")));
+}
+
+/* ============================================================
+ * Statistik / Bottom-Bar
+ * ============================================================ */
+function refreshStats() {
+  const s = computeStats(state.coords);
+  const parts = [];
+  if (s.distance_m) parts.push(`<em>Strecke:</em> ${fmtDistance(s.distance_m)}`);
+  if (s.ascent_m) parts.push(`<em>↑</em> ${Math.round(s.ascent_m)} m`);
+  if (s.descent_m) parts.push(`<em>↓</em> ${Math.round(s.descent_m)} m`);
+  $("routeStats").innerHTML = parts.length ? parts.join("   ·   ") : "—";
+}
+
+function renderStatsBlocks() {
+  const container = $("wayStatsContainer");
+  const field = $("wayStatsField");
+  if (!container || !field) return;
+
+  if (!state.tagSegments || !state.tagSegments.length) {
+    container.innerHTML = "";
+    field.style.display = "none";
+    return;
+  }
+
+  field.style.display = "";
+  AndromedaWayStats.mount(container, state.tagSegments, wayHighlight);
+}
+
+function updateBottomBar() {
+  const s = computeStats(state.coords);
+  const prim = $("primaryLine");
+  const sec = $("secondaryLine");
+  if (!prim || !sec) return;
+  prim.textContent = state.title || "Unbenannte Tour";
+  const parts = [];
+  if (s.distance_m) parts.push(fmtDistance(s.distance_m));
+  if (state.waypoints.length) parts.push(`${state.waypoints.length} Wegpunkt${state.waypoints.length === 1 ? "" : "e"}`);
+  if (state.generalImages.length) parts.push(`${state.generalImages.length} Bild${state.generalImages.length === 1 ? "" : "er"}`);
+  // Teile einzeln übersetzen (zusammengesetzte Zeile, siehe i18n.js)
+  sec.textContent = parts.map(x => AndromedaI18n.tr(x)).join("  ·  ") || "Route laden oder Wegpunkte setzen";
+}
+
+/* ============================================================
+ * Panel / Tabs
+ * ============================================================ */
+function openPanel(tab) {
+  if (tab) switchTab(tab);
+  if (isMobile()) $("sidebar").classList.add("show");
+}
+function closePanel() {
+  if (isMobile()) $("sidebar").classList.remove("show");
+}
+function switchTab(name) {
+  $$(".tab-bar button").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+  $$(".tab-pane").forEach(p => p.classList.toggle("active", p.dataset.pane === name));
+  if (map) setTimeout(() => map.invalidateSize(), 80);
+}
+
+function bindTabs() {
+  $$(".tab-bar button").forEach(btn => {
+    btn.addEventListener("click", () => switchTab(btn.dataset.tab));
+  });
+}
+
+/* ============================================================
+ * Datei-Aktionen
+ * ============================================================ */
+function bindFileActions() {
+  $("gpxBtn").onclick = () => $("gpxFileInput").click();
+  $("loadBtn").onclick = () => $("tourpackFileInput").click();
+
+  $("gpxFileInput").addEventListener("change", async e => {
+    const f = e.target.files[0]; e.target.value = "";
+    if (!f) return;
+    try {
+      setStatus(`Lese ${f.name} …`, true);
+      const text = await f.text();
+      const parsed = AndromedaGpx.parse(text);
+      if (!parsed.coords.length && !parsed.waypoints.length) {
+        toast("Keine Track- oder Wegpunkt-Daten gefunden.", "error");
+        setStatus("GPX enthält keine verwertbaren Daten.");
+        return;
+      }
+      // Keine Wegdaten und keine Abbiegeanweisungen → wohl eine Aufzeichnung:
+      // erst nachfragen, übernommen wird sie nur mit „Trotzdem so verwenden“.
+      const raw = parsed.coords.length > 1 && !(parsed.tagSegments || []).length && !(parsed.turnInstructions || []).length;
+      if (raw) {
+        setStatus(`GPX gelesen: ${f.name}`);
+        showReplanHint(parsed, f.name);
+        return;
+      }
+      closeReplanHint();
+      applyParsedGpx(parsed, f.name);
+    } catch (err) {
+      console.error(err);
+      toast("Fehler beim Parsen: " + err.message, "error");
+      setStatus("Fehler beim GPX-Laden.");
+    }
+  });
+
+  $("tourpackFileInput").addEventListener("change", async e => {
+    const f = e.target.files[0]; e.target.value = "";
+    if (!f) return;
+    await loadTourpackFile(f);
+  });
+
+  const onNew = () => {
+    if (!confirm("Aktuellen Inhalt verwerfen und neu anfangen?")) return;
+    resetState();
+    refreshAll();
+    updateMap();
+    markSaved();
+    setStatus("Neue leere Tour.");
+    if (isMobile()) closePanel();
+  };
+  $("newBtnM").onclick = onNew;
+
+  $("saveBtn").onclick = saveTourpack;
+  $("saveBtnM").onclick = saveTourpack;
+  $("saveBtnBottom").onclick = saveTourpack;
+
+  const uBtn = $("uploadBtn");
+  if (uBtn) uBtn.onclick = openUploadModal;
+  const uBtnM = $("uploadBtnM");
+  if (uBtnM) uBtnM.onclick = openUploadModal;
+
+  $("uploadCancel").onclick = closeUploadModal;
+  $("uploadAgree").addEventListener("change", e => {
+    $("uploadConfirm").disabled = !e.target.checked;
+  });
+  $("uploadConfirm").onclick = uploadTourpack;
+  bindReplanHint();
+  $("uploadModal").addEventListener("click", e => {
+    if (e.target === $("uploadModal")) closeUploadModal();
+  });
+}
+
+/* Konvertiert einen alten Freitext-Wert für die Dauer in Stunden und
+ * Minuten. Beispiele:
+ *   "ca. 6–7 h"    → { h: 6, min: 0 }
+ *   "6 h 30 min"   → { h: 6, min: 30 }
+ *   "390 min"      → { h: 6, min: 30 }
+ *   "1,5 h"        → { h: 1, min: 30 }
+ * Bewusst tolerant — der Nutzer hat eventuell krumme Werte.
+ */
+/* ============================================================
+ * Ungespeicherte Änderungen
+ * Fingerabdruck des Inhalts beim Laden/Speichern merken. Weicht der
+ * aktuelle Inhalt davon ab, warnt der Browser beim Schließen der Seite.
+ * ============================================================ */
+function contentFingerprint() {
+  const s = state;
+  return JSON.stringify([
+    s.title, s.activity, s.duration_h, s.duration_min, s.diff_text, s.ratings,
+    s.roadbike, s.description, s.tags, s.coords, s.location, s.thumbnailPath,
+    (s.waypoints || []).map(w => [w.name, w.lat, w.lon, w.ele, w.note, w.images]),
+    (s.generalImages || []).map(g => [g.path, g.caption]),
+  ]);
+}
+let savedFingerprint = null;
+function markSaved() { savedFingerprint = contentFingerprint(); }
+function hasUnsavedChanges() {
+  const hasContent = state.coords.length || state.waypoints.length || state.generalImages.length ||
+    (state.title || "").trim() || (state.description || "").trim();
+  return !!hasContent && contentFingerprint() !== savedFingerprint;
+}
+window.addEventListener("beforeunload", e => {
+  if (!hasUnsavedChanges()) return;
+  // Browser zeigen ihren eigenen Hinweistext („Seite verlassen?“)
+  e.preventDefault();
+  e.returnValue = "";
+});
+
+function resetState() {
+  state.blobs.clear();
+  state.blobIndex.clear();
+  state.id = uuid();
+  state.created = new Date().toISOString();
+  state.title = "";
+  state.activity = "hiking";
+  state.duration_h = 0;
+  state.duration_min = 0;
+  state.diff_text = "";
+  state.ratings = { overall: 0, technique: 0, condition: 0 };
+  state.roadbike = false;
+  state.description = "";
+  state.tags = [];
+  state.coords = [];
+  state.center_coord = null;
+  state.thumbnailPath = null;
+  state.location = {
+    start:  emptyLocation(),
+    center: emptyLocation(),
+    end:    emptyLocation(),
+  };
+  state.waypoints = [];
+  state.generalImages = [];
+  state.tagSegments = [];
+  state.turnHints = [];
+  wayHighlight.clear();
+  state.selectedWpId = null;
+  state.shouldFit = false;
+  state.elevationData = null;
+  state.elevationOpen = false;
+}
+
+async function loadTourpackFile(file) {
+  setStatus(`Lese ${file.name} …`, true);
+  try {
+    const zip = await JSZip.loadAsync(file);
+    const mf = zip.file("manifest.json");
+    const manifest = mf ? JSON.parse(await mf.async("string")) : {};
+    const rf = zip.file("route.json");
+    const route = rf ? JSON.parse(await rf.async("string")) : {};
+    const geomName = route.geometry_file || "geometry.geojson";
+    const gf = zip.file(geomName);
+    const geometry = gf ? JSON.parse(await gf.async("string")) : { features: [] };
+
+    resetState();
+
+    state.id = manifest.id || route.id || uuid();
+    state.created = manifest.created || new Date().toISOString();
+    state.title = route.title || manifest.title || "";
+    state.activity = route.type || "hiking";
+
+    const stats = route.stats || {};
+
+    // Neue Felder zuerst probieren. Falls nicht vorhanden, alten Freitext
+    // parsen. Konvention: erste Zahl ist Stunden, zweite ist Minuten.
+    if (typeof stats.duration_h === "number" || typeof stats.duration_min === "number") {
+      state.duration_h = parseInt(stats.duration_h, 10) || 0;
+      state.duration_min = parseInt(stats.duration_min, 10) || 0;
+    } else if (typeof stats.duration_text === "string" && stats.duration_text.trim()) {
+      const parsed = parseDurationText(stats.duration_text);
+      state.duration_h = parsed.h;
+      state.duration_min = parsed.min;
+    }
+
+    const diff = route.difficulty || {};
+    if (diff.ratings) state.ratings = {
+      overall: diff.ratings.overall || 0,
+      technique: diff.ratings.technique || 0,
+      condition: diff.ratings.condition || 0,
+    };
+    if (diff.text) state.diff_text = diff.text;
+    if (diff.overall && !diff.ratings) {
+      const ov = diff.overall;
+      state.diff_text = [ov.system, ov.value].filter(Boolean).join(" ");
+    }
+    state.tags = route.tags || [];
+    state.roadbike = route.roadbike === true;
+
+    if (typeof route.description === "string") state.description = route.description;
+    else if (route.description && route.description.file) {
+      const df = zip.file(route.description.file);
+      if (df) state.description = await df.async("string");
+    }
+
+    if (route.tag_segments) {
+      state.tagSegments = route.tag_segments;
+    } else {
+      state.tagSegments = [];
+    }
+
+    if (geometry.features) {
+      const coords = [];
+      for (const feat of geometry.features) {
+        const g = feat.geometry;
+        if (!g) continue;
+        if (g.type === "LineString") coords.push(...g.coordinates);
+        else if (g.type === "MultiLineString") {
+          for (const line of g.coordinates) coords.push(...line);
+        }
+      }
+      state.coords = coords;
+    }
+    state.turnHints = AndromedaTurns.alignToCoords(AndromedaTurns.fromTourpack(route.turn_instructions), state.coords);
+
+    if (Array.isArray(route.center_coord) && route.center_coord.length === 2) {
+      state.center_coord = [route.center_coord[0], route.center_coord[1]];
+    } else {
+      state.center_coord = computeCenterCoord(state.coords);
+    }
+
+    state.thumbnailPath = route.thumbnail_file || null;
+
+    if (route.location && typeof route.location === "object") {
+      const rl = route.location;
+      if (rl.start || rl.center || rl.end) {
+        // Neues verschachteltes Format.
+        const fill = (o) => Object.assign(emptyLocation(), o || {});
+        state.location = {
+          start:  fill(rl.start),
+          center: fill(rl.center),
+          end:    fill(rl.end),
+        };
+      } else {
+        // Altes flaches Format: als start/center/end gleich übernehmen.
+        const flat = Object.assign(emptyLocation(), rl);
+        state.location = {
+          start:  Object.assign({}, flat),
+          center: Object.assign({}, flat),
+          end:    Object.assign({}, flat),
+        };
+      }
+    } else {
+      state.location = {
+        start:  emptyLocation(),
+        center: emptyLocation(),
+        end:    emptyLocation(),
+      };
+    }
+
+    state.waypoints = (route.waypoints || []).map(wp => ({
+      id: wp.id || uuid(),
+      name: wp.name || "Wegpunkt",
+      lat: wp.lat, lon: wp.lon,
+      ele: wp.ele != null ? wp.ele : null,
+      note: wp.note || "",
+      images: wp.images || [],
+    }));
+
+    state.generalImages = (route.images || []).map(it => {
+      if (typeof it === "string") return { path: it, caption: "" };
+      return { path: it.path, caption: it.caption || "" };
+    }).filter(x => x && x.path);
+
+    if (state.thumbnailPath) {
+      const tidx = state.generalImages.findIndex(g => g.path === state.thumbnailPath);
+      if (tidx > 0) {
+        const [t] = state.generalImages.splice(tidx, 1);
+        state.generalImages.unshift(t);
+      } else if (tidx < 0) {
+        state.generalImages.unshift({ path: state.thumbnailPath, caption: "" });
+      }
+    }
+
+    const pathsToLoad = new Set();
+    for (const wp of state.waypoints) for (const p of wp.images) pathsToLoad.add(p);
+    for (const g of state.generalImages) pathsToLoad.add(g.path);
+
+    for (const path of pathsToLoad) {
+      const f = zip.file(path);
+      if (f) {
+        try {
+          const blob = await f.async("blob");
+          state.blobs.set(path, blob);
+          // Für künftige Importe: bestehende Blobs in den Hash-Index
+          // aufnehmen, damit ein erneutes Hinzufügen desselben Bildes
+          // keinen zweiten Eintrag erzeugt.
+          const h = await blobHash(blob);
+          if (h && !state.blobIndex.has(h)) state.blobIndex.set(h, path);
+        } catch (e) {}
+      }
+    }
+
+    state.shouldFit = true;
+    refreshAll();
+    updateMap();
+    markSaved();   // frisch geladen = nichts zu verlieren
+    toast(`Geladen: ${file.name}`, "success");
+    setStatus(`Geladen: ${file.name}`);
+  } catch (err) {
+    console.error(err);
+    toast("Fehler beim Laden: " + err.message, "error");
+    setStatus("Fehler beim Öffnen.");
+  }
+}
+
+/* ============================================================
+ * Speichern
+ * ============================================================ */
+/* Baut das TourPack als Blob. Führt alle Prüfungen aus (Titel,
+ * Region), fragt nach, wenn nötig. Rückgabe: { blob, filename } oder
+ * null bei Abbruch/Fehler. */
+async function buildTourpackBlob() {
+  if (!state.coords.length && !state.waypoints.length) {
+    toast("Nichts zu speichern — bitte zuerst eine GPX-Datei laden oder Daten hinzufügen.", "error");
+    return null;
+  }
+  if (!state.title.trim()) {
+    const t = prompt("Titel der Tour:", "Unbenannte Tour");
+    if (t == null) return;
+    state.title = t.trim() || "Unbenannte Tour";
+    $("titleInput").value = state.title;
+  }
+
+  const loc = state.location || {};
+  const regionAnywhere =
+    (loc.start  && (loc.start.region  || loc.start.county))  ||
+    (loc.center && (loc.center.region || loc.center.county)) ||
+    (loc.end    && (loc.end.region    || loc.end.county))    ||
+    loc.region || loc.county;
+  if (!regionAnywhere) {
+    const proceed = confirm(
+      "Für diese Tour wurde noch keine Region ermittelt.\n\n" +
+      "Ohne Region, Bezirk oder Bundesland ist sie über die Regionssuche " +
+      "und die Detailfilter später nicht auffindbar.\n\n" +
+      "Trotzdem speichern?"
+    );
+    if (!proceed) return;
+  }
+
+  // Sanity-Check: Verweise auf fehlende Blobs finden. Kommt vor, wenn
+  // ein TourPack manuell bearbeitet wurde oder ältere Versionen des
+  // Editors Bilder nicht mitgespeichert haben.
+  const brokenRefs = findBrokenImageRefs();
+  if (brokenRefs.length) {
+    const preview = brokenRefs.slice(0, 3).map(r => {
+      const name = r.path.split("/").pop();
+      return r.kind === "waypoint"
+        ? `„${name}" (Wegpunkt „${r.wpName}")`
+        : `„${name}"`;
+    }).join(", ");
+    const more = brokenRefs.length > 3
+      ? ` und ${brokenRefs.length - 3} weitere${brokenRefs.length - 3 === 1 ? "s" : ""}`
+      : "";
+    const ok = confirm(
+      `${brokenRefs.length} Bildverweis${brokenRefs.length === 1 ? "" : "e"} ` +
+      `zeigen auf nicht vorhandene Bilder:\n\n${preview}${more}\n\n` +
+      `Diese Verweise werden beim Speichern entfernt — andernfalls ` +
+      `erscheinen sie im Viewer als „Bild fehlt".\n\nFortfahren?`
+    );
+    if (!ok) return;
+
+    const brokenSet = new Set(brokenRefs.map(r => r.path));
+    state.generalImages = state.generalImages.filter(g => !brokenSet.has(g.path));
+    for (const wp of state.waypoints) {
+      wp.images = (wp.images || []).filter(p => !brokenSet.has(p));
+    }
+    if (state.thumbnailPath && brokenSet.has(state.thumbnailPath)) {
+      state.thumbnailPath = null;
+    }
+    renderGenImages();
+    renderThumbnailArea();
+    renderWpImages();
+    renderWpList();
+  }
+
+  setStatus(".tourpack wird erstellt …", true);
+
+  try {
+    const zip = new JSZip();
+    zip.file("mimetype", MIMETYPE, { compression: "STORE" });
+
+    const stats = computeStats(state.coords);
+    stats.duration_h = state.duration_h || 0;
+    stats.duration_min = state.duration_min || 0;
+
+    const manifest = {
+      format: FORMAT_NAME,
+      version: FORMAT_VERSION,
+      kind: "route",
+      id: state.id,
+      title: state.title,
+      created: state.created,
+      modified: new Date().toISOString(),
+      generator: { name: "TourPack Editor (Web)", version: "0.1.0" },
+    };
+    zip.file("manifest.json", JSON.stringify(manifest, null, 2));
+
+    const centerCoord = state.center_coord || computeCenterCoord(state.coords);
+
+    // Location in drei Punkten speichern. Felder nur aufnehmen, wenn
+    // sie tatsächlich einen Wert haben.
+    const pickLocation = (l) => {
+      const out = {};
+      if (!l) return out;
+      if (l.country)      out.country      = l.country;
+      if (l.country_code) out.country_code = l.country_code;
+      if (l.region)       out.region       = l.region;
+      if (l.county)       out.county       = l.county;
+      if (l.municipality) out.municipality = l.municipality;
+      if (l.place)        out.place        = l.place;
+      return out;
+    };
+
+    const locationObj = {};
+    const L = state.location || {};
+    const sLoc = pickLocation(L.start);
+    const cLoc = pickLocation(L.center);
+    const eLoc = pickLocation(L.end);
+    if (Object.keys(sLoc).length) locationObj.start = sLoc;
+    if (Object.keys(cLoc).length) locationObj.center = cLoc;
+    if (Object.keys(eLoc).length) locationObj.end = eLoc;
+
+    const route = {
+      id: state.id,
+      type: state.activity,
+      title: state.title,
+      geometry_file: "geometry.geojson",
+      description: { format: "markdown", file: "description.md" },
+      stats: stats,
+      difficulty: { text: state.diff_text || "", ratings: {} },
+      center_coord: centerCoord,
+      thumbnail_file: state.thumbnailPath || null,
+      location: Object.keys(locationObj).length ? locationObj : undefined,
+      // Rennradtauglichkeit nur bei Radtouren relevant. Bei anderen
+      // Aktivitäten immer false, damit das Feld im Format konsistent
+      // boolesch bleibt.
+      roadbike: state.activity === "cycling" ? !!state.roadbike : false,
+      waypoints: state.waypoints.map(wp => ({
+        id: wp.id,
+        name: wp.name || "Wegpunkt",
+        lat: wp.lat, lon: wp.lon, ele: wp.ele,
+        note: wp.note || "",
+        images: wp.images || [],
+      })),
+      images: state.generalImages.map(g => ({
+        path: g.path, caption: g.caption || "",
+      })),
+      tags: state.tags || [],
+      tag_segments: state.tagSegments.length > 0 ? state.tagSegments : undefined,
+      // Abbiegeanweisungen (index = Punkt in geometry.geojson), siehe turninstr.js
+      turn_instructions: AndromedaTurns.toTourpack(state.turnHints, "brouter"),
+    };
+    for (const [cat, val] of Object.entries(state.ratings)) {
+      if (val > 0) route.difficulty.ratings[cat] = val;
+    }
+    zip.file("route.json", JSON.stringify(route, null, 2));
+
+    const features = [];
+    if (state.coords.length >= 2) {
+      features.push({
+        type: "Feature",
+        properties: { role: "main" },
+        geometry: { type: "LineString", coordinates: state.coords },
+      });
+    }
+    for (const wp of state.waypoints) {
+      if (wp.lat == null || wp.lon == null) continue;
+      const coords = [wp.lon, wp.lat];
+      if (wp.ele != null) coords.push(wp.ele);
+      features.push({
+        type: "Feature",
+        properties: { role: "waypoint", waypoint_id: wp.id, name: wp.name || "" },
+        geometry: { type: "Point", coordinates: coords },
+      });
+    }
+    zip.file("geometry.geojson",
+      JSON.stringify({ type: "FeatureCollection", features }, null, 2));
+
+    zip.file("description.md", state.description || "");
+
+    for (const [path, blob] of state.blobs) zip.file(path, blob);
+
+    const blob = await zip.generateAsync({
+      type: "blob",
+      compression: "DEFLATE",
+      compressionOptions: { level: 6 },
+    });
+
+    const filename = (state.title.replace(/[^a-zA-Z0-9_\-äöüÄÖÜß ]+/g, "_").trim() || "tour") + FILE_EXT;
+    return { blob, filename };
+  } catch (err) {
+    console.error(err);
+    toast("Fehler beim Erstellen: " + err.message, "error");
+    setStatus("Fehler beim Erstellen des TourPacks.");
+    return null;
+  }
+}
+
+/* Speichert als Datei-Download. */
+async function saveTourpack() {
+  const result = await buildTourpackBlob();
+  if (!result) return;
+  const { blob, filename } = result;
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+
+  markSaved();
+  toast(`Gespeichert: ${filename}`, "success");
+  setStatus(`Gespeichert: ${filename}`);
+}
+
+/* Öffnet das Upload-Modal mit dem rechtlichen Hinweis. */
+function openUploadModal() {
+  $("uploadAgree").checked = false;
+  const confirmBtn = $("uploadConfirm");
+  confirmBtn.disabled = true;
+  confirmBtn.textContent = "Hochladen";
+  const status = $("uploadStatus");
+  status.style.display = "none";
+  status.textContent = "";
+  $("uploadModal").classList.add("show");
+}
+
+function closeUploadModal() {
+  $("uploadModal").classList.remove("show");
+}
+
+/* Lädt die aktuelle Tour auf Andromeda-Explorer hoch. */
+async function uploadTourpack() {
+  if (!$("uploadAgree").checked) return;
+
+  const result = await buildTourpackBlob();
+  if (!result) {
+    // buildTourpackBlob hat den Fehler bereits als Toast gemeldet.
+    return;
+  }
+  const { blob, filename } = result;
+
+  const status = $("uploadStatus");
+  const confirmBtn = $("uploadConfirm");
+
+  confirmBtn.disabled = true;
+  confirmBtn.textContent = "Wird hochgeladen …";
+  status.style.display = "block";
+  status.style.background = "var(--primary-soft)";
+  status.style.color = "var(--primary-dark)";
+  status.textContent =
+    `Lade ${filename} (${(blob.size / (1024 * 1024)).toFixed(1)} MB) hoch …`;
+
+  try {
+    const res = await fetch("/upload", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/zip",
+        "X-Tourpack-Name": filename,
+      },
+      body: blob,
+    });
+
+    let data = null;
+    try { data = await res.json(); } catch (e) {}
+
+    if (!res.ok) {
+      const msg = (data && data.error)
+        ? data.error
+        : "Upload fehlgeschlagen (HTTP " + res.status + ").";
+      status.style.background = "#fce8e6";
+      status.style.color = "var(--danger)";
+      status.textContent = msg;
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = "Hochladen";
+      return;
+    }
+
+    status.style.background = "rgba(30,122,67,.1)";
+    status.style.color = "var(--success)";
+    status.textContent =
+      "TourPack erfolgreich hochgeladen. Es wird geprüft und erscheint " +
+      "danach in der Suche.";
+    markSaved();
+    toast("TourPack hochgeladen.", "success");
+    setStatus("TourPack hochgeladen — wird geprüft.");
+    setTimeout(() => closeUploadModal(), 2000);
+  } catch (e) {
+    console.error(e);
+    status.style.background = "#fce8e6";
+    status.style.color = "var(--danger)";
+    status.textContent = "Verbindungsfehler. Bitte später erneut versuchen.";
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = "Hochladen";
+  }
+}
+
+/* ============================================================
+ * Refresh
+ * ============================================================ */
+function refreshAll() {
+  const detectBtn = $("detectLocationBtn");
+  const { startLL } = getThreeLocationPoints();
+  if (detectBtn) detectBtn.disabled = !startLL;
+
+  $("titleInput").value = state.title || "";
+  $("durationHInput").value = state.duration_h || "";
+  $("durationMInput").value = state.duration_min || "";
+  $("diffTextInput").value = state.diff_text || "";
+  $("descriptionInput").value = state.description || "";
+  $("tagsInput").value = (state.tags || []).join(", ");
+  const rbInput = $("roadbikeInput");
+  if (rbInput) rbInput.checked = !!state.roadbike;
+  renderLocationDisplay();
+  setActivity(state.activity);
+  renderStars();
+  renderWpList();
+  refreshWpForm();
+  renderGenImages();
+  renderThumbnailArea();
+  refreshStats();
+  updateTabCounts();
+  updateBottomBar();
+  elevPanel.setCoords(state.coords, state.activity);
+  renderStatsBlocks();
+}
+
+/* ============================================================
+ * Darstellung (Farbe / Transparenz / Pfeile)
+ * ============================================================ */
+function bindDisplaySettings() {
+  $$(".line-color-input").forEach(el => {
+    el.addEventListener("input", e => {
+      state.lineColor = e.target.value;
+      $$(".line-color-input").forEach(x => { if (x !== e.target) x.value = state.lineColor; });
+      updateMap();
+    });
+  });
+  $$(".line-opacity-input").forEach(el => {
+    el.addEventListener("input", e => {
+      state.lineOpacity = parseFloat(e.target.value);
+      $$(".line-opacity-input").forEach(x => { if (x !== e.target) x.value = state.lineOpacity; });
+      $$(".line-opacity-value").forEach(x => x.textContent = Math.round(state.lineOpacity * 100) + " %");
+      if (routeLayer) routeLayer.setStyle({ opacity: state.lineOpacity });
+    });
+  });
+  $$(".show-arrows-input").forEach(el => {
+    el.addEventListener("change", e => {
+      state.showArrows = e.target.checked;
+      $$(".show-arrows-input").forEach(x => { if (x !== e.target) x.checked = state.showArrows; });
+      updateMap();
+    });
+  });
+}
+
+/* ============================================================
+ * Lightbox
+ * ============================================================ */
+function showLightbox(src, caption) {
+  $("imgLightboxImg").src = src;
+  $("imgLightboxCaption").textContent = caption || "";
+  $("imgLightbox").classList.add("show");
+}
+function hideLightbox() {
+  const lb = $("imgLightbox");
+  lb.classList.remove("show");
+  setTimeout(() => { $("imgLightboxImg").src = ""; }, 200);
+}
+function bindLightbox() {
+  const lb = $("imgLightbox");
+  lb.addEventListener("click", e => {
+    if (e.target.tagName === "IMG") return;
+    hideLightbox();
+  });
+  $("imgLightboxClose").addEventListener("click", e => {
+    e.stopPropagation();
+    hideLightbox();
+  });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape") {
+      if ($("uploadModal").classList.contains("show")) {
+        closeUploadModal();
+        return;
+      }
+      if (state.pickMode) { exitPickMode(); return; }
+      hideLightbox();
+      closePanel();
+    }
+  });
+}
+
+/* ============================================================
+ * Global Drag&Drop-Fallback
+ * ============================================================ */
+window.addEventListener("dragover", e => {
+  if (e.dataTransfer && e.dataTransfer.types.includes("Files")) e.preventDefault();
+});
+window.addEventListener("drop", e => {
+  if (e.dataTransfer && e.dataTransfer.types.includes("Files")) e.preventDefault();
+});
+
+/* ============================================================
+ * UI-Bindings
+ * ============================================================ */
+function bindUI() {
+  // Menü (Mobile)
+  $("menuBtn").addEventListener("click", () => openPanel());
+  $("panelClose").addEventListener("click", closePanel);
+  $("sidebar").addEventListener("click", e => {
+    if (isMobile() && e.target === $("sidebar")) closePanel();
+  });
+
+  // Höhenprofil
+  $("elevBtn").onclick = elevPanel.toggle;
+  $("elevBtnM").onclick = elevPanel.toggle;
+  $("closeElev").onclick = elevPanel.hide;
+
+  // Automatische Ortserkennung
+  const detectBtn = $("detectLocationBtn");
+  if (detectBtn) detectBtn.addEventListener("click", detectLocation);
+
+  // Resize
+  window.addEventListener("resize", () => {
+    if (map) map.invalidateSize();
+    if (state.elevationOpen) elevPanel.redraw();
+  });
+  window.addEventListener("orientationchange", () => {
+    setTimeout(() => {
+      if (map) map.invalidateSize();
+      if (state.elevationOpen) elevPanel.redraw();
+    }, 300);
+  });
+}
+
+/* ============================================================
+ * Init
+ * ============================================================ */
+function init() {
+  AndromedaDarkmode.init();
+  initMap();
+  bindForm();
+  bindStars();
+  bindWpForm();
+  bindGenImages();
+  bindFileActions();
+  bindTabs();
+  bindDisplaySettings();
+  bindLightbox();
+  bindUI();
+  refreshAll();
+  updateMap();
+  markSaved();
+  setStatus("Bereit. Eine GPX-Datei laden oder eine neue Tour erstellen.");
+}
+
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
+else init();
+
+</script>
+</body>
+</html>

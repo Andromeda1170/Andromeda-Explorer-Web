@@ -1,0 +1,56 @@
+[Unit]
+Description=BRouter Routing-Server (nur 127.0.0.1:17777)
+After=network.target
+
+[Service]
+Type=simple
+User=brouter
+Group=brouter
+WorkingDirectory=/var/lib/andromeda/brouter
+# Speicher: ca. 700 MB pro Thread. Die letzte Zahl (3) = Threads; muss zu
+# BROUTER_MAX_CONCURRENT in services/geo-gateway.py passen.
+# Das letzte Argument bindet BRouter nur an localhost.
+ExecStart=/usr/bin/java \
+  -Xms3500m -Xmx3500m \
+  -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:ParallelGCThreads=3 \
+  -XX:+AlwaysPreTouch \
+  -DmaxRunningTime=300 \
+  -cp /opt/andromeda/brouter/brouter.jar \
+  btools.server.RouteServer \
+  /var/lib/andromeda/brouter/segments4 \
+  /var/lib/andromeda/brouter/profiles2 \
+  /var/lib/andromeda/brouter/customprofiles \
+  17777 3 127.0.0.1
+Restart=on-failure
+RestartSec=5
+UMask=0027
+# BRouter liest nur. Er darf ausschließlich mit localhost reden.
+IPAddressDeny=any
+IPAddressAllow=localhost
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+# --- Härtung (ohne MemoryDenyWriteExecute: Java braucht JIT) ----------
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RemoveIPC=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
+
+[Install]
+WantedBy=multi-user.target

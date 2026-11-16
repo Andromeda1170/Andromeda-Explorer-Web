@@ -1,0 +1,53 @@
+# Caddyfile für andromeda-explorer.com
+#
+# Alle Dienste lauschen nur auf 127.0.0.1. Caddy ist das einzige, was
+# von außen erreichbar ist. Wichtig: `handle`, nicht `handle_path` —
+# die Dienste brauchen den vollen Pfad.
+#
+# Vergleiche mit deinem bisherigen Caddyfile und übernimm eigene
+# Ergänzungen (z. B. zusätzliche Header, Logs, weitere Domains).
+
+andromeda-explorer.com {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# --- geo-gateway: Routing, Ortssuche, POIs ------------------------
+	@geo path /brouter /profile/* /nominatim/* /overpass
+	handle @geo {
+		reverse_proxy 127.0.0.1:8080
+	}
+
+	# --- tours-api: Suche, Vorschaubilder, Tour-Dateien und -Seiten ---
+	@tours path /search /thumbnail/* /tourpack/* /touren /touren/* /sitemap.xml
+	handle @tours {
+		reverse_proxy 127.0.0.1:8081
+	}
+
+	# --- tours-upload: öffentlicher Upload ---------------------------
+	handle /upload {
+		request_body {
+			max_size 31MB
+		}
+		reverse_proxy 127.0.0.1:8083
+	}
+
+	# --- tours-admin --------------------------------------------------
+	handle /admin* {
+		request_body {
+			max_size 106MB
+		}
+		reverse_proxy 127.0.0.1:8082
+	}
+
+	# --- statische Website --------------------------------------------
+	handle {
+		root * /opt/andromeda/www
+		file_server
+	}
+}

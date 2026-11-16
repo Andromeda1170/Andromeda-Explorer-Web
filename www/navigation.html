@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#2a6fbf">
+<title>Navigation</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="favicon.png">
+<link rel="stylesheet" href="stylesheets/base.css">
+<link rel="stylesheet" href="stylesheets/layout.css">
+<link rel="stylesheet" href="stylesheets/components.css">
+<link rel="stylesheet" href="stylesheets/map.css">
+<link rel="stylesheet" href="stylesheets/elevation.css">
+<link rel="stylesheet" href="stylesheets/tourdetail.css">
+<link rel="stylesheet" href="stylesheets/andromap.css">
+<link rel="stylesheet" href="stylesheets/navigation.css">
+</head>
+<body>
+
+<header id="header">
+  <button class="icon-btn" id="openMenuBtn" title="Menü" aria-label="Menü öffnen">☰</button>
+  <div class="title-wrap">
+    <div class="title" id="routeTitle">Navigation</div>
+    <span class="badge" id="activityBadge" style="display:none;"></span>
+  </div>
+  <button class="header-btn primary" id="openFileBtn" title="Tourpack / GPX öffnen">📁 Öffnen</button>
+</header>
+
+<div id="titlePopup" class="hidden"></div>
+
+<div id="mapWrap">
+  <div id="map"></div>
+  <div id="layerPicker">
+    <h4>Kartenstil</h4>
+    <button data-base="osm">OpenStreetMap</button>
+    <button data-base="topo">OpenTopoMap</button>
+    <button data-base="cyclosm">CyclOSM</button>
+    <div class="sep"></div>
+    <h4>Overlays</h4>
+    <button data-overlay="hiking">🟢 Wanderwege</button>
+    <button data-overlay="cycling">🔵 Radwege</button>
+  </div>
+  <div class="map-float tr">
+    <button class="float-btn" id="layerBtn" title="Kartenstil">🗺️</button>
+  </div>
+  <div id="alarmBanner"></div>
+  <div id="turnBanner">
+    <div class="turn-icon" id="turnIcon"></div>
+    <div class="turn-text">
+      <div class="turn-distance" id="turnDistance"></div>
+      <div class="turn-action" id="turnAction"></div>
+    </div>
+  </div>
+  <div id="waypointBanner"></div>
+</div>
+
+<div id="elevPanel">
+  <div class="elev-head">
+    <span>Höhenprofil <span class="stats" id="elevStats"></span></span>
+    <button id="closeElev" title="Schließen">×</button>
+  </div>
+  <div id="elevCanvasWrap">
+    <canvas id="elevChart"></canvas>
+    <div id="elevTooltip"></div>
+  </div>
+  <div id="slopeLegend"></div>
+</div>
+
+<div id="bottomBar">
+  <div class="info-col">
+    <div class="primary-line" id="primaryLine">Keine Tour geladen</div>
+    <div class="secondary-line" id="secondaryLine">.tourpack oder .gpx über 📁 öffnen</div>
+    <div class="bar-stats" id="barStats"></div>
+  </div>
+  <div id="speedDisplay">
+    <span class="sd-val" id="speedVal">0</span>
+    <span class="sd-unit">km/h</span>
+  </div>
+  <button class="bar-btn" id="elevBtn" title="Höhenprofil" data-icon-only>📈</button>
+  <button class="bar-btn" id="followBtn" title="Auf Position zentrieren">🧭</button>
+</div>
+
+<div id="panel">
+  <div class="panel-inner">
+    <div class="panel-head">
+      <h2 id="panelTitle">Menü</h2>
+      <button class="close-btn" id="panelClose" title="Schließen">✕</button>
+    </div>
+    <nav class="tab-bar">
+      <button data-tab="info" class="active">Übersicht</button>
+      <button data-tab="waypoints">Wegpunkte</button>
+      <button data-tab="images">Bilder</button>
+      <div class="tab-sep" aria-hidden="true"></div>
+      <button data-tab="search">Suche</button>
+      <button data-tab="settings">Optionen</button>
+    </nav>
+    <div class="tab-panes">
+      <div class="tab-pane active" data-pane="info">
+        <div id="approachButtonsInfo" style="display:none;margin-bottom:16px;">
+          <button class="btn-full primary" id="approachBtnInfo" style="display:none;">🧭 Zur Route navigieren</button>
+          <button class="btn-full danger" id="endApproachBtnInfo" style="display:none;margin-top:8px;">✕ Navigation beenden</button>
+        </div>
+        <div id="infoContent">
+          <div style="color:var(--text-muted);text-align:center;padding:30px 10px;font-size:13px;">
+            Keine Tour geladen.
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-pane" data-pane="waypoints">
+        <div id="waypointsContent"></div>
+      </div>
+
+      <div class="tab-pane" data-pane="images">
+        <div id="imagesContent"></div>
+      </div>
+
+      <div class="tab-pane" data-pane="search">
+        <div class="search-bar">
+          <input type="text" id="searchInput" placeholder="Ort, Adresse, Gipfel, Hütte…" autocomplete="off">
+          <button id="searchBtn">Suchen</button>
+        </div>
+        <button class="btn-full primary" id="poiSearchBtn" style="margin-bottom:12px;">
+          📍 Dinge in der Umgebung suchen
+        </button>
+        <div class="hint-text" style="margin-top:0;margin-bottom:12px;">
+          Tipp: <b>Long-Press</b> (Handy) oder <b>Rechtsklick</b> (Desktop) auf die Karte,
+          um eine Markierung zu setzen. Über den Button <b>Online Ortsabfrage</b> im
+          Info-Fenster lassen sich optional OSM-Attribute dazu laden.<br>
+          Markierungen: <b>Einfach tippen</b> zeigt Infos, <b>Doppeltippen</b> entfernt sie.
+        </div>
+        <div id="searchResults" class="search-results">
+          <div class="search-empty">Noch keine Suche durchgeführt.</div>
+        </div>
+      </div>
+
+      <div class="tab-pane" data-pane="settings">
+        <div class="section gap" id="endTourNavSection" style="display:none;">
+          <button class="btn-full danger" id="endTourNavBtn">✕ Tournavigation beenden</button>
+        </div>
+
+        <div class="section gap" id="approachSection" style="display:none;">
+          <button class="btn-full primary" id="approachBtnSettings" style="display:none;">🧭 Zur Route navigieren</button>
+          <button class="btn-full danger" id="endApproachBtnSettings" style="display:none;">✕ Navigation beenden</button>
+        </div>
+
+        <div id="firefoxHint" style="display:none;">
+          <strong>⚠️ Firefox auf Android:</strong> Die Standortbestimmung nutzt hier
+          nur das Netzwerk (WLAN/Mobilfunk) und nicht das GPS. Die Position kann
+          dadurch um 100–500 Meter abweichen. Für eine genaue GPS-Position bitte
+          Chrome verwenden.
+        </div>
+
+        <div class="section gap">
+          <h3 class="settings-heading">Darstellung</h3>
+
+          <div class="settings-row">
+            <div class="label-col">
+              <strong>Nachtmodus</strong>
+              <span>Dunkles Design für die Nutzung bei Nacht</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" class="darkmode-switch" id="set_darkmode">
+              <span class="slider"></span>
+            </label>
+          </div>
+            <div class="settings-row">
+              <div class="label-col">
+                <strong>Sprache</strong>
+                <span>Sprache der Oberfläche. Touren bleiben in ihrer Originalsprache.</span>
+              </div>
+              <div class="lang-seg"></div>
+            </div>
+        </div>
+
+        <div class="section gap">
+          <h3 class="settings-heading">Navigation zur Route / Markierung</h3>
+
+          <div class="settings-row">
+            <div class="label-col">
+              <strong>Bevorzugte SAC-Skala</strong>
+              <span>Für Wander- und Laufwege</span>
+            </div>
+            <select id="set_approachSacPreferred">
+              <option value="0">T0</option>
+              <option value="1">T1</option>
+              <option value="2">T2</option>
+              <option value="3">T3</option>
+              <option value="4">T4</option>
+              <option value="5">T5</option>
+              <option value="6">T6</option>
+            </select>
+          </div>
+
+          <div class="settings-row">
+            <div class="label-col">
+              <strong>Maximale SAC-Skala</strong>
+              <span>Für Wander- und Laufwege</span>
+            </div>
+            <select id="set_approachSacLimit">
+              <option value="0">T0</option>
+              <option value="1">T1</option>
+              <option value="2">T2</option>
+              <option value="3">T3</option>
+              <option value="4">T4</option>
+              <option value="5">T5</option>
+              <option value="6">T6</option>
+            </select>
+          </div>
+
+          <div class="settings-row">
+            <div class="label-col">
+              <strong>Radtyp</strong>
+              <span>Profil für die Rad-Navigation</span>
+            </div>
+            <select id="set_approachCyclingProfile">
+              <option value="trekking">Trekkingrad</option>
+              <option value="rennrad">Rennrad</option>
+            </select>
+          </div>
+
+          <button class="btn-full primary" id="exportApproachGpxBtn"
+                  style="display:none;margin-top:12px;">
+            📥 Navigation als GPX exportieren
+          </button>
+
+          <div class="hint-text">
+            Diese Einstellungen gelten nur für die Navigation zur Route
+            oder zu einer Markierung. Die eigentliche Tour-Route bleibt unverändert.
+          </div>
+        </div>
+
+        <div class="section">
+          <button class="btn-full outline" id="moreOptionsBtn">
+            ⚙️ Weitere Optionen
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="placeDetail">
+  <div id="placeDetailInner">
+    <div class="pd-head">
+      <div class="pd-head-col">
+        <h2 id="pdTitle">Objekt</h2>
+        <div class="pd-sub" id="pdSub"></div>
+      </div>
+      <button id="pdClose" title="Schließen">✕</button>
+    </div>
+    <div class="pd-body" id="pdBody"></div>
+    <div class="pd-footer" id="pdFooter"></div>
+  </div>
+</div>
+
+<div id="dropOverlay">TourPack oder GPX hier loslassen</div>
+
+<!-- Modal: Weitere Optionen -->
+<div class="modal-backdrop" id="moreOptionsModal">
+  <div class="modal modal-sheet">
+    <div class="modal-sheet-head">
+      <h3>Weitere Optionen</h3>
+      <button type="button" class="modal-sheet-close" id="moreOptionsClose" title="Schließen">✕</button>
+    </div>
+    <div class="modal-sheet-body">
+
+      <div class="section gap">
+        <h3 class="settings-heading">Navigation</h3>
+        <div class="settings-row">
+          <div class="label-col"><strong>Standort folgen</strong><span>Karte automatisch auf Position zentrieren</span></div>
+          <label class="switch"><input type="checkbox" id="set_follow"><span class="slider"></span></label>
+        </div>
+        <div class="settings-row">
+          <div class="label-col"><strong>Folge-Zoomstufe</strong><span>Zoom-Level, wenn der Position gefolgt wird</span></div>
+          <input type="range" id="set_zoom" min="10" max="19" step="1">
+          <span class="range-value" id="set_zoom_val">16</span>
+        </div>
+        <div class="settings-row">
+          <div class="label-col"><strong>Kompass verwenden</strong><span>Richtung des Standortpfeils vom Smartphone-Kompass</span></div>
+          <label class="switch"><input type="checkbox" id="set_compass"><span class="slider"></span></label>
+        </div>
+        <div class="settings-row">
+          <div class="label-col"><strong>Abbiege-Hinweise</strong><span>Zeigt bevorstehende Richtungswechsel als Banner oben an</span></div>
+          <label class="switch"><input type="checkbox" id="set_turn_notice"><span class="slider"></span></label>
+        </div>
+        <div class="settings-row">
+          <div class="label-col"><strong>Karte in Kompassrichtung drehen</strong><span>Dreht die Karte mit dem Kompass, sodass die Blickrichtung oben liegt.</span></div>
+          <label class="switch"><input type="checkbox" id="set_rotate_map"><span class="slider"></span></label>
+        </div>
+        <div class="settings-row">
+          <div class="label-col"><strong>Standort aktivieren</strong><span id="geoStatusText">Falls der Zugriff verweigert wurde oder ausgeschaltet ist</span></div>
+          <button class="mini-btn" id="set_startGeo">Aktivieren</button>
+        </div>
+      </div>
+
+      <div class="section gap">
+        <h3 class="settings-heading">Tour-Darstellung</h3>
+        <div class="settings-row"><div class="label-col"><strong>Linienfarbe</strong></div><input type="color" id="set_route_color" value="#2a6fbf"></div>
+        <div class="settings-row"><div class="label-col"><strong>Transparenz</strong></div><input type="range" id="set_route_opacity" min="0.15" max="1" step="0.05"><span class="range-value" id="set_route_opacity_val">90 %</span></div>
+        <div class="settings-row"><div class="label-col"><strong>Richtungspfeile</strong><span>Pfeile entlang der Route anzeigen</span></div><label class="switch"><input type="checkbox" id="set_arrows"><span class="slider"></span></label></div>
+        <div class="settings-row"><div class="label-col"><strong>Pfeil-Dichte</strong><span>Abstand zwischen den Pfeilen.</span></div><input type="range" id="set_arrow_density" min="50" max="10000" step="50"><span class="range-value" id="set_arrow_density_val">300 m</span></div>
+      </div>
+
+      <div class="section gap">
+        <h3 class="settings-heading">Geschwindigkeitsanzeige</h3>
+        <div class="settings-row">
+          <div class="label-col"><strong>Beim Radfahren</strong><span>km/h in der unteren Leiste</span></div>
+          <label class="switch"><input type="checkbox" id="set_speed_cycling"><span class="slider"></span></label>
+        </div>
+        <div class="settings-row">
+          <div class="label-col"><strong>Beim Wandern</strong><span>km/h in der unteren Leiste</span></div>
+          <label class="switch"><input type="checkbox" id="set_speed_hiking"><span class="slider"></span></label>
+        </div>
+        <div class="settings-row">
+          <div class="label-col"><strong>Beim Laufen</strong><span>km/h in der unteren Leiste</span></div>
+          <label class="switch"><input type="checkbox" id="set_speed_running"><span class="slider"></span></label>
+        </div>
+      </div>
+
+      <div class="section gap">
+        <h3 class="settings-heading">Navigation zur Route / Markierung</h3>
+        <div class="settings-row"><div class="label-col"><strong>Linienfarbe</strong></div><input type="color" id="set_approach_color" value="#e67e22"></div>
+        <div class="settings-row"><div class="label-col"><strong>Transparenz</strong></div><input type="range" id="set_approach_opacity" min="0.15" max="1" step="0.05"><span class="range-value" id="set_approach_opacity_val">90 %</span></div>
+        <div class="hint-text">
+          Diese Einstellungen gelten nur für die orangefarbene Route
+          der Zustiegs- bzw. Markierungs-Navigation.
+        </div>
+      </div>
+
+      <div class="section gap">
+        <h3 class="settings-heading">Offline-Karten</h3>
+        <div class="settings-row">
+          <div class="label-col"><strong>Karten im Hintergrund speichern</strong><span>Speichert Kartenkacheln, die auf der Karte angesehen wurden</span></div>
+          <label class="switch"><input type="checkbox" id="set_autocache"><span class="slider"></span></label>
+        </div>
+        <div class="settings-row">
+          <div class="label-col"><strong id="cacheCountLabel">… Kacheln im Cache</strong><span id="cacheCountSub">Zwischengespeicherte Karten bleiben erhalten</span></div>
+        </div>
+        <div id="cacheWarning" class="hint-text warn" style="display:none;">
+          ⚠️ Der Cache ist sehr groß. Browser-Speicher ist begrenzt —
+          alte Kacheln manuell entfernen, um Platz zu schaffen.
+        </div>
+        <button class="btn-full danger" id="clearCacheBtn" style="margin-top:12px;">Gesamten Cache leeren</button>
+      </div>
+
+      <div class="section gap">
+        <h3 class="settings-heading">Aktuelle Tour</h3>
+        <button class="btn-full primary" id="exportTourGpxBtn">📥 Tour als GPX exportieren</button>
+        <div class="hint-text">Exportiert die aktuell geladene Route mit allen Wegpunkten als GPX-Datei.</div>
+      </div>
+
+      <div class="section gap">
+        <h3 class="settings-heading">Markierungen</h3>
+        <div class="settings-row">
+          <div class="label-col"><strong id="markerCountLabel">0 Markierungen</strong><span id="markerCountSub">Gesetzte Markierungen auf der Karte</span></div>
+        </div>
+        <button class="btn-full danger" id="clearMarkersBtn" style="margin-top:12px;">Alle Markierungen entfernen</button>
+      </div>
+
+      <div class="section">
+        <h3 class="settings-heading">Zurücksetzen</h3>
+        <button class="btn-full danger" id="resetSettingsBtn">Standardeinstellungen wiederherstellen</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Umgebungssuche (POIs) -->
+<div class="modal-backdrop" id="poiModal">
+  <div class="modal modal-sheet">
+    <div class="modal-sheet-head">
+      <div class="head-col">
+        <h3>In der Umgebung suchen</h3>
+        <div class="sub">
+          Radius: 10 km um die eigene Position
+        </div>
+      </div>
+      <button type="button" class="modal-sheet-close" id="poiModalClose" title="Schließen">✕</button>
+    </div>
+    <div class="modal-sheet-body">
+      <div id="poiGrid"></div>
+      <div id="poiStatus" style="display:none;"></div>
+    </div>
+    <div class="modal-sheet-foot">
+      <button class="btn-full danger" id="poiClearBtn" style="display:none;">
+        🗑️ Gefundene Orte von der Karte löschen
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Sondernavigation (Zustieg / Ziel) -->
+<div class="modal-backdrop" id="approachModal">
+  <div class="modal">
+    <div id="approachStep1">
+      <h3>Weit von der Route entfernt</h3>
+      <p id="approachDistText"></p>
+      <div class="actions">
+        <button class="cancel" id="approachNo1">Nein</button>
+        <button class="ok" id="approachYes1">Zur Route navigieren</button>
+      </div>
+    </div>
+    <div id="approachStep2" style="display:none;">
+      <h3>Wie möchten Sie zur Route gelangen?</h3>
+      <p>Bitte eine Fortbewegungsart wählen:</p>
+      <div class="actions stacked">
+        <button class="ok" id="approachActHiking">🥾 Wandern</button>
+        <button class="ok" id="approachActCycling">🚴 Rad</button>
+        <button class="ok" id="approachActRunning">🏃 Laufen</button>
+        <button class="ok" id="approachCarTransit">🚗 Anfahrt mit Auto oder Öffis</button>
+      </div>
+      <div class="actions back-row">
+        <button class="cancel" id="approachBack2">Zurück</button>
+      </div>
+    </div>
+    <div id="approachStep3" style="display:none;">
+      <h3>Wohin möchten Sie navigieren?</h3>
+      <p id="approachTargetHint">Zum nächsten Punkt der Route oder zum Start?</p>
+      <div class="actions stacked">
+        <button class="ok" id="approachToNearest">📍 Zum nächsten Punkt der Route</button>
+        <button class="ok" id="approachToStart">🏁 Zum Start</button>
+      </div>
+      <div class="actions back-row">
+        <button class="cancel" id="approachBack3">Zurück</button>
+      </div>
+    </div>
+    <div id="approachStepProgress" style="display:none;">
+      <h3>Route wird berechnet …</h3>
+      <p>Einen Moment bitte.</p>
+    </div>
+    <div id="approachStepError" style="display:none;">
+      <h3>Fehler</h3>
+      <p id="approachErrorText"></p>
+      <div class="actions">
+        <button class="cancel" id="approachErrClose">Schließen</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Höhenprofil-Auswahl -->
+<div class="modal-backdrop" id="elevPickerModal">
+  <div class="modal">
+    <h3>Welches Höhenprofil anzeigen?</h3>
+    <p>Es sind sowohl eine Tour als auch eine laufende Navigation geladen.</p>
+    <div class="actions stacked">
+      <button class="ok" id="elevPickTour">Höhenprofil der geladenen Tour</button>
+      <button class="ok" id="elevPickApproach">Höhenprofil der aktuellen Navigation</button>
+    </div>
+    <div class="actions back-row">
+      <button class="cancel" id="elevPickCancel">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<div class="modal-backdrop" id="endNavModal">
+  <div class="modal">
+    <h3>Navigation beenden?</h3>
+    <p id="endNavModalMsg"></p>
+    <div class="actions">
+      <button class="cancel" id="endNavModalCancel">Abbrechen</button>
+      <button class="ok" id="endNavModalOk">Beenden</button>
+    </div>
+  </div>
+</div>
+
+
+<input type="file" id="fileInput" accept=".tourpack,.gpx,application/zip,application/gpx+xml" hidden>
+
+<script src="scripts/andromap.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="scripts/config.js"></script>
+<script src="scripts/i18n.js"></script>
+<script src="scripts/lang/de.js"></script>
+<script src="scripts/lang/en.js"></script>
+<script src="scripts/lang/en-phrases.js"></script>
+<script src="scripts/utils.js"></script>
+<script src="scripts/toast.js"></script>
+<script src="scripts/darkmode.js"></script>
+<script src="scripts/modal.js"></script>
+<script src="scripts/mapkit.js"></script>
+<script src="scripts/elevation.js"></script>
+<script src="scripts/lightbox.js"></script>
+<script src="scripts/waystats.js"></script>
+<script src="scripts/tourdata.js"></script>
+<script src="scripts/turninstr.js"></script>
+<script src="scripts/gpx.js"></script>
+<script src="scripts/directions.js"></script>
+
+<script src="scripts/nav/constants.js"></script>
+<script src="scripts/nav/osm-labels.js"></script>
+<script src="scripts/nav/storage.js"></script>
+<script src="scripts/nav/state.js"></script>
+<script src="scripts/nav/route-geometry.js"></script>
+<script src="scripts/nav/turns.js"></script>
+<script src="scripts/nav/markers.js"></script>
+<script src="scripts/nav/map.js"></script>
+<script src="scripts/nav/tour.js"></script>
+<script src="scripts/nav/gps.js"></script>
+<script src="scripts/nav/approach.js"></script>
+<script src="scripts/nav/info.js"></script>
+<script src="scripts/nav/poi.js"></script>
+<script src="scripts/nav/search.js"></script>
+<script src="scripts/nav/gpx-export.js"></script>
+<script src="scripts/nav/ui.js"></script>
+</body>
+</html>

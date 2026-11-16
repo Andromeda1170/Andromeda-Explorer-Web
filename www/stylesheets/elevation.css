@@ -1,0 +1,91 @@
+/* ============================================================
+ * AndromedaExplorer — Höhenprofil
+ * ============================================================ */
+
+#elevPanel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-top: 10px; overflow: hidden;
+  display: none; flex-direction: column;
+  flex-shrink: 0;
+}
+#elevPanel.open { display: flex; }
+
+#elevPanel .elev-head {
+  padding: 8px 14px; font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .05em;
+  color: var(--text-muted); background: #fafbfc;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+#elevPanel .elev-head .stats {
+  font-family: ui-monospace, monospace;
+  font-size: 10.5px; color: var(--text);
+  text-transform: none; letter-spacing: 0; font-weight: 500;
+}
+#elevPanel .elev-head button {
+  background: none; border: none;
+  width: 28px; height: 28px; border-radius: 50%;
+  font-size: 16px; color: var(--text-muted);
+  display: flex; align-items: center; justify-content: center;
+  padding: 0; margin: -4px -6px -4px 0; cursor: pointer;
+}
+#elevPanel .elev-head button:hover { background: var(--bg); }
+
+#elevCanvasWrap { position: relative; width: 100%; height: 180px; }
+#elevChart {
+  width: 100%; height: 100%;
+  background: #fafbfc; touch-action: none; display: block;
+}
+#elevTooltip {
+  position: absolute; background: rgba(20,20,25,.92); color: white;
+  padding: 5px 9px; border-radius: 6px;
+  font-size: 11px; line-height: 1.4;
+  pointer-events: none; white-space: nowrap;
+  font-family: ui-monospace, monospace;
+  display: none; z-index: 20;
+}
+#elevTooltip.show { display: block; }
+
+#slopeLegend {
+  padding: 8px 14px;
+  display: flex; gap: 14px; flex-wrap: wrap;
+  font-size: 11px; color: var(--text);
+  background: #fafbfc;
+  border-top: 1px solid var(--border);
+  align-items: center;
+}
+#slopeLegend .li {
+  display: flex; align-items: center; gap: 4px;
+  white-space: nowrap; color: var(--text-muted);
+}
+#slopeLegend .sw {
+  width: 14px; height: 4px; border-radius: 2px;
+  flex-shrink: 0;
+}
+#slopeLegend .legend-title {
+  font-weight: 700; color: var(--text);
+  margin-right: 2px;
+}
+
+/* Dark Mode */
+body.dark #elevPanel .elev-head,
+body.dark #elevChart,
+body.dark #slopeLegend { background: #1a1d21; }
+body.dark #slopeLegend { color: var(--text); }
+body.dark #slopeLegend .legend-title { color: var(--text); }
+
+/* Mobile */
+@media (max-width: 900px) {
+  #elevPanel {
+    border-radius: 0;
+    border-left: none; border-right: none;
+    border-bottom: none;
+    margin-top: 0;
+  }
+  #elevCanvasWrap { height: 130px; }
+  /* Legende mobil kompakt; bricht um statt abgeschnitten zu werden */
+  #slopeLegend { gap: 4px 10px; padding: 6px 12px; font-size: 10.5px; }
+  #slopeLegend .legend-title { display: none; }
+}

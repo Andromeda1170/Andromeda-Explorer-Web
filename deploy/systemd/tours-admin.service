@@ -1,0 +1,48 @@
+[Unit]
+Description=Andromeda tours-admin (Verwaltung) :8082
+After=network.target
+
+[Service]
+Type=simple
+User=andromeda-admin
+Group=andromeda-admin
+SupplementaryGroups=andromeda-pipeline
+Environment=PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
+EnvironmentFile=-/etc/andromeda/andromeda.env
+ExecStart=/usr/bin/python3 /opt/andromeda/app/services/tours-admin.py
+Restart=on-failure
+RestartSec=3
+UMask=0007
+# Liest /etc/andromeda/admin.json (root:andromeda-admin 0640).
+ReadWritePaths=/var/lib/andromeda/tours/published /var/lib/andromeda/tours/inbox /var/lib/andromeda/tours/jobs /var/lib/andromeda/tours/staging
+MemoryDenyWriteExecute=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+IPAddressDeny=any
+IPAddressAllow=localhost
+MemoryMax=768M
+# --- Härtung ---------------------------------------------------------
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RemoveIPC=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
+
+[Install]
+WantedBy=multi-user.target

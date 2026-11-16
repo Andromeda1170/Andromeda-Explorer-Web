@@ -1,0 +1,60 @@
+/* ============================================================
+ * AndromedaExplorer — Basis
+ * Design-Tokens, Reset, Typografie, Dark-Mode-Variablen
+ * ============================================================ */
+
+:root {
+  --primary: #2a6fbf; --primary-dark: #1e5a99; --primary-soft: #e8f0fa;
+  --accent: #3a7ca5; --start: #2e8b57; --end: #c0392b; --wp: #d9534f;
+  --danger: #c0392b; --success: #1e7a43; --warn: #b26a00; --gold: #c9a227;
+  --text: #1a1a1a; --text-muted: #667085;
+  --bg: #eef1f5; --panel: #ffffff;
+  --border: #e2e6ea; --border-strong: #d0d5dd;
+  --shadow-sm: 0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.10);
+  --shadow-md: 0 4px 8px -2px rgba(16,24,40,.10), 0 2px 4px -2px rgba(16,24,40,.06);
+  --shadow-lg: 0 12px 32px -6px rgba(16,24,40,.22);
+  --radius: 10px; --radius-sm: 6px;
+  /* Gemeinsame Größen für alle Seiten */
+  --radius-dialog: 16px;                       /* Dialoge, Panels, Sheets */
+  --dialog-w: 560px;                           /* Dialogbreite am Desktop */
+  --dialog-w-sm: 440px;                        /* kleine Rückfragen */
+  --backdrop: rgba(15,20,30,.55);              /* Hintergrund hinter Dialogen */
+  --sheet-h: 100dvh;                           /* Höhe mobiler Panels (Vollbild) */
+  --touch: 44px;                               /* runde Knöpfe unten (Mobil) */
+  --sidebar-w: clamp(360px, 30vw, 460px);      /* Seitenleiste am Desktop */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+
+body.dark {
+  --primary: #4a90e2; --primary-dark: #3a7bc8; --primary-soft: #1e3a5f;
+  --accent: #5a9bc5; --start: #66bb6a; --end: #e57373; --wp: #e57373;
+  --danger: #e57373; --success: #66bb6a; --warn: #ffb74d; --gold: #d4b13e;
+  --text: #e8eaed; --text-muted: #9aa0a6;
+  --bg: #14171a; --panel: #1f2327;
+  --border: #2f3439; --border-strong: #3f4549;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.4), 0 1px 3px rgba(0,0,0,.5);
+  --shadow-md: 0 4px 12px -2px rgba(0,0,0,.5), 0 2px 6px -2px rgba(0,0,0,.35);
+  --shadow-lg: 0 12px 32px -6px rgba(0,0,0,.6);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html { height: 100%; }
+body {
+  margin: 0; height: 100vh; height: 100dvh;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+               "Helvetica Neue", Arial, sans-serif;
+  background: var(--bg); color: var(--text); font-size: 14px;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+}
+button { -webkit-tap-highlight-color: transparent; font-family: inherit; cursor: pointer; }
+input, textarea, select { font-family: inherit; }
+.hidden { display: none !important; }
+
+/* Scrollbars */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+::-webkit-scrollbar-track { background: transparent; }

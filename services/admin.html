@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2a6fbf">
+<title>Admin — Andromedaexplorer</title>
+
+<link rel="stylesheet" href="/stylesheets/base.css">
+<link rel="stylesheet" href="/stylesheets/components.css">
+
+<style>
+  body.admin {
+    display: block;
+    min-height: 100dvh;
+    overflow-y: auto;
+    height: auto;
+    background: var(--bg);
+  }
+  .admin-header {
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .admin-header h1 {
+    margin: 0; font-size: 16px; font-weight: 700;
+    color: var(--text);
+    flex: 1;
+  }
+  .admin-header .logout-btn {
+    padding: 7px 14px;
+    border: none; border-radius: var(--radius-sm);
+    background: var(--bg); color: var(--text);
+    font-size: 13px; font-weight: 600;
+    font-family: inherit; cursor: pointer;
+  }
+  .admin-header .logout-btn:hover { background: var(--primary-soft); }
+
+  .admin-main {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 28px 20px 80px 20px;
+  }
+
+  .admin-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-sm);
+  }
+  .admin-card h2 {
+    margin: 0 0 6px 0;
+    font-size: 18px; font-weight: 700;
+    color: var(--text);
+  }
+  .admin-card .sub {
+    margin: 0 0 20px 0;
+    color: var(--text-muted);
+    font-size: 13.5px;
+    line-height: 1.5;
+  }
+
+  .admin-card input[type=password],
+  .admin-card input[type=text] {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    background: var(--panel);
+    color: var(--text);
+    font-family: inherit;
+  }
+  .admin-card input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(42,111,191,.15);
+  }
+  .admin-card .field { margin-bottom: 14px; }
+  .admin-card .field label {
+    display: block; font-size: 11.5px;
+    text-transform: uppercase; letter-spacing: .05em;
+    font-weight: 700; color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  .admin-card button.primary {
+    width: 100%;
+    padding: 12px 16px;
+    border: none; border-radius: var(--radius-sm);
+    background: var(--primary); color: white;
+    font-size: 14px; font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .admin-card button.primary:hover { background: var(--primary-dark); }
+  .admin-card button.primary:disabled { opacity: .5; cursor: not-allowed; }
+
+  .admin-card .error {
+    background: #fce8e6;
+    color: var(--danger);
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    margin-bottom: 14px;
+    line-height: 1.5;
+  }
+  body.dark .admin-card .error {
+    background: rgba(229,115,115,.15);
+    color: #e57373;
+  }
+
+  .code-input {
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 28px !important;
+    letter-spacing: 8px;
+    text-align: center;
+  }
+
+  /* TourPack-Liste */
+  .tp-list { display: flex; flex-direction: column; gap: 8px; }
+  .tp-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px;
+    background: var(--bg);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .tp-row.promoted {
+    border-color: var(--gold);
+    background: rgba(201,162,39,.06);
+  }
+  body.dark .tp-row.promoted { background: rgba(212,177,62,.08); }
+  .tp-row .tp-info { flex: 1; min-width: 200px; }
+  .tp-row .tp-title {
+    font-size: 14px; font-weight: 700;
+    color: var(--text);
+    margin-bottom: 3px;
+    word-break: break-word;
+  }
+  .tp-row .tp-meta {
+    font-size: 11.5px; color: var(--text-muted);
+    font-family: ui-monospace, monospace;
+    word-break: break-all;
+  }
+  .tp-row .tp-actions {
+    display: flex; gap: 6px; flex-wrap: wrap;
+    flex-shrink: 0;
+  }
+  .tp-row .tp-actions button,
+  .tp-row .tp-actions a {
+    padding: 7px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--panel);
+    color: var(--text);
+    font-size: 12.5px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex; align-items: center; gap: 5px;
+    transition: background .12s;
+  }
+  .tp-row .tp-actions button:hover,
+  .tp-row .tp-actions a:hover {
+    background: var(--primary-soft);
+    border-color: var(--primary);
+    text-decoration: none;
+  }
+  .tp-row .tp-actions button.promoted {
+    background: var(--gold);
+    color: white;
+    border-color: var(--gold);
+  }
+  .tp-row .tp-actions button.danger {
+    color: var(--danger);
+    border-color: var(--danger);
+  }
+  .tp-row .tp-actions button.danger:hover {
+    background: rgba(192,57,43,.1);
+  }
+  .tp-row .tp-actions button:disabled {
+    opacity: .5; cursor: not-allowed;
+  }
+
+  .admin-empty {
+    text-align: center;
+    padding: 30px 20px;
+    color: var(--text-muted);
+    font-size: 13.5px;
+    font-style: italic;
+  }
+
+  .badge-count {
+    display: inline-block;
+    background: var(--primary-soft);
+    color: var(--primary-dark);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  body.dark .badge-count { color: var(--primary); }
+  .badge-count:empty { display: none; }
+
+  .tp-row.status-error {
+    border-color: rgba(192,57,43,.4);
+    background: rgba(192,57,43,.05);
+  }
+  .tp-row.status-error .tp-meta { color: var(--danger); }
+
+  .tp-row.status-processing {
+    border-color: var(--primary);
+    background: var(--primary-soft);
+  }
+
+  /* Upload */
+  .upload-drop {
+    display: block;
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 24px 20px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13.5px;
+    cursor: pointer;
+    transition: all .15s;
+    background: var(--bg);
+  }
+  .upload-drop:hover,
+  .upload-drop.dragover {
+    border-color: var(--primary);
+    background: var(--primary-soft);
+    color: var(--primary-dark);
+  }
+  body.dark .upload-drop.dragover { color: var(--primary); }
+  .upload-drop input[type=file] { display: none; }
+  .upload-drop .ico {
+    font-size: 34px;
+    opacity: .5;
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  .upload-progress {
+    display: none;
+    margin-top: 12px;
+    font-size: 12.5px;
+    color: var(--text-muted);
+    font-family: ui-monospace, monospace;
+  }
+  .upload-progress.show { display: block; }
+
+    /* Suchfeld in der Veröffentlicht-Liste */
+  .tp-search {
+    position: relative;
+    margin-bottom: 12px;
+  }
+  .tp-search input {
+    width: 100%;
+    padding: 10px 40px 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    background: var(--panel);
+    color: var(--text);
+    font-family: inherit;
+  }
+  .tp-search input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(42,111,191,.15);
+  }
+  .tp-search #tpSearchClear {
+    position: absolute;
+    right: 6px; top: 50%;
+    transform: translateY(-50%);
+    width: 28px; height: 28px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 16px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-family: inherit;
+  }
+  .tp-search #tpSearchClear.show { display: flex; }
+  .tp-search #tpSearchClear:hover {
+    background: var(--primary-soft);
+    color: var(--text);
+  }
+
+  /* Klappbare Karten (details/summary) */
+  .admin-card.collapsible > summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 2px 0 8px 0;
+    user-select: none;
+  }
+  .admin-card.collapsible > summary::-webkit-details-marker { display: none; }
+  .admin-card.collapsible > summary::marker { content: ""; }
+  .collapsible-arrow {
+    display: inline-block;
+    font-size: 11px;
+    color: var(--text-muted);
+    transition: transform .15s;
+    flex-shrink: 0;
+  }
+  .admin-card.collapsible[open] .collapsible-arrow {
+    transform: rotate(90deg);
+  }
+  .collapsible-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    flex: 0 0 auto;
+  }
+  .admin-card.collapsible > summary .badge-count {
+    margin-left: 0;
+  }
+  .admin-card.collapsible > .collapsible-content {
+    margin-top: 6px;
+  }
+  .admin-card.collapsible > .collapsible-content .sub {
+    margin: 0 0 16px 0;
+  }
+
+  /* Toast (lokal) */
+  #toast {
+    position: fixed;
+    bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: #1f2937; color: white;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    opacity: 0;
+    pointer-events: none;
+    transition: all .25s;
+    z-index: 10000;
+    max-width: 90vw;
+    text-align: center;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #toast.success { background: #1e7a43; }
+  #toast.error { background: #c0392b; }
+
+  .hidden { display: none !important; }
+
+  @media (max-width: 600px) {
+    .tp-row { flex-direction: column; align-items: stretch; }
+    .tp-row .tp-actions { justify-content: flex-start; }
+  }
+</style>
+</head>
+<body class="admin">
+
+<header class="admin-header">
+  <h1>Andromedaexplorer — Admin</h1>
+  <button class="logout-btn hidden" id="logoutBtn">Abmelden</button>
+</header>
+
+<main class="admin-main">
+
+  <!-- Ansicht: nicht konfiguriert -->
+  <section class="admin-card hidden" id="viewNotConfigured">
+    <h2>Admin noch nicht eingerichtet</h2>
+    <p class="sub">
+      Die Datei <code>/etc/andromeda/admin.json</code> fehlt oder ist unvollständig.
+      Führe auf dem Server aus:
+    </p>
+    <pre style="background: var(--bg); padding: 12px 16px; border-radius: 8px; font-size: 13px; overflow-x: auto;">sudo /opt/andromeda/app/deploy/admin-init.sh
+sudo systemctl restart tours-admin</pre>
+  </section>
+
+  <!-- Ansicht: Login (Passwort) -->
+  <section class="admin-card hidden" id="viewLogin">
+    <h2>Anmelden</h2>
+    <p class="sub">Bitte gib das Admin-Passwort ein. Anschließend wirst du nach einem Code aus deiner Authenticator-App gefragt.</p>
+    <div id="loginError" class="error hidden"></div>
+    <div class="field">
+      <label for="passwordInput">Passwort</label>
+      <input type="password" id="passwordInput" autocomplete="current-password" autofocus>
+    </div>
+    <button class="primary" id="loginBtn">Weiter</button>
+  </section>
+
+  <!-- Ansicht: 2FA-Code -->
+  <section class="admin-card hidden" id="viewVerify">
+    <h2>Bestätigungscode</h2>
+    <p class="sub">
+      Gib den 6-stelligen Code aus deiner Authenticator-App ein.
+      Er wechselt alle 30 Sekunden.
+    </p>
+    <div id="verifyError" class="error hidden"></div>
+    <div class="field">
+      <label for="codeInput">Code</label>
+      <input type="text" id="codeInput" class="code-input" inputmode="numeric"
+             pattern="[0-9]*" maxlength="6" autocomplete="one-time-code">
+    </div>
+    <button class="primary" id="verifyBtn">Anmelden</button>
+    <div style="margin-top:12px; text-align:center;">
+      <button id="restartLoginBtn"
+              style="background: none; border: none; color: var(--primary);
+                     font-size: 13px; font-weight: 600; cursor: pointer;
+                     font-family: inherit;">
+        Zurück zur Passwort-Eingabe
+      </button>
+    </div>
+  </section>
+
+  <!-- Ansicht: Dashboard -->
+  <section class="admin-card hidden" id="viewDashboard">
+    <h2>Neue TourPack hochladen</h2>
+    <p class="sub">
+      Zieh eine <code>.tourpack</code>-Datei hierher oder klick, um sie auszuwählen.
+      Maximale Größe: 100 MB.
+    </p>
+    <label class="upload-drop" id="uploadDrop">
+      <input type="file" id="uploadInput" accept=".tourpack">
+      <span class="ico">📦</span>
+      <span>Datei hierher ziehen oder klicken</span>
+    </label>
+    <div class="upload-progress" id="uploadProgress"></div>
+  </section>
+
+  <details class="admin-card collapsible" id="viewQuarantine">
+    <summary>
+      <span class="collapsible-arrow">▶</span>
+      <span class="collapsible-title">Quarantäne</span>
+      <span class="badge-count" id="quarantineCount">0</span>
+    </summary>
+    <div class="collapsible-content">
+      <p class="sub">
+        Nutzer-Uploads, noch nicht aufbereitet. Klick auf „Aufbereiten", um
+        die Bilder re-encodieren zu lassen. Die Datei wandert danach in den
+        Bereich „Wartend auf Prüfung".
+      </p>
+      <div class="tp-list" id="quarantineList">
+        <div class="admin-empty">Keine Uploads.</div>
+      </div>
+    </div>
+  </details>
+
+  <details class="admin-card collapsible" id="viewPending">
+    <summary>
+      <span class="collapsible-arrow">▶</span>
+      <span class="collapsible-title">Wartend auf Prüfung</span>
+      <span class="badge-count" id="pendingCount">0</span>
+    </summary>
+    <div class="collapsible-content">
+      <p class="sub">
+        Aufbereitete TourPacks, bereit zur Sichtung. Klick auf „Vorschau",
+        um sie im Viewer zu öffnen. Bei Gefallen: „Veröffentlichen".
+      </p>
+      <div class="tp-list" id="pendingList">
+        <div class="admin-empty">Keine wartenden TourPacks.</div>
+      </div>
+    </div>
+  </details>
+
+  <section class="admin-card" id="viewList">
+    <h2>Veröffentlicht</h2>
+    <p class="sub" id="listSub">Lade …</p>
+    <div class="tp-search">
+      <input type="text" id="tpSearchInput"
+             placeholder="Nach Titel, Region oder Tag suchen …"
+             autocomplete="off">
+      <button type="button" id="tpSearchClear" title="Suche löschen">✕</button>
+    </div>
+    <div class="tp-list" id="tpList">
+      <div class="admin-empty">Lade …</div>
+    </div>
+  </section>
+
+</main>
+
+<div id="toast"></div>
+
+<script>
+"use strict";
+
+const API = "/admin/api";
+
+const state = {
+  password: "",
+  challengeId: null,
+  tourpacks: [],
+  listFilter: "",
+};
+
+function $(id) { return document.getElementById(id); }
+
+function show(viewId) {
+  ["viewNotConfigured", "viewLogin", "viewVerify", "viewDashboard"].forEach(id => {
+    const el = $(id);
+    if (el) el.classList.toggle("hidden", id !== viewId);
+  });
+  const hideLists = viewId === "viewNotConfigured"
+                 || viewId === "viewLogin"
+                 || viewId === "viewVerify";
+  ["viewList", "viewQuarantine", "viewPending"].forEach(id => {
+    const el = $(id);
+    if (el) el.classList.toggle("hidden", hideLists);
+  });
+  $("logoutBtn").classList.toggle("hidden", viewId !== "viewDashboard");
+}
+
+let toastTimer = null;
+function toast(msg, type) {
+  const el = $("toast");
+  el.textContent = msg;
+  el.className = "show" + (type ? " " + type : "");
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = ""; }, 3200);
+}
+
+function setError(elId, msg) {
+  const el = $(elId);
+  if (!msg) { el.classList.add("hidden"); el.textContent = ""; return; }
+  el.textContent = msg;
+  el.classList.remove("hidden");
+}
+
+async function api(path, opts) {
+  const url = API + path;
+  const options = opts || {};
+  options.credentials = "same-origin";
+  if (options.method === "POST") {
+    options.headers = Object.assign({}, options.headers || {}, {
+      "X-Admin-Request": "1",
+    });
+  }
+  const res = await fetch(url, options);
+  let data = null;
+  try { data = await res.json(); } catch (e) {}
+  return { ok: res.ok, status: res.status, data: data };
+}
+
+/* ============================================================
+ * Status abfragen
+ * ============================================================ */
+async function loadStatus() {
+  const r = await api("/status");
+  if (!r.ok || !r.data) {
+    toast("Verbindung zum Admin-Dienst fehlgeschlagen.", "error");
+    return;
+  }
+  if (!r.data.configured) {
+    show("viewNotConfigured");
+    return;
+  }
+  if (r.data.authenticated) {
+    show("viewDashboard");
+    refreshAllLists();
+  } else {
+    show("viewLogin");
+  }
+}
+
+/* ============================================================
+ * Login
+ * ============================================================ */
+async function doLogin() {
+  const pwd = $("passwordInput").value;
+  if (!pwd) return;
+  setError("loginError", null);
+  $("loginBtn").disabled = true;
+  $("loginBtn").textContent = "Prüfe …";
+
+  try {
+    const r = await api("/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: pwd }),
+    });
+    if (!r.ok || !r.data || !r.data.challenge_id) {
+      setError("loginError", r.data && r.data.error ? r.data.error
+                                                       : "Anmeldung fehlgeschlagen.");
+      return;
+    }
+    state.challengeId = r.data.challenge_id;
+    state.password = "";
+    $("passwordInput").value = "";
+    show("viewVerify");
+    $("codeInput").value = "";
+    $("codeInput").focus();
+  } catch (e) {
+    setError("loginError", "Verbindungsfehler.");
+  } finally {
+    $("loginBtn").disabled = false;
+    $("loginBtn").textContent = "Weiter";
+  }
+}
+
+/* ============================================================
+ * 2FA
+ * ============================================================ */
+async function doVerify() {
+  const code = $("codeInput").value.trim();
+  if (!/^\d{6}$/.test(code)) {
+    setError("verifyError", "Bitte 6 Ziffern eingeben.");
+    return;
+  }
+  if (!state.challengeId) {
+    setError("verifyError", "Sitzung abgelaufen. Bitte neu anmelden.");
+    return;
+  }
+  setError("verifyError", null);
+  $("verifyBtn").disabled = true;
+  $("verifyBtn").textContent = "Prüfe …";
+
+  try {
+    const r = await api("/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ challenge_id: state.challengeId, code }),
+    });
+    if (!r.ok || !r.data || !r.data.ok) {
+      setError("verifyError", r.data && r.data.error ? r.data.error
+                                                       : "Bestätigung fehlgeschlagen.");
+      return;
+    }
+    state.challengeId = null;
+    $("codeInput").value = "";
+    show("viewDashboard");
+    refreshAllLists();
+  } catch (e) {
+    setError("verifyError", "Verbindungsfehler.");
+  } finally {
+    $("verifyBtn").disabled = false;
+    $("verifyBtn").textContent = "Anmelden";
+  }
+}
+
+/* ============================================================
+ * Logout
+ * ============================================================ */
+async function doLogout() {
+  try { await api("/logout", { method: "POST" }); } catch (e) {}
+  show("viewLogin");
+}
+
+/* ============================================================
+ * Quarantäne
+ * ============================================================ */
+async function refreshQuarantine() {
+  const r = await api("/quarantine");
+  if (!r.ok || !r.data) {
+    if (r.status === 401) { show("viewLogin"); return; }
+    return;
+  }
+  const items = r.data.items || [];
+  $("quarantineCount").textContent = items.length;
+
+  const wrap = $("quarantineList");
+  if (!items.length) {
+    wrap.innerHTML = '<div class="admin-empty">Keine Uploads.</div>';
+    return;
+  }
+  wrap.innerHTML = "";
+
+  for (const it of items) {
+    const row = document.createElement("div");
+    row.className = "tp-row";
+    if (it.status === "error") row.classList.add("status-error");
+    if (it.status === "processing" || it.status === "requested")
+      row.classList.add("status-processing");
+
+    const uploaded = it.uploaded_at
+      ? new Date(it.uploaded_at * 1000).toLocaleString("de-DE")
+      : "—";
+
+    let statusText = "wartet";
+    if (it.status === "requested") statusText = "angefordert";
+    else if (it.status === "processing") statusText = "wird verarbeitet …";
+    else if (it.status === "error") statusText = "Fehler: " + (it.error || "unbekannt");
+
+    const info = document.createElement("div");
+    info.className = "tp-info";
+    info.innerHTML = `
+      <div class="tp-title">${escapeHtml(it.title || it.original_name || it.id)}</div>
+      <div class="tp-meta">
+        ${escapeHtml(it.original_name || "")}
+        ${it.size ? " · " + formatBytes(it.size) : ""}
+        · ${escapeHtml(uploaded)}
+        · ${escapeHtml(statusText)}
+      </div>
+    `;
+    row.appendChild(info);
+
+    const actions = document.createElement("div");
+    actions.className = "tp-actions";
+
+    if (it.status === "waiting" || it.status === "error") {
+      const prepBtn = document.createElement("button");
+      prepBtn.textContent = it.status === "error"
+        ? "Erneut versuchen" : "Aufbereiten";
+      prepBtn.onclick = () => prepareQuarantine(it.id, prepBtn);
+      actions.appendChild(prepBtn);
+    }
+
+    const delBtn = document.createElement("button");
+    delBtn.className = "danger";
+    delBtn.textContent = "Löschen";
+    delBtn.onclick = () => deleteQuarantine(it.id);
+    actions.appendChild(delBtn);
+
+    row.appendChild(actions);
+    wrap.appendChild(row);
+  }
+}
+
+async function prepareQuarantine(id, btn) {
+  btn.disabled = true;
+  try {
+    const r = await api("/quarantine/prepare", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    if (!r.ok || !r.data || !r.data.ok) {
+      toast("Konnte Aufbereitung nicht starten.", "error");
+      return;
+    }
+    toast("Aufbereitung läuft. Das kann einige Sekunden dauern.", "success");
+    // Nach kurzer Zeit neu laden
+    setTimeout(refreshQuarantine, 1500);
+    setTimeout(refreshPending, 2500);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function deleteQuarantine(id) {
+  if (!confirm("Diesen Upload endgültig löschen?")) return;
+  const r = await api("/quarantine/delete", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id }),
+  });
+  if (!r.ok) {
+    toast("Löschen fehlgeschlagen.", "error");
+    return;
+  }
+  toast("Upload gelöscht.", "success");
+  refreshQuarantine();
+}
+
+/* ============================================================
+ * Wartend
+ * ============================================================ */
+async function refreshPending() {
+  const r = await api("/pending");
+  if (!r.ok || !r.data) {
+    if (r.status === 401) { show("viewLogin"); return; }
+    return;
+  }
+  const items = r.data.items || [];
+  $("pendingCount").textContent = items.length;
+
+  const wrap = $("pendingList");
+  if (!items.length) {
+    wrap.innerHTML = '<div class="admin-empty">Keine wartenden TourPacks.</div>';
+    return;
+  }
+  wrap.innerHTML = "";
+
+  for (const it of items) {
+    const row = document.createElement("div");
+    row.className = "tp-row";
+
+    const info = document.createElement("div");
+    info.className = "tp-info";
+    info.innerHTML = `
+      <div class="tp-title">${escapeHtml(it.title || it.id)}</div>
+      <div class="tp-meta">
+        ${formatBytes(it.size)}
+        ${it.activity ? " · " + escapeHtml(it.activity) : ""}
+        ${it.original_name ? " · " + escapeHtml(it.original_name) : ""}
+      </div>
+    `;
+    row.appendChild(info);
+
+    const actions = document.createElement("div");
+    actions.className = "tp-actions";
+
+    const previewBtn = document.createElement("button");
+    previewBtn.textContent = "Vorschau";
+    previewBtn.onclick = () => {
+      const src = "/admin/api/pending/" + encodeURIComponent(it.id) + "/raw";
+      const url = "/tourpack-viewer.html?src=" + encodeURIComponent(src);
+      window.open(url, "_blank", "noopener");
+    };
+    actions.appendChild(previewBtn);
+
+    const pubBtn = document.createElement("button");
+    pubBtn.textContent = "Veröffentlichen";
+    pubBtn.onclick = () => publishPending(it.id, pubBtn);
+    actions.appendChild(pubBtn);
+
+    const rejBtn = document.createElement("button");
+    rejBtn.className = "danger";
+    rejBtn.textContent = "Ablehnen";
+    rejBtn.onclick = () => rejectPending(it.id);
+    actions.appendChild(rejBtn);
+
+    row.appendChild(actions);
+    wrap.appendChild(row);
+  }
+}
+
+async function publishPending(id, btn) {
+  if (!confirm("TourPack veröffentlichen?\n\nSie erscheint nach dem "
+             + "Indexieren durch den Handler in der Suche — in der Regel "
+             + "innerhalb weniger Sekunden.")) return;
+  btn.disabled = true;
+  try {
+    const r = await api("/pending/publish", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    if (!r.ok || !r.data || !r.data.ok) {
+      const reason = (r.data && r.data.error)
+        ? r.data.error
+        : (r.status ? `HTTP ${r.status}` : "unbekannter Fehler");
+      toast("Veröffentlichen fehlgeschlagen: " + reason, "error");
+      return;
+    }
+    toast("TourPack veröffentlicht: " + (r.data.file || id), "success");
+    refreshPending();
+    refreshList();
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function rejectPending(id) {
+  if (!confirm("TourPack ablehnen und löschen?")) return;
+  const r = await api("/pending/reject", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id }),
+  });
+  if (!r.ok) {
+    toast("Ablehnen fehlgeschlagen.", "error");
+    return;
+  }
+  toast("TourPack abgelehnt.", "success");
+  refreshPending();
+}
+
+/* ============================================================
+ * Liste
+ * ============================================================ */
+function formatBytes(n) {
+  if (n == null) return "—";
+  if (n < 1024) return n + " B";
+  if (n < 1024 * 1024) return (n / 1024).toFixed(1) + " KB";
+  return (n / (1024 * 1024)).toFixed(1) + " MB";
+}
+
+function escapeHtml(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  }[c]));
+}
+
+async function refreshList() {
+  const r = await api("/tourpacks");
+  if (!r.ok || !r.data) {
+    if (r.status === 401) { show("viewLogin"); return; }
+    toast("Liste konnte nicht geladen werden.", "error");
+    return;
+  }
+  state.tourpacks = r.data.tourpacks || [];
+  renderList();
+}
+
+function updateSearchClear() {
+  const el = $("tpSearchClear");
+  if (!el) return;
+  el.classList.toggle("show", !!state.listFilter);
+}
+
+function renderList() {
+  const wrap = $("tpList");
+  const sub = $("listSub");
+  const all = state.tourpacks;
+  const q = (state.listFilter || "").trim().toLowerCase();
+
+  const list = !q ? all : all.filter(tp => {
+    const title = String(tp.title || "").toLowerCase();
+    const loc = tp.location || {};
+    const locText = [loc.region, loc.county, loc.municipality,
+                     loc.place, loc.country]
+      .filter(Boolean).map(s => String(s).toLowerCase()).join(" ");
+    const tags = (Array.isArray(tp.tags) ? tp.tags : [])
+      .map(t => String(t).toLowerCase()).join(" ");
+    return title.includes(q) || locText.includes(q) || tags.includes(q);
+  });
+
+  if (!all.length) {
+    sub.textContent = "Noch keine TourPacks im Bestand.";
+  } else if (!q) {
+    sub.textContent = `${all.length} TourPack${all.length === 1 ? "" : "s"} im Bestand.`;
+  } else {
+    sub.textContent = `${list.length} von ${all.length} TourPacks (gefiltert).`;
+  }
+
+  if (!all.length) {
+    wrap.innerHTML = '<div class="admin-empty">Noch keine TourPacks vorhanden.</div>';
+    return;
+  }
+  if (!list.length) {
+    wrap.innerHTML = '<div class="admin-empty">Keine Treffer für die Suche.</div>';
+    return;
+  }
+
+  wrap.innerHTML = "";
+  for (const tp of list) {
+    const row = document.createElement("div");
+    row.className = "tp-row" + (tp.promoted ? " promoted" : "");
+
+    const info = document.createElement("div");
+    info.className = "tp-info";
+    info.innerHTML = `
+      <div class="tp-title">${escapeHtml(tp.title || tp.id)}</div>
+      <div class="tp-meta">
+        ${formatBytes(tp.size)}
+        ${tp.id ? " · ID " + escapeHtml(tp.id) : ""}
+        ${tp.indexed ? "" : " · <em>noch nicht indexiert</em>"}
+      </div>
+    `;
+    row.appendChild(info);
+
+    const actions = document.createElement("div");
+    actions.className = "tp-actions";
+
+    if (tp.id) {
+      const openLink = document.createElement("a");
+      openLink.href = "/tourpack-viewer.html?open=" + encodeURIComponent(tp.id);
+      openLink.target = "_blank";
+      openLink.rel = "noopener";
+      openLink.textContent = "Öffnen";
+      actions.appendChild(openLink);
+
+      const dlLink = document.createElement("a");
+      dlLink.href = API + "/download/" + encodeURIComponent(tp.id);
+      dlLink.textContent = "Download";
+      actions.appendChild(dlLink);
+
+      const promoteBtn = document.createElement("button");
+      promoteBtn.textContent = tp.promoted ? "★ Promoted" : "☆ Promoten";
+      promoteBtn.className = tp.promoted ? "promoted" : "";
+      promoteBtn.onclick = () => togglePromote(tp, promoteBtn);
+      actions.appendChild(promoteBtn);
+    }
+
+    const delBtn = document.createElement("button");
+    delBtn.className = "danger";
+    delBtn.textContent = "Löschen";
+    delBtn.onclick = () => doDelete(tp);
+    actions.appendChild(delBtn);
+
+    row.appendChild(actions);
+    wrap.appendChild(row);
+  }
+}
+
+async function togglePromote(tp, btn) {
+  btn.disabled = true;
+  try {
+    const want = !tp.promoted;
+    const r = await api("/promote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: tp.id, promoted: want }),
+    });
+    if (!r.ok || !r.data || !r.data.ok) {
+      toast("Konnte Status nicht ändern.", "error");
+      return;
+    }
+    tp.promoted = r.data.promoted;
+    renderList();
+    toast(tp.promoted ? "Zur Promoted-Liste hinzugefügt." : "Aus Promoted-Liste entfernt.",
+          "success");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function doDelete(tp) {
+  if (!confirm(`TourPack „${tp.title || tp.id}" wirklich löschen?\n\nDer Ordner und der Index-Eintrag werden vom Server entfernt. Das ZIP-Backup in tourpacks_backup/ bleibt unangetastet.`)) return;
+  const r = await api("/delete", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id: tp.id }),
+  });
+  if (!r.ok || !r.data || !r.data.ok) {
+    toast(r.data && r.data.error ? r.data.error : "Löschen fehlgeschlagen.", "error");
+    return;
+  }
+  toast("TourPack gelöscht.", "success");
+  refreshList();
+}
+
+/* ============================================================
+ * Upload
+ * ============================================================ */
+async function doUpload(file) {
+  if (!file) return;
+  if (!file.name.toLowerCase().endsWith(".tourpack")) {
+    toast("Nur .tourpack-Dateien.", "error");
+    return;
+  }
+  if (file.size > 100 * 1024 * 1024) {
+    toast("Datei größer als 100 MB.", "error");
+    return;
+  }
+
+  const progress = $("uploadProgress");
+  progress.classList.add("show");
+  progress.textContent = `Lade ${file.name} (${formatBytes(file.size)}) hoch …`;
+
+  try {
+    const res = await fetch(API + "/upload", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/zip",
+        "X-Tourpack-Name": file.name,
+        "X-Admin-Request": "1",
+      },
+      body: file,
+    });
+    let data = null;
+    try { data = await res.json(); } catch (e) {}
+    if (!res.ok || !data || !data.ok) {
+      const msg = data && data.error ? data.error : "Upload fehlgeschlagen.";
+      toast(msg, "error");
+      progress.textContent = "Fehler: " + msg;
+      return;
+    }
+    toast("TourPack hochgeladen.", "success");
+    progress.textContent = "Erfolgreich hochgeladen.";
+    refreshList();
+    setTimeout(() => progress.classList.remove("show"), 3000);
+  } catch (e) {
+    toast("Verbindungsfehler beim Upload.", "error");
+    progress.textContent = "Verbindungsfehler.";
+  }
+}
+
+function refreshAllLists() {
+  refreshQuarantine();
+  refreshPending();
+  refreshList();
+}
+
+let _autoRefreshTimer = null;
+function startAutoRefresh() {
+  if (_autoRefreshTimer) clearInterval(_autoRefreshTimer);
+  _autoRefreshTimer = setInterval(() => {
+    if (!$("viewDashboard").classList.contains("hidden")) {
+      refreshQuarantine();
+      refreshPending();
+    }
+  }, 5000);
+}
+
+/* ============================================================
+ * Events
+ * ============================================================ */
+function bindEvents() {
+  $("loginBtn").addEventListener("click", doLogin);
+  $("passwordInput").addEventListener("keydown", e => {
+    if (e.key === "Enter") { e.preventDefault(); doLogin(); }
+  });
+
+  $("verifyBtn").addEventListener("click", doVerify);
+  $("codeInput").addEventListener("input", e => {
+    e.target.value = e.target.value.replace(/\D/g, "").slice(0, 6);
+    if (e.target.value.length === 6) doVerify();
+  });
+
+  $("restartLoginBtn").addEventListener("click", () => {
+    state.challengeId = null;
+    setError("verifyError", null);
+    setError("loginError", null);
+    show("viewLogin");
+    $("passwordInput").focus();
+  });
+
+  $("logoutBtn").addEventListener("click", doLogout);
+
+  // Suchfeld in der Veröffentlicht-Liste
+  const searchInput = $("tpSearchInput");
+  if (searchInput) {
+    searchInput.addEventListener("input", (e) => {
+      state.listFilter = e.target.value;
+      renderList();
+      updateSearchClear();
+    });
+  }
+  const searchClear = $("tpSearchClear");
+  if (searchClear) {
+    searchClear.addEventListener("click", () => {
+      state.listFilter = "";
+      if (searchInput) searchInput.value = "";
+      renderList();
+      updateSearchClear();
+    });
+  }
+
+  const drop = $("uploadDrop");
+  const input = $("uploadInput");
+  input.addEventListener("change", e => {
+    const f = e.target.files[0];
+    e.target.value = "";
+    if (f) doUpload(f);
+  });
+  ["dragenter", "dragover"].forEach(ev => {
+    drop.addEventListener(ev, e => {
+      e.preventDefault();
+      drop.classList.add("dragover");
+    });
+  });
+  ["dragleave", "drop"].forEach(ev => {
+    drop.addEventListener(ev, e => {
+      e.preventDefault();
+      drop.classList.remove("dragover");
+    });
+  });
+  drop.addEventListener("drop", e => {
+    const f = e.dataTransfer.files[0];
+    if (f) doUpload(f);
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  bindEvents();
+  loadStatus();
+  startAutoRefresh();
+});
+</script>
+
+</body>
+</html>

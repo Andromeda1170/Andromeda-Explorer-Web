@@ -1,0 +1,9 @@
+[Unit]
+Description=BRouter neu starten (ausgelöst von brouter-restart.path)
+# Höchstens 4 Neustarts pro Stunde, egal wie oft die Datei geändert wird.
+StartLimitIntervalSec=3600
+StartLimitBurst=4
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/systemctl restart brouter.service

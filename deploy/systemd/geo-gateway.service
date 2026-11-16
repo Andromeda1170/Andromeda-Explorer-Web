@@ -1,0 +1,45 @@
+[Unit]
+Description=Andromeda geo-gateway (BRouter, Nominatim, Overpass) :8080
+After=network.target brouter.service
+
+[Service]
+Type=simple
+User=andromeda-geo
+Group=andromeda-geo
+Environment=PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
+EnvironmentFile=-/etc/andromeda/andromeda.env
+ExecStart=/usr/bin/python3 /opt/andromeda/app/services/geo-gateway.py
+Restart=on-failure
+RestartSec=3
+UMask=0027
+# Darf ins Internet (nominatim.openstreetmap.org, overpass-api.de).
+ReadWritePaths=/var/lib/andromeda/geo-cache /var/lib/andromeda/brouter/profiles2
+MemoryDenyWriteExecute=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+MemoryMax=512M
+# --- Härtung ---------------------------------------------------------
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RemoveIPC=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,31 @@
+# Geheimnisse und Serverdaten gehören NIE ins Repo.
+# (Auf dem Server liegen sie außerhalb: /etc/andromeda und /var/lib/andromeda.)
+admin.json
+admin-config.json
+*.env
+!deploy/andromeda.env.example
+*.sqlite
+*.sqlite-*
+*.rd5
+*.tourpack
+*.pem
+*.key
+
+# Impressum mit persönlichen Daten (Vorlage: www/impressum.example.html)
+www/impressum.html
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Editor / System
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# lokale Testdaten
+/testdata/
+/tmp/

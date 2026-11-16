@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<!-- Vorlage: als impressum.html kopieren und eigene Angaben eintragen.
+     impressum.html steht in .gitignore und kommt nicht ins Repository. -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#2a6fbf">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="favicon.png">
+<title>Impressum — Andromeda-Explorer</title>
+
+<link rel="stylesheet" href="stylesheets/base.css">
+<link rel="stylesheet" href="stylesheets/layout.css">
+<link rel="stylesheet" href="stylesheets/components.css">
+<link rel="stylesheet" href="stylesheets/site.css">
+
+<style>
+
+  /* Header (identisch zu hilfe.html) */
+
+
+  /* Inhalt */
+
+
+
+  .doc .info-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px 20px;
+    margin: 16px 0;
+    font-size: 14.5px;
+    line-height: 1.6;
+  }
+  .doc .info-box .row {
+    display: flex;
+    gap: 12px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .doc .info-box .row:last-child { border-bottom: none; }
+  .doc .info-box .row .lbl {
+    color: var(--text-muted);
+    min-width: 160px;
+    flex-shrink: 0;
+    font-size: 13.5px;
+  }
+  .doc .info-box .row .val {
+    color: var(--text);
+    font-weight: 500;
+    word-break: break-word;
+  }
+  .doc .info-box .row .val.placeholder {
+    color: var(--danger);
+    font-style: italic;
+    font-weight: 700;
+  }
+
+  /* Footer (identisch zu hilfe.html) */
+
+  /* Mobiles Menü */
+
+  @media (max-width: 900px) {
+    .doc .info-box .row { flex-direction: column; gap: 2px; }
+    .doc .info-box .row .lbl { min-width: 0; }
+  }
+</style>
+</head>
+<body class="page-scroll">
+
+<header id="header">
+  <button class="icon-btn menu-btn" id="menuBtn" title="Menü" aria-label="Menü öffnen">☰</button>
+
+  <a href="index.html" class="brand">
+    <img src="logo.svg" class="logo" alt="">
+    <span class="brand-name">Andromeda-Explorer</span>
+  </a>
+
+  <nav class="app-nav desktop-only">
+    <a href="routing.html" class="app-primary">🗺️ Route planen</a>
+    <a href="navigation.html">🧭 Navigieren</a>
+    <a href="tourpack-viewer.html">👁️ TourPack ansehen</a>
+    <a href="tourpack-editor.html">✏️ TourPack erstellen</a>
+    <a href="hilfe.html">📖 Hilfe</a>
+    <button class="icon-btn lang-btn" type="button"></button>
+    <button class="icon-btn darkmode-btn" title="Nachtmodus" aria-label="Nachtmodus">🌙</button>
+  </nav>
+</header>
+
+<main>
+  <article class="doc">
+    <div data-lang-block="de" data-no-i18n>
+
+    <h1>Impressum / Offenlegung</h1>
+    <p class="lead">
+      Angaben gemäß § 25 Mediengesetz (MedienG).
+    </p>
+
+    <section id="medieninhaber">
+      <h2>Medieninhaber</h2>
+      <div class="info-box">
+        <div class="row">
+          <span class="lbl">Name</span>
+          <span class="val placeholder">Vorname Nachname</span>
+        </div>
+        <div class="row">
+          <span class="lbl">Wohnort</span>
+          <span class="val placeholder">Ort, Land</span>
+        </div>
+        <div class="row">
+          <span class="lbl">Kontakt</span>
+          <span class="val">
+            <a href="mailto:kontakt@example.com">kontakt@example.com</a>
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <section id="zweck">
+      <h2>Zweck / Tätigkeit</h2>
+      <p>
+        Betrieb eines privaten, nicht kommerziellen Hobbyprojekts zur
+        Planung, Navigation und freien Weitergabe von Wander-,
+        Rad- und Lauf-Touren.
+      </p>
+      <p>
+        Die Website ist kostenlos und ohne Benutzerkonto nutzbar. Die laufenden
+        Betriebskosten werden, soweit möglich, durch freiwillige Spenden gedeckt.
+        Spenden sind freiwillig und mit keinerlei Gegenleistung oder besonderen
+        Vorteilen verbunden. Es wird keine Werbung geschaltet und es werden
+        keine Waren oder Dienstleistungen entgeltlich angeboten.
+      </p>
+    </section>
+
+    <!--<section id="streitbeilegung">
+      <h2>Verbraucherstreitbeilegung</h2>
+      <p>
+        Es werden keine entgeltlichen Verträge mit Verbrauchern über Waren oder
+        Dienstleistungen angeboten. Eine Teilnahme an einem
+        Verbraucherstreitbeilegungsverfahren wird nicht angeboten.
+      </p>
+    </section>-->
+    </div>
+
+    <div data-lang-block="en" data-no-i18n>
+    <h1>Legal notice / Disclosure</h1>
+    <p class="lead">
+      Information pursuant to § 25 of the Austrian Media Act (MedienG).
+      This is a courtesy translation; the German version is legally binding.
+    </p>
+
+    <section id="en-owner">
+      <h2>Media owner</h2>
+      <div class="info-box">
+        <div class="row">
+          <span class="lbl">Name</span>
+          <span class="val placeholder">First name Last name</span>
+        </div>
+        <div class="row">
+          <span class="lbl">Place of residence</span>
+          <span class="val placeholder">City, Country</span>
+        </div>
+        <div class="row">
+          <span class="lbl">Contact</span>
+          <span class="val">
+            <a href="mailto:kontakt@example.com">kontakt@example.com</a>
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <section id="en-purpose">
+      <h2>Purpose / activity</h2>
+      <p>
+        Operation of a private, non-commercial hobby project for planning,
+        navigating and freely sharing hiking, cycling and running tours.
+      </p>
+      <p>
+        The website is free of charge and can be used without a user account.
+        Running costs are covered by voluntary donations as far as possible.
+        Donations are voluntary and do not come with any consideration or
+        special benefits. No advertising is shown and no goods or services
+        are offered for payment.
+      </p>
+    </section>
+    </div>
+
+  </article>
+</main>
+
+<footer id="footer">
+  <div class="footer-inner">
+
+    <div class="footer-col">
+      <div class="footer-brand">
+        <img src="logo.svg" class="logo" alt="">
+        <span>Andromeda-Explorer</span>
+      </div>
+      <p>
+        Werkzeuge für Wander-, Rad- und Lauftouren
+      </p>
+    </div>
+
+    <div class="footer-col">
+      <h4>Daten</h4>
+      <p>
+        Kartendaten von
+        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>.
+      </p>
+      <p>
+        Routing mit
+        <a href="https://brouter.de/" target="_blank" rel="noopener">BRouter</a>.
+      </p>
+      <p>
+        Danke an die OpenStreetMap-Community und die BRouter-Entwickler:innen.
+      </p>
+    </div>
+
+    <div class="footer-col">
+      <h4>Links</h4>
+      <ul>
+        <li><a href="index.html">Startseite</a></li>
+        <li><a href="hilfe.html">Hilfe</a></li>
+        <li><a href="impressum.html">Impressum</a></li>
+        <li><a href="rechtliches.html">Rechtliche Hinweise</a></li>
+      </ul>
+    </div>
+
+  </div>
+</footer>
+
+<div id="mobileMenu">
+  <div class="menu-sheet">
+    <div class="menu-head">
+      <div class="grabber"></div>
+      <h2>Menü</h2>
+      <button class="close-btn" id="closeMobileMenu" title="Schließen">✕</button>
+    </div>
+    <div class="menu-body">
+
+      <a class="menu-item primary" href="navigation.html">
+        <span class="mi-icon">🧭</span>
+        <span class="mi-title">Navigieren</span>
+      </a>
+
+      <a class="menu-item primary" href="routing.html">
+        <span class="mi-icon">🗺️</span>
+        <span class="mi-title">Route planen</span>
+      </a>
+
+      <a class="menu-item secondary" href="tourpack-viewer.html">
+        <span class="mi-icon">👁️</span>
+        <span class="mi-title">TourPack ansehen</span>
+      </a>
+
+      <a class="menu-item secondary" href="tourpack-editor.html">
+        <span class="mi-icon">✏️</span>
+        <span class="mi-title">TourPack erstellen</span>
+      </a>
+
+      <a class="menu-item secondary" href="hilfe.html">
+        <span class="mi-icon">📖</span>
+        <span class="mi-title">Hilfe</span>
+      </a>
+
+      <div class="menu-sep"></div>
+
+      <label class="menu-switch">
+        <span class="mi-icon">🌙</span>
+        <span class="mi-title">Nachtmodus</span>
+        <span class="switch">
+          <input type="checkbox" class="darkmode-switch">
+          <span class="slider"></span>
+        </span>
+      </label>
+      <div class="menu-lang">
+        <span class="mi-icon">🌐</span>
+        <span class="mi-title">Sprache</span>
+        <div class="lang-seg"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="scripts/config.js"></script>
+<script src="scripts/i18n.js"></script>
+<script src="scripts/lang/de.js"></script>
+<script src="scripts/lang/en.js"></script>
+<script src="scripts/lang/en-phrases.js"></script>
+<script src="scripts/utils.js"></script>
+<script src="scripts/toast.js"></script>
+<script src="scripts/darkmode.js"></script>
+<script src="scripts/sitemenu.js"></script>
+
+<script>AndromedaSiteMenu.initStaticPage();</script>
+
+</body>
+</html>

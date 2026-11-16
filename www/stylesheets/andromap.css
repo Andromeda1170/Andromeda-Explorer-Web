@@ -1,0 +1,204 @@
+/* ============================================================
+ * AndroMap — Styles der eigenen Karten-Engine (ersetzt leaflet.css)
+ * Klassennamen wie bei Leaflet, damit vorhandenes CSS weiter greift.
+ * ============================================================ */
+
+.leaflet-container {
+  position: relative;
+  overflow: hidden;
+  background: #dfe6ec;
+  outline: none;
+  touch-action: none;
+  -webkit-user-select: none; user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  font: 12px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  cursor: grab;
+}
+.leaflet-container.leaflet-dragging { cursor: grabbing; }
+.leaflet-container a { color: #0078a8; }
+body.dark .leaflet-container { background: #1a1d21; }
+
+.leaflet-pane,
+.leaflet-world,
+.leaflet-layer,
+.leaflet-tile-container {
+  position: absolute; left: 0; top: 0;
+}
+.leaflet-map-pane { width: 100%; height: 100%; }
+/* Ebenen-Reihenfolge wie bei Leaflet (Kachel-Ebenen haben eigene z-Indizes,
+   deshalb brauchen die Panes feste Werte, sonst verdecken Kacheln die Linien) */
+.leaflet-world        { z-index: 100; }
+.leaflet-tile-pane    { z-index: 200; }
+.leaflet-overlay-pane { z-index: 400; }
+.leaflet-marker-pane  { z-index: 600; }
+.leaflet-tooltip-pane { z-index: 650; }
+.leaflet-popup-pane   { z-index: 700; }
+.leaflet-world { transform-origin: 0 0; will-change: transform; }
+
+/* Kacheln */
+.leaflet-tile {
+  position: absolute; left: 0; top: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity .2s linear;
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+.leaflet-tile.leaflet-tile-loaded { opacity: 1; }
+.leaflet-tile img {
+  position: absolute; left: 0; top: 0;
+  width: 100%; height: 100%;
+  max-width: none !important; max-height: none !important;
+  -webkit-user-drag: none; user-select: none;
+  image-rendering: auto;
+}
+
+/* Vektoren */
+.leaflet-overlay-pane svg { position: absolute; left: 0; top: 0; pointer-events: none; }
+.leaflet-overlay-pane .leaflet-interactive { cursor: pointer; }
+
+/* Marker */
+.leaflet-marker-pane,
+.leaflet-tooltip-pane,
+.leaflet-popup-pane { width: 0; height: 0; }
+.leaflet-marker-icon {
+  position: absolute; left: 0; top: 0;
+  display: block;
+  will-change: transform;
+}
+.leaflet-marker-icon.leaflet-interactive { cursor: pointer; }
+.leaflet-marker-icon.leaflet-dragging { cursor: grabbing; }
+.leaflet-div-icon { background: #fff; border: 1px solid #666; }
+.andromap-default-icon { background: none; border: none; }
+
+/* Tooltip */
+.leaflet-tooltip {
+  position: absolute; left: 0; top: 0;
+  padding: 4px 8px;
+  background: #fff; color: #222;
+  border-radius: 6px;
+  font-size: 12px; font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 1px 4px rgba(0,0,0,.3);
+  z-index: 10;
+}
+body.dark .leaflet-tooltip { background: var(--panel, #1f2327); color: var(--text, #e8eaed); }
+
+/* Popup */
+.leaflet-popup {
+  position: absolute; left: 0; top: 0;
+  text-align: center;
+}
+.leaflet-popup-content-wrapper {
+  padding: 1px; text-align: left;
+  border-radius: 12px;
+  background: #fff; color: #333;
+  box-shadow: 0 3px 14px rgba(0,0,0,.35);
+}
+.leaflet-popup-content { margin: 13px 20px 13px 16px; line-height: 1.35; font-size: 13px; }
+.leaflet-popup-tip-container {
+  width: 40px; height: 20px;
+  position: absolute; left: 50%; margin-left: -20px;
+  overflow: hidden; pointer-events: none;
+}
+.leaflet-popup-tip {
+  width: 17px; height: 17px; padding: 1px;
+  margin: -10px auto 0;
+  transform: rotate(45deg);
+  background: #fff;
+  box-shadow: 0 3px 14px rgba(0,0,0,.35);
+}
+.leaflet-popup-close-button {
+  position: absolute; top: 2px; right: 4px;
+  width: 24px; height: 24px;
+  font: 18px/24px Tahoma, Verdana, sans-serif;
+  color: #757575 !important; text-decoration: none;
+  z-index: 1;
+}
+
+/* Bedienelemente */
+.leaflet-control-container .leaflet-top,
+.leaflet-control-container .leaflet-bottom {
+  position: absolute; z-index: 1000; pointer-events: none;
+}
+.leaflet-top { top: 0; }
+.leaflet-bottom { bottom: 0; }
+.leaflet-left { left: 0; }
+.leaflet-right { right: 0; }
+.leaflet-control {
+  position: relative; z-index: 800;
+  pointer-events: auto;
+  float: left; clear: both;
+  cursor: auto;
+}
+.leaflet-right .leaflet-control { float: right; }
+.leaflet-top .leaflet-control { margin-top: 10px; }
+.leaflet-bottom .leaflet-control { margin-bottom: 10px; }
+.leaflet-left .leaflet-control { margin-left: 10px; }
+.leaflet-right .leaflet-control { margin-right: 10px; }
+
+.leaflet-bar {
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(16,24,40,.25);
+  background-clip: padding-box;
+}
+.leaflet-bar a {
+  display: block;
+  width: 34px; height: 34px; line-height: 34px;
+  text-align: center; text-decoration: none;
+  background: #fff; color: #1a1a1a;
+  border-bottom: 1px solid #e2e6ea;
+  cursor: pointer;
+}
+.leaflet-bar a:first-child { border-top-left-radius: 8px; border-top-right-radius: 8px; }
+.leaflet-bar a:last-child { border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; border-bottom: none; }
+.leaflet-bar a:hover { background: #f2f5f8; }
+.leaflet-bar a.leaflet-disabled { color: #b6bdc6; cursor: default; background: #fafbfc; }
+.leaflet-control-zoom a { font: bold 18px/34px "Lucida Console", Monaco, monospace; }
+
+.leaflet-control-attribution {
+  margin: 0 !important;
+  padding: 0 6px;
+  background: rgba(255,255,255,.8);
+  color: #333;
+  font-size: 11px; line-height: 1.5;
+  border-top-left-radius: 4px;
+}
+.leaflet-control-attribution a { text-decoration: none; }
+
+.leaflet-control-scale-line {
+  border: 2px solid #777; border-top: none;
+  line-height: 1.1;
+  padding: 2px 5px 1px;
+  font-size: 11px;
+  white-space: nowrap;
+  box-sizing: border-box;
+  background: rgba(255,255,255,.8);
+  text-shadow: 1px 1px #fff;
+}
+
+/* Kompassnadel: oben rechts unter dem Kartenstil-Knopf.
+   Unsichtbar, solange die Karte nach Norden zeigt. */
+.leaflet-control-compass {
+  margin-top: 64px !important;
+  transition: opacity .25s, transform .25s;
+}
+.leaflet-control-compass a {
+  display: flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 4px 8px -2px rgba(16,24,40,.18), 0 2px 4px -2px rgba(16,24,40,.1);
+}
+.leaflet-control-compass svg {
+  width: 30px; height: 30px; display: block;
+  transition: transform .08s linear;
+}
+.leaflet-control-compass.is-north { opacity: 0; transform: scale(.8); pointer-events: none; }
+body.dark .leaflet-control-compass a { background: var(--panel, #1f2327); }
+
+@media (max-width: 900px) {
+  .leaflet-control-compass { margin-top: 58px !important; }
+  .leaflet-control-compass a { width: 36px; height: 36px; }
+  .leaflet-control-compass svg { width: 26px; height: 26px; }
+}
