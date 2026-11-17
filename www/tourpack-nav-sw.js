@@ -9,7 +9,7 @@
  * veralteten Routen- oder Suchantworten ausliefern.
  */
 
-const CACHE_NAME = "tourpack-nav-shell-v98";
+const CACHE_NAME = "tourpack-nav-shell-v99";
 
 // Diese Dateien werden beim Install des Service Workers vorab geladen.
 // Sie sind danach offline verfügbar, ohne dass der Nutzer die Seite

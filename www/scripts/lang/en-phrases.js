@@ -8,6 +8,10 @@
  * Siehe scripts/i18n.js.
  * ============================================================ */
 AndromedaI18n.addPhrases("en", {
+  "Kostenlos, werbefrei und ohne Konto nutzbar. Wer das Projekt unterstützen möchte, kann einen Beitrag zu den Serverkosten leisten.": "Free, ad-free and no account needed. If you'd like to support the project, you can chip in towards the server costs.",
+  "☕ Projekt unterstützen": "☕ Support the project",
+  "Quellcode auf GitHub": "Source code on GitHub",
+  "Projekt unterstützen": "Support the project",
   "# Überschrift": "# Heading",
   "## Überschrift": "## Heading",
   "&copy; OSM-Mitwirkende ·": "&copy; OSM contributors ·",
